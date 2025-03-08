@@ -13,49 +13,90 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
   await rm(path.join(".router"), { recursive: true, force: true });
   await mkdir(path.join(".router", "types", routesFolder), { recursive: true });
 
-  // First, collect all parameter names from all routes to handle layout routes
-  const allRouteParams = new Map<string, Set<string>>();
+  // First, extract all route parameters
+  const routeParams = new Map<
+    string,
+    {
+      paramNames: Set<string>;
+      optionalParams: Set<string>;
+    }
+  >();
 
   for (const file of files) {
     const routeName = file.replace(tsRegex, "");
-    const paramInfo = extractParamsFromRoute(routeName);
-    allRouteParams.set(routeName, paramInfo.paramNames);
+    const params = extractParamsFromRoute(routeName);
+    routeParams.set(routeName, params);
+  }
 
-    // For each parent route (layout), add this route's params as optional
+  // Create a map to track all parameters for each route (including from child routes)
+  const allRouteParams = new Map<string, Set<string>>();
+  const allOptionalParams = new Map<string, Set<string>>();
+
+  // Initialize with direct parameters
+  for (const [routeName, params] of routeParams.entries()) {
+    allRouteParams.set(routeName, new Set(params.paramNames));
+    allOptionalParams.set(routeName, new Set(params.optionalParams));
+  }
+
+  // Find all layout routes
+  const layoutRoutes = new Set<string>();
+  for (const routeName of routeParams.keys()) {
     let parentRoute = routeName;
     while (parentRoute.includes(".")) {
       parentRoute = parentRoute.substring(0, parentRoute.lastIndexOf("."));
-      const parentParams = allRouteParams.get(parentRoute) || new Set();
-
-      // Add all params from this route to the parent as optional
-      for (const param of paramInfo.paramNames) {
-        parentParams.add(param);
-      }
-
-      allRouteParams.set(parentRoute, parentParams);
+      layoutRoutes.add(parentRoute);
     }
+  }
+
+  // For each route, find all child routes and propagate their parameters
+  for (const layoutRoute of layoutRoutes) {
+    const layoutParams = allRouteParams.get(layoutRoute) || new Set();
+    const layoutOptionalParams =
+      allOptionalParams.get(layoutRoute) || new Set();
+
+    // Find all child routes
+    for (const routeName of routeParams.keys()) {
+      if (
+        routeName !== layoutRoute &&
+        routeName.startsWith(layoutRoute + ".")
+      ) {
+        const childParams = routeParams.get(routeName);
+        if (childParams) {
+          // Add all child parameters to the layout route as optional
+          for (const param of childParams.paramNames) {
+            layoutParams.add(param);
+            layoutOptionalParams.add(param); // All propagated params are optional in the parent
+          }
+        }
+      }
+    }
+
+    allRouteParams.set(layoutRoute, layoutParams);
+    allOptionalParams.set(layoutRoute, layoutOptionalParams);
   }
 
   // Now generate the type files with the collected parameters
   for (const file of files) {
     const routeName = file.replace(tsRegex, "");
-    const { paramNames, optionalParams } = extractParamsFromRoute(routeName);
 
-    // Get additional params from child routes for layout routes
-    const allParams = allRouteParams.get(routeName) || new Set();
+    // Get all parameters for this route
+    const params = allRouteParams.get(routeName) || new Set();
+    const optionalParams = allOptionalParams.get(routeName) || new Set();
 
     // Generate the params string
-    const params = Array.from(allParams)
+    const paramsString = Array.from(params)
       .map((param) => {
-        // If this param is optional in this route or comes from a child route, make it optional
-        const isOptional = optionalParams.has(param) || !paramNames.has(param);
+        const isOptional = optionalParams.has(param);
         return `\t${param}${isOptional ? "?" : ""}: string;`;
       })
       .join("\n");
 
     const isDirectory = !file.endsWith(".tsx");
 
-    const template = createTemplate(isDirectory ? "route.tsx" : file, params);
+    const template = createTemplate(
+      isDirectory ? "route.tsx" : file,
+      paramsString,
+    );
 
     const basePath = path.join(".router", "types", routesFolder);
     if (isDirectory) {
