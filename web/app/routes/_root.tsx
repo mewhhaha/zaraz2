@@ -1,6 +1,5 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
-import t from "./+types._root";
-import Home from "./_root.home";
+import * as t from "./+types._root";
 
 export const loader = async ({ request }: t.LoaderArgs) => {
   const url = new URL(request.url);
@@ -77,25 +76,6 @@ export default function Index({
     </div>
   );
 }
-
-type EmojiFrameProps = JSX.IntrinsicElements["span"];
-
-const EmojiFrame = ({ children, ...props }: EmojiFrameProps) => {
-  return (
-    <span class={`inline-block`}>
-      <span
-        class={`
-          rounded
-
-          in-aria-current-page:bg-gray-500
-        `}
-        {...props}
-      >
-        {children}
-      </span>
-    </span>
-  );
-};
 
 type NavLinkProps = Omit<JSX.IntrinsicElements["a"], "href"> & {
   href: [pathname: string, href: string];

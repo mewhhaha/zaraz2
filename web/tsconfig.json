@@ -25,5 +25,5 @@
     "rootDirs": ["./.router/types", "."]
   },
   "exclude": ["test", "dist"],
-  "include": ["app", "main.ts", "app/assets"]
+  "include": ["app", "main.ts", "app/assets", ".router/types"]
 }
