@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+@utility view-transition-* {
+  view-transition-name: --value([ *]);
+}
+
+@custom-variant aria-current-page (&[aria-current="page"]);

@@ -1,0 +1,11 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "zaraz-2"
+main = "./dist/main.js"
+build.watch_dir = "dist"
+
+compatibility_date = "2025-03-08"
+compatibility_flags = ["nodejs_compat"]
+assets = { directory = "./dist/", binding = "ASSETS" }
+
+[vars]
+SECRET = "secret"

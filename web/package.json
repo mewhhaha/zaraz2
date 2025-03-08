@@ -1,0 +1,38 @@
+{
+  "name": "worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "test": "vitest",
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc -p tsconfig.json",
+    "routes": "fs-routes ./app",
+    "build": "rolldown -c ./rolldown.config.js",
+    "watch": "rolldown -c ./rolldown.config.js --watch",
+    "dev": "wrangler dev --live-reload"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250124.3",
+    "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.13",
+    "@mewhhaha/fx-router": "workspace:^",
+    "@tailwindcss/node": "^4.0.0",
+    "@tailwindcss/oxide": "^4.0.0",
+    "@types/node": "^22.10.10",
+    "eslint": "^9.19.0",
+    "eslint-plugin-oxlint": "^0.15.8",
+    "fast-glob": "^3.3.3",
+    "lightningcss": "^1.29.1",
+    "npm-run-all": "^4.1.5",
+    "oxlint": "^0.15.8",
+    "prettier": "^3.4.2",
+    "rolldown": "1.0.0-beta.3-commit.4666fd5",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.21.0",
+    "vitest": "^3.0.4",
+    "wrangler": "^3.105.1"
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
+}
