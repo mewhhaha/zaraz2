@@ -16,35 +16,42 @@ export default function Index({
 
   return (
     <div class={`relative size-full`}>
-      <header class={`mx-auto max-w-screen-xl bg-slate-950 text-gray-50`}>
-        <a class={`underline`} href="/logout">
-          logout
-        </a>
-        <div
-          class={`flex divide-x divide-dotted border-b border-white/50 font-serif`}
-        >
-          <div class={`row-span-2 text-5xl`}>🎉</div>
-          <hgroup class={`divide-y divide-dotted divide-white/50`}>
-            <h1>
-              <a
-                class={`
-                  bg-gradient-to-r from-white to-white bg-clip-text p-2 text-5xl font-bold
-                  text-transparent transition-colors duration-300
+      <header class={`bg-slate-950 text-gray-50`}>
+        <div class={`mx-auto max-w-screen-sm`}>
+          <a class={`underline`} href="/logout">
+            logout
+          </a>
+          <div
+            class={`
+              flex max-w-screen-sm divide-x divide-dotted border-b border-white/50
+              font-serif
+            `}
+          >
+            <div class={`row-span-2 text-5xl`}>🎉</div>
+            <hgroup class={`divide-y divide-dotted divide-white/50`}>
+              <h1>
+                <a
+                  class={`
+                    bg-gradient-to-r from-white to-white bg-clip-text p-2 text-5xl font-bold
+                    text-transparent transition-colors duration-300
 
-                  hover:from-pink-200 hover:to-blue-500
-                `}
-                href="/"
-              >
-                zaraz
-              </a>
-            </h1>
-            <p class={`p-2 text-lg font-thin italic`}>
-              Zaraz to zrobię, I'll do it in a moment
-            </p>
-          </hgroup>
+                    hover:from-pink-200 hover:to-blue-500
+                  `}
+                  href="/"
+                >
+                  zaraz
+                </a>
+              </h1>
+              <p class={`p-2 text-lg font-thin italic`}>
+                Zaraz to zrobię, I'll do it in a moment
+              </p>
+            </hgroup>
+          </div>
         </div>
-        <nav class={`pt-6 pb-2 view-transition-[nav]`}>
-          <ul class={`flex gap-4`}>
+        <nav class={`mx-auto w-fit px-6`}>
+          <ul
+            class={`flex max-w-screen-sm gap-4 pt-6 pb-2 view-transition-[nav]`}
+          >
             <li>
               <NavLink href={to("/home")}>
                 Home{" "}

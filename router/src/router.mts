@@ -108,10 +108,12 @@ const findRoute = (routes: route[], pathname: string) => {
   // Remove leading slash for consistency
   const path = pathname.startsWith("/") ? pathname.slice(1) : pathname;
 
+  console.log("PATH", path);
   for (const [regex, fragments] of routes) {
+    console.log("REGEX", regex);
     const match = regex.exec(path);
-    if (match?.groups) {
-      const params: Record<string, string> = match.groups ?? {};
+    if (match) {
+      const params: Record<string, string> = match?.groups ?? {};
 
       // Special case for handling the wildcard segment
       // skipping removing the wildcard key from params
