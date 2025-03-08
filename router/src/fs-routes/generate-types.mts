@@ -12,31 +12,45 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
   const tasks: Promise<void>[] = [];
   await rm(path.join(".router"), { recursive: true, force: true });
   await mkdir(path.join(".router", "types", routesFolder), { recursive: true });
+
+  // First, collect all parameter names from all routes to handle layout routes
+  const allRouteParams = new Map<string, Set<string>>();
+
   for (const file of files) {
-    const params = file
-      .replace(tsRegex, "")
-      .split(unescapedDotRegex)
-      .map((name) => {
-        if (name === "$") {
-          return null;
-        }
+    const routeName = file.replace(tsRegex, "");
+    const paramInfo = extractParamsFromRoute(routeName);
+    allRouteParams.set(routeName, paramInfo.paramNames);
 
-        if (name.startsWith("$")) {
-          return name.slice(1);
-        }
+    // For each parent route (layout), add this route's params as optional
+    let parentRoute = routeName;
+    while (parentRoute.includes(".")) {
+      parentRoute = parentRoute.substring(0, parentRoute.lastIndexOf("."));
+      const parentParams = allRouteParams.get(parentRoute) || new Set();
 
-        if (name === "*") {
-          return "*";
-        }
+      // Add all params from this route to the parent as optional
+      for (const param of paramInfo.paramNames) {
+        parentParams.add(param);
+      }
 
-        if (name.startsWith("($") && name.endsWith(")")) {
-          return name.slice(2, -1);
-        }
+      allRouteParams.set(parentRoute, parentParams);
+    }
+  }
 
-        return null;
+  // Now generate the type files with the collected parameters
+  for (const file of files) {
+    const routeName = file.replace(tsRegex, "");
+    const { paramNames, optionalParams } = extractParamsFromRoute(routeName);
+
+    // Get additional params from child routes for layout routes
+    const allParams = allRouteParams.get(routeName) || new Set();
+
+    // Generate the params string
+    const params = Array.from(allParams)
+      .map((param) => {
+        // If this param is optional in this route or comes from a child route, make it optional
+        const isOptional = optionalParams.has(param) || !paramNames.has(param);
+        return `\t${param}${isOptional ? "?" : ""}: string;`;
       })
-      .filter((name) => name !== null)
-      .map((name) => `\t${name}: string;`)
       .join("\n");
 
     const isDirectory = !file.endsWith(".tsx");
@@ -69,6 +83,40 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
 
   await Promise.all(tasks);
 };
+
+/**
+ * Extract parameter names from a route, identifying which ones are optional
+ */
+function extractParamsFromRoute(routeName: string): {
+  paramNames: Set<string>;
+  optionalParams: Set<string>;
+} {
+  const paramNames = new Set<string>();
+  const optionalParams = new Set<string>();
+
+  routeName.split(unescapedDotRegex).forEach((segment) => {
+    // Check if this is an optional segment
+    const isOptional = segment.startsWith("(") && segment.endsWith(")");
+    const actualSegment = isOptional ? segment.slice(1, -1) : segment;
+
+    // Check if it's a parameter
+    if (actualSegment === "$") {
+      return; // Skip wildcard params
+    } else if (actualSegment.startsWith("$")) {
+      const paramName = actualSegment.slice(1);
+      paramNames.add(paramName);
+
+      // If the segment was optional, mark the parameter as optional
+      if (isOptional) {
+        optionalParams.add(paramName);
+      }
+    } else if (actualSegment === "*") {
+      paramNames.add("*");
+    }
+  });
+
+  return { paramNames, optionalParams };
+}
 
 const createTemplate = (file: string, params: string) => {
   const paramsObject = params ? `{ ${params.trim()} }` : "Record<never, never>";
