@@ -5,9 +5,9 @@ import type {
   InferLoaderArgs,
   InferPartialArgs,
 } from "@mewhhaha/fx-router/types";
-import * as r from "./_root.tasks.$(id).js";
+import * as r from "./_root.tasks.($id).js";
 
-export type RouteParams = { 	(id): string; };
+export type RouteParams = { 	id: string; };
 
 export type ComponentProps = InferComponentProps<typeof r>;
 export type LoaderArgs = InferLoaderArgs<RouteParams>;
