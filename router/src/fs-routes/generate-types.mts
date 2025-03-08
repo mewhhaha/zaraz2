@@ -60,9 +60,9 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
     }
   }
 
-  const rootTemplate = createTemplate("root", "");
+  const rootTemplate = createTemplate("document.tsx", "");
   const task = writeFile(
-    path.join(".router", "types", appFolder, "+types.root.ts"),
+    path.join(".router", "types", appFolder, "+types.document.ts"),
     rootTemplate,
   );
   tasks.push(task);
