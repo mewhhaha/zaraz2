@@ -53,7 +53,7 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
     } else {
       const task = async () =>
         writeFile(
-          path.join(basePath, `+types.${file.replace(tsRegex, ".d.ts")}`),
+          path.join(basePath, `+types.${file.replace(tsRegex, ".ts")}`),
           template,
         );
       tasks.push(task());
@@ -62,7 +62,7 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
 
   const rootTemplate = createTemplate("root", "");
   const task = writeFile(
-    path.join(".router", "types", appFolder, "+types.root.d.ts"),
+    path.join(".router", "types", appFolder, "+types.root.ts"),
     rootTemplate,
   );
   tasks.push(task);
@@ -71,7 +71,7 @@ export const generateTypes = async (appFolder: string): Promise<void> => {
 };
 
 const createTemplate = (file: string, params: string) => {
-  const paramsObject = params ? `{ ${params} }` : "Record<never, never>";
+  const paramsObject = params ? `{ ${params.trim()} }` : "Record<never, never>";
 
   const template = `
 import type {
@@ -79,7 +79,6 @@ import type {
   InferComponentProps,
   InferHeadersFunction,
   InferLoaderArgs,
-  InferPartialArgs,
 } from "@mewhhaha/fx-router/types";
 import * as r from "./${file.replace(tsRegex, ".js")}";
 
@@ -87,7 +86,6 @@ export type RouteParams = ${paramsObject};
 
 export type ComponentProps = InferComponentProps<typeof r>;
 export type LoaderArgs = InferLoaderArgs<RouteParams>;
-export type PartialArgs = InferPartialArgs<RouteParams>;
 export type ActionArgs = InferActionArgs<RouteParams>;
 export type HeadersFunction = InferHeadersFunction<RouteParams, typeof r>;
     `.trim();

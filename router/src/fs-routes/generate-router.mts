@@ -4,11 +4,14 @@ import { bySpecificity } from "./sort.mts";
 
 /**
  * Generate a regex literal for a route path using named capture groups
+ * Supports optional segments marked with parentheses: (segment) or ($param)
  */
 const generateRegexPattern = (routePath: string): string => {
   // Remove leading slash and split into segments
-  const path = routePath.startsWith("/") ? routePath.slice(1) : routePath;
-  const segments = path.split("/").filter(Boolean);
+  const pathWithoutLeadingSlash = routePath.startsWith("/")
+    ? routePath.slice(1)
+    : routePath;
+  const segments = pathWithoutLeadingSlash.split("/").filter(Boolean);
 
   // Special case: empty path (root route)
   if (segments.length === 0) {
@@ -20,30 +23,69 @@ const generateRegexPattern = (routePath: string): string => {
     return `/^(?<wildcard>.*)$/`;
   }
 
-  const regexParts: string[] = [];
+  // Process segments and build regex parts
+  let regexStr = "^";
+  let isFirstSegment = true;
 
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
+  for (const segment of segments) {
+    const isOptional = segment.startsWith("(") && segment.endsWith(")");
+    const actualSegment = isOptional ? segment.slice(1, -1) : segment;
 
-    if (segment === "*") {
-      // Wildcard with named capture group
-      regexParts.push("(?<wildcard>.*)");
+    // Add path separator except for first segment
+    if (!isFirstSegment) {
+      regexStr += "\\/";
+    }
+    isFirstSegment = false;
+
+    if (actualSegment === "*") {
+      // Wildcard segment
+      regexStr += "(?<wildcard>.*)";
       break;
-    } else if (segment.startsWith(":")) {
-      // Named parameter with named capture group
-      const paramName = segment.slice(1);
-      // Use the parameter name directly as the capture group name
-      regexParts.push(`(?<${paramName}>[^/]+)`);
+    } else if (actualSegment.startsWith(":")) {
+      // Parameter segment
+      const paramName = actualSegment.slice(1);
+      const paramPattern = `(?<${paramName}>[^/]+)`;
+
+      if (isOptional) {
+        // For optional parameters, make the whole segment optional
+        // including the preceding slash (except for first segment)
+        if (regexStr.endsWith("\\/")) {
+          // Remove the last slash and make the whole segment optional
+          regexStr = regexStr.slice(0, -2) + `(?:\\/${paramPattern})?`;
+        } else {
+          // First segment is optional
+          regexStr += `(?:${paramPattern})?`;
+        }
+      } else {
+        // Regular parameter
+        regexStr += paramPattern;
+      }
     } else {
-      // Escape special regex characters for literal segments
-      // Double escaping needed because this will be in a JS string that creates a regex
-      regexParts.push(segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      // Static segment
+      const escapedSegment = actualSegment.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&",
+      );
+
+      if (isOptional) {
+        // For optional static segments, make the whole segment optional
+        // including the preceding slash (except for first segment)
+        if (regexStr.endsWith("\\/")) {
+          // Remove the last slash and make the whole segment optional
+          regexStr = regexStr.slice(0, -2) + `(?:\\/${escapedSegment})?`;
+        } else {
+          // First segment is optional
+          regexStr += `(?:${escapedSegment})?`;
+        }
+      } else {
+        // Regular static segment
+        regexStr += escapedSegment;
+      }
     }
   }
 
-  // Create the regex pattern with slashes for direct use
-  const regexPattern = regexParts.join("\\/");
-  return `/^${regexPattern}$/`;
+  regexStr += "$";
+  return `/${regexStr}/`;
 };
 
 export const generateRouter = async (appFolder: string): Promise<void> => {
@@ -83,10 +125,18 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
       const route = file
         .split(unescapedDotRegex)
         .map((segment) => {
-          return segment
+          // Check for optional segments (wrapped in parentheses)
+          const isOptional = segment.startsWith("(") && segment.endsWith(")");
+          const actualSegment = isOptional ? segment.slice(1, -1) : segment;
+
+          // Process the segment content
+          const processedSegment = actualSegment
             .replace(paramRegex, ":")
             .replace(splatRegex, "*")
             .replace(pathlessRegex, "");
+
+          // Re-wrap in parentheses if it was optional
+          return isOptional ? `(${processedSegment})` : processedSegment;
         })
         .filter((segment) => segment !== "")
         .join("/");
@@ -98,8 +148,22 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
     .map(([file, name]) => {
       const params = file
         .split(unescapedDotRegex)
-        .filter((segment) => segment.startsWith("$"))
-        .map((segment) => `"${segment.slice(1)}"`)
+        .filter((segment) => {
+          // Handle optional parameters - check inside parentheses if needed
+          if (segment.startsWith("(") && segment.endsWith(")")) {
+            const innerSegment = segment.slice(1, -1);
+            return innerSegment.startsWith("$");
+          }
+          return segment.startsWith("$");
+        })
+        .map((segment) => {
+          // Extract parameter name, handling optional parameters
+          if (segment.startsWith("(") && segment.endsWith(")")) {
+            const innerSegment = segment.slice(1, -1);
+            return `"${innerSegment.slice(1)}"`;
+          }
+          return `"${segment.slice(1)}"`;
+        })
         .join(",");
 
       if (params) {

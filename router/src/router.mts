@@ -104,26 +104,20 @@ export const Router = (routes: route[]): router => {
   };
 };
 
-// Simplified findRoute function that uses direct regex literals
 const findRoute = (routes: route[], pathname: string) => {
   // Remove leading slash for consistency
   const path = pathname.startsWith("/") ? pathname.slice(1) : pathname;
 
   for (const [regex, fragments] of routes) {
     const match = regex.exec(path);
-    if (match && match.groups) {
-      // Extract parameters from named capture groups
-      const params: Record<string, string> = {};
+    if (match?.groups) {
+      const params: Record<string, string> = match.groups ?? {};
 
-      // Copy all named capture groups to params
-      for (const name in match.groups) {
-        const value = match.groups[name];
-        // Special case for wildcard
-        if (name === "wildcard") {
-          params["*"] = value;
-        } else {
-          params[name] = value;
-        }
+      // Special case for handling the wildcard segment
+      // skipping removing the wildcard key from params
+      // and hope nobody fucks up
+      if (params.wildcard) {
+        params["*"] = params.wildcard;
       }
 
       return { fragments, params };
