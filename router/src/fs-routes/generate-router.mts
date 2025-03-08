@@ -2,6 +2,50 @@ import { readdir, writeFile } from "node:fs/promises";
 import path from "node:path/posix";
 import { bySpecificity } from "./sort.mts";
 
+/**
+ * Generate a regex literal for a route path using named capture groups
+ */
+const generateRegexPattern = (routePath: string): string => {
+  // Remove leading slash and split into segments
+  const path = routePath.startsWith("/") ? routePath.slice(1) : routePath;
+  const segments = path.split("/").filter(Boolean);
+
+  // Special case: empty path (root route)
+  if (segments.length === 0) {
+    return `/^$/`;
+  }
+
+  // Special case: wildcard route
+  if (segments.length === 1 && segments[0] === "*") {
+    return `/^(?<wildcard>.*)$/`;
+  }
+
+  const regexParts: string[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+
+    if (segment === "*") {
+      // Wildcard with named capture group
+      regexParts.push("(?<wildcard>.*)");
+      break;
+    } else if (segment.startsWith(":")) {
+      // Named parameter with named capture group
+      const paramName = segment.slice(1);
+      // Use the parameter name directly as the capture group name
+      regexParts.push(`(?<${paramName}>[^/]+)`);
+    } else {
+      // Escape special regex characters for literal segments
+      // Double escaping needed because this will be in a JS string that creates a regex
+      regexParts.push(segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    }
+  }
+
+  // Create the regex pattern with slashes for direct use
+  const regexPattern = regexParts.join("\\/");
+  return `/^${regexPattern}$/`;
+};
+
 export const generateRouter = async (appFolder: string): Promise<void> => {
   const routesFolder = path.join(appFolder, "routes");
 
@@ -83,7 +127,10 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
         `$${name}`,
       ];
 
-      return `["${path}", [${fragments.join(",")}]]`;
+      // Generate regex pattern for this route
+      const regexLiteral = generateRegexPattern(path);
+
+      return `[${regexLiteral}, [${fragments.join(",")}]]`;
     })
     .join(",\n");
 

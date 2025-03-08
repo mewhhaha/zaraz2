@@ -1,3 +1,10 @@
-export default function Tasks() {
-  return <div>Tasks</div>;
+import t from "./+types._root.tasks";
+
+export default function Tasks({ children }: t.ComponentProps) {
+  return (
+    <div>
+      Tasks
+      {children}
+    </div>
+  );
 }

@@ -44,7 +44,8 @@ export type mod = {
 
 export type fragment = { id: string; mod: mod; params?: string[] };
 
-export type route = [path: string, fragments: fragment[]];
+// Route is now just [path, regex, fragments]
+export type route = [regex: RegExp, fragments: fragment[]];
 
 export type router = {
   handle: (request: Request, ...args: ctx["context"]) => Promise<Response>;
@@ -103,14 +104,32 @@ export const Router = (routes: route[]): router => {
   };
 };
 
+// Simplified findRoute function that uses direct regex literals
 const findRoute = (routes: route[], pathname: string) => {
-  const segments = pathname.split("/");
-  for (const route of routes) {
-    const params = match(segments, route[0].split("/"));
-    if (params) {
-      return { fragments: route[1], params };
+  // Remove leading slash for consistency
+  const path = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+
+  for (const [regex, fragments] of routes) {
+    const match = regex.exec(path);
+    if (match && match.groups) {
+      // Extract parameters from named capture groups
+      const params: Record<string, string> = {};
+
+      // Copy all named capture groups to params
+      for (const name in match.groups) {
+        const value = match.groups[name];
+        // Special case for wildcard
+        if (name === "wildcard") {
+          params["*"] = value;
+        } else {
+          params[name] = value;
+        }
+      }
+
+      return { fragments, params };
     }
   }
+
   return undefined;
 };
 
@@ -190,34 +209,4 @@ const appendAllHeaders = async (
     }
   }
   return headers;
-};
-
-const match = (
-  segments: string[],
-  pattern: string[],
-): null | Record<string, string> => {
-  if (pattern.length == 1 && pattern[0] == "*") {
-    return { "*": segments.join("/") };
-  }
-
-  if (segments.length != pattern.length && !pattern.includes("*")) {
-    return null;
-  }
-
-  const params: Record<string, string> = {};
-
-  for (let i = 0; i < segments.length; i++) {
-    const s = segments[i];
-    const p = pattern[i];
-    if (p == "*") {
-      params["*"] = segments.slice(i).join("/");
-      return params;
-    } else if (p[0] == ":") {
-      params[p.slice(1)] = s;
-    } else if (s != p) {
-      return null;
-    }
-  }
-
-  return params;
 };
