@@ -1,6 +1,8 @@
-import type * as t from "./+types.root";
+import type * as t from "./+types.document";
 
 const fixiUrl = new URL("./assets/fixi.js", import.meta.url);
+const fixiHistoryUrl = new URL("./assets/ext-fixi-history.js", import.meta.url);
+const fixiConfirmUrl = new URL("./assets/ext-fixi-confirm.js", import.meta.url);
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
 const svgUrl = new URL("./assets/favicon.svg", import.meta.url);
 
@@ -36,6 +38,8 @@ export default function Document({
           rel="stylesheet"
         />
         <script src={fixiUrl.pathname}></script>
+        <script src={fixiHistoryUrl.pathname}></script>
+        <script src={fixiConfirmUrl.pathname}></script>
         <link rel="stylesheet" href={stylesUrl.pathname} />
         <script type="module">{`console.debug = function(){}`}</script>
       </head>

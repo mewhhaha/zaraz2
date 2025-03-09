@@ -1,3 +1,4 @@
+import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root.home";
 
 export const loader = async ({ request }: t.LoaderArgs) => {
@@ -16,127 +17,234 @@ export default function Home({ loaderData }: t.ComponentProps) {
   const { todos } = loaderData;
   const currentIndex = 0; // Using state isn't supported in this framework, use a static value
 
-  const currentTodo = todos[currentIndex];
+  return (
+    <div class={`mx-auto w-full max-w-screen-sm`}>
+      <h2 class={`sr-only`}>Home</h2>
+      <section class={`flex flex-col`}>
+        <div
+          class={`
+            relative min-h-48
 
-  if (!currentTodo) {
-    return (
-      <div class={`flex h-full flex-col items-center justify-center p-6`}>
-        <div class={`rounded-xl bg-white p-8 shadow-xl`}>
-          <h2 class={`mb-6 text-center text-2xl font-bold text-gray-800`}>
-            No todos yet
-          </h2>
-          <p class={`text-center text-gray-600`}>
-            Add some tasks to get started!
+            sm:min-h-64
+          `}
+        >
+          <Ticket />
+          <p
+            class={`
+              -mt-8 mb-10 text-center font-serif text-4xl underline backdrop-blur-xs
+
+              sm:text-6xl
+
+              peer
+            `}
+          >
+            Go shopping on Friday
           </p>
-          <div class={`mt-8 flex justify-center`}>
-            <a
-              href="/tasks"
-              fx-action="/tasks"
-              fx-swap="innerHTML"
-              fx-target="body"
+        </div>
+
+        <div
+          class={`
+            flex flex-wrap justify-center gap-8 text-xl
+
+            sm:flex-nowrap
+          `}
+        >
+          <SecondaryButton>
+            What else?{" "}
+            <ArrowPathIcon
               class={`
-                rounded-lg bg-indigo-600 px-5 py-3 text-sm font-medium text-white transition-colors
+                inline-block h-[0.8lh] flex-none transform transition-transform ease-in-out
 
-                hover:bg-indigo-700
+                group-hover:rotate-360 group-hover:duration-1000
+              `}
+            />
+          </SecondaryButton>
+          <PrimaryButton>
+            I'm done!{" "}
+            <AddCheckCircleIcon
+              class={`
+                inline-block h-[0.8lh] flex-none
 
-                focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none
+                group-hover:rotate-360 group-hover:duration-1000
+              `}
+            />
+          </PrimaryButton>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const Ticket = () => {
+  return (
+    <div class={`relative mx-auto flex max-w-sm opacity-20`}>
+      <div class={`relative grow sepia-30`}>
+        <div
+          class={`flex min-h-20 grow border-r-2 border-dotted border-white bg-red-500 p-1.5`}
+        >
+          <div
+            class={`absolute top-1/2 left-0 flex h-13 w-7 -translate-y-1/2 items-center overflow-hidden`}
+          >
+            <div
+              class={`
+                size-6 flex-none -translate-x-1/2 rounded-full border-6 border-red-500
+                bg-slate-950 outline-2 outline-offset-0 outline-black
+              `}
+            />
+          </div>
+          <div class={`grow border-2 border-gray-800 bg-orange-100/90`}>
+            <h3
+              class={`
+                mb-4 text-center font-serif text-3xl text-gray-800 uppercase underline
+                decoration-double
+
+                [text-stroke:4px_white]
               `}
             >
-              Add a task
-            </a>
+              Task
+            </h3>
           </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div class={`flex h-full flex-col items-center justify-center p-6`}>
-      <div
-        class={`w-full max-w-screen-sm rounded-xl bg-white p-8 shadow-xl transition-all duration-500`}
-        style="view-transition-name: todo-card-${currentTodo.id}"
-      >
-        <h2 class={`mb-6 text-center text-2xl font-bold text-gray-800`}>
-          Current Task
-        </h2>
-
+      <div class={`relative flex sepia-30`}>
         <div
-          class={`mb-8 overflow-hidden rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 p-6`}
+          class={`flex min-h-20 grow border-l-2 border-dotted border-white bg-red-500 p-1.5`}
         >
-          <p
-            class={`text-xl font-medium text-gray-800 transition-all duration-500`}
-            style="view-transition-name: todo-text-${currentTodo.id}"
-          >
-            {currentTodo.text}
-          </p>
-        </div>
-
-        <div class={`flex justify-between`}>
-          <a
-            href="/"
-            fx-action="/"
-            fx-swap="innerHTML"
-            fx-target="body"
+          <div
             class={`
-              flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-medium
-              text-white transition-colors
-
-              hover:bg-indigo-700
-
-              focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none
+              relative flex w-12 items-center justify-center border-2 border-gray-800
+              bg-orange-100/90
             `}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class={`h-5 w-5`}
-              viewBox="0 0 20 20"
-              fill="currentColor"
+            <div
+              class={`
+                absolute right-0 flex -rotate-90 transform flex-col items-center justify-center
+                text-sm font-bold text-gray-800 uppercase
+              `}
             >
-              <path
-                fill-rule="evenodd"
-                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            Next Task
-          </a>
-
-          <a
-            href="/tasks"
-            fx-action="/tasks"
-            fx-swap="innerHTML"
-            fx-target="body"
-            class={`
-              flex items-center gap-2 rounded-lg bg-gray-100 px-5 py-3 text-sm font-medium
-              text-gray-800 transition-colors
-
-              hover:bg-gray-200
-
-              focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none
-            `}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class={`h-5 w-5`}
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            Add Task
-          </a>
-        </div>
-
-        <div class={`mt-6 flex items-center justify-center`}>
-          <span class={`text-sm text-gray-500`}>
-            Task {(currentIndex + 1).toString()} of {todos.length.toString()}
-          </span>
+              <BadgeCheckCircleIcon class={`h-[1lh] text-green-600`} />
+              Done
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+type SecondaryButtonProps = JSX.IntrinsicElements["button"];
+
+const SecondaryButton = ({ children, ...props }: SecondaryButtonProps) => {
+  return (
+    <button
+      class={`
+        flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500 px-4
+        py-2 underline decoration-gray-200 decoration-1
+
+        hover:bg-slate-800 hover:decoration-3
+
+        active:outline-2 active:outline-offset-2 active:outline-white
+
+        group
+      `}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+type PrimaryButtonProps = JSX.IntrinsicElements["button"];
+
+const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
+  return (
+    <button
+      class={`
+        relative flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500
+        bg-slate-950 px-4 py-2 underline decoration-green-300 decoration-1 shadow
+        shadow-white
+
+        hover:bg-slate-800 hover:decoration-3
+
+        active:outline-2 active:outline-offset-2 active:outline-white
+
+        group
+      `}
+      {...props}
+    >
+      <div
+        class={`
+          pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-red-300 to-blue-200
+          blur-md transition-[filter]
+
+          group-hover:blur-sm
+        `}
+      ></div>
+      {children}
+    </button>
+  );
+};
+
+type BadgeCheckCircleIconProps = JSX.IntrinsicElements["svg"];
+
+const BadgeCheckCircleIcon = (props: BadgeCheckCircleIconProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"
+      />
+    </svg>
+  );
+};
+
+type ArrowPathIconProps = JSX.IntrinsicElements["svg"];
+
+const ArrowPathIcon = (props: ArrowPathIconProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+      />
+    </svg>
+  );
+};
+
+type AddCheckCircleIcon = JSX.IntrinsicElements["svg"];
+
+const AddCheckCircleIcon = (props: AddCheckCircleIcon) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+      />
+    </svg>
+  );
+};

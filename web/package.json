@@ -8,10 +8,12 @@
     "test": "vitest",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint app",
     "routes": "fs-routes ./app",
     "build": "rolldown -c ./rolldown.config.js",
     "watch": "rolldown -c ./rolldown.config.js --watch",
-    "dev": "wrangler dev --live-reload"
+    "wrangler-dev": "wrangler dev --live-reload",
+    "dev": "run-p wrangler-dev watch"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250124.3",

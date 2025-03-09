@@ -13,7 +13,7 @@ const $$_index = { id: "_index", mod: $_index };
 const $$_root = { id: "_root", mod: $_root };
 const $document = { id: "", mod: document };
 
-export const routes: route[] = [[/^done$/, [$document,$$_root,$$_root_done]],
-[/^home$/, [$document,$$_root,$$_root_home]],
-[/^tasks$/, [$document,$$_root,$$_root_tasks]],
-[/^$/, [$document,$$_index]]];
+export const routes: route[] = [[/^\/done$/, [$document,$$_root,$$_root_done]],
+[/^\/home$/, [$document,$$_root,$$_root_home]],
+[/^\/tasks$/, [$document,$$_root,$$_root_tasks]],
+[/^\/$/, [$document,$$_index]]];

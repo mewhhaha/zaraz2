@@ -1,3 +1,4 @@
+import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root.done";
 
 export const loader = async ({ request }: t.LoaderArgs) => {
@@ -5,7 +6,7 @@ export const loader = async ({ request }: t.LoaderArgs) => {
   const completedTodos = [
     {
       id: "5",
-      text: "Set up project structure",
+      text: "Set up project structure asdf sadfads sadf fasdf sad asdf asdsda sda sadf sdasadfsdaf sadfsd",
       completed: true,
       completedAt: "2023-06-15",
     },
@@ -36,155 +37,201 @@ export default function Done({ loaderData }: t.ComponentProps) {
   const { completedTodos } = loaderData;
 
   return (
-    <div class={`flex h-full flex-col p-6`}>
-      <div class={`mx-auto w-full max-w-2xl`}>
-        <h1 class={`mb-6 text-3xl font-bold text-gray-800`}>Completed Tasks</h1>
+    <div class={`mx-auto w-full max-w-screen-sm pt-10`}>
+      <h2 class={`sr-only`}>Done</h2>
+      <ul class={`flex flex-col gap-20`}>
+        {completedTodos.map((todo, i) => {
+          const clipDelay = `transition-delay: ${(i + 1) * 0.1}s`;
+          const ticketDelay = `transition-delay: ${i * 0.1}s`;
+          return (
+            <li class={`relative isolate pr-8`}>
+              <p class={`mb-4 border-b-2 text-xl text-gray-100`}>{todo.text}</p>
+              <div
+                class={`
+                  relative z-10 flex max-w-sm opacity-50 transition-[transform_opacity]
+                  duration-300
 
-        <div class={`rounded-xl bg-white p-6 shadow-lg`}>
-          {completedTodos.length === 0 ? (
-            <div class={`py-12 text-center`}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class={`mx-auto h-12 w-12 text-gray-400`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+                  starting:-translate-x-8 starting:opacity-100
+                `}
+                style={ticketDelay}
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <h3 class={`mt-2 text-lg font-medium text-gray-900`}>
-                No completed tasks
-              </h3>
-              <p class={`mt-1 text-gray-500`}>
-                You haven't completed any tasks yet.
-              </p>
-              <div class={`mt-6`}>
-                <a
-                  href="/tasks"
-                  fx-action="/tasks"
-                  fx-swap="innerHTML"
-                  fx-target="body"
+                <div
                   class={`
-                    inline-flex items-center rounded-md border border-transparent bg-indigo-600
-                    px-4 py-2 text-sm font-medium text-white shadow-sm
+                    relative grow sepia-100 transition-[filter] duration-300 ease-in-out
 
-                    hover:bg-indigo-700
-
-                    focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none
+                    starting:sepia-30
                   `}
+                  style={clipDelay}
                 >
-                  Go to tasks
-                </a>
-              </div>
-            </div>
-          ) : (
-            <ul class={`divide-y divide-gray-200`}>
-              {completedTodos.map((todo) => (
-                <li class={`flex items-start gap-4 py-4`}>
                   <div
                     class={`
-                      mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center
-                      rounded-full bg-green-500
+                      absolute inset-0 -z-20 translate-1 bg-red-500 opacity-40 saturate-50
+                      transition-[transform_opacity] duration-300 ease-in-out
+
+                      starting:translate-x-0 starting:translate-y-0 starting:opacity-0
+                    `}
+                    style={ticketDelay}
+                  />
+                  <div
+                    class={`
+                      flex min-h-20 grow border-r-2 border-dotted border-white bg-red-500
+                      p-1.5 transition-[filter] duration-300 ease-in-out
                     `}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class={`h-3 w-3 text-white`}
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
+                    <div
+                      class={`
+                        absolute top-1/2 left-0 flex h-13 w-7 -translate-y-1/2 items-center
+                        overflow-hidden
+                      `}
                     >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
+                      <div
+                        class={`
+                          size-6 flex-none -translate-x-1/2 rounded-full border-6
+                          border-red-500 bg-slate-950 outline-2 outline-offset-0
+                          outline-black
+                        `}
                       />
-                    </svg>
-                  </div>
-                  <div class={`flex-1`}>
-                    <div class={`flex justify-between`}>
-                      <p class={`font-medium text-gray-800 line-through`}>
-                        {todo.text}
-                      </p>
-                      <time
-                        class={`text-sm text-gray-500`}
-                        datetime={todo.completedAt}
+                    </div>
+                    <div
+                      class={`grow border-2 border-gray-800 bg-orange-100/90`}
+                    >
+                      <h3
+                        class={`
+                          mb-4 text-center font-serif text-3xl text-gray-800 uppercase
+                          underline decoration-double
+
+                          [text-stroke:4px_white]
+                        `}
                       >
-                        {new Date(todo.completedAt).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          },
-                        )}
-                      </time>
+                        Task
+                      </h3>
                     </div>
                   </div>
-                  <button
+                </div>
+
+                <div
+                  class={`
+                    relative flex translate-x-8 -translate-y-0 rotate-6 sepia-30
+                    transition-transform duration-150 ease-in-out
+
+                    starting:translate-x-0 starting:translate-y-0 starting:rotate-0
+                  `}
+                  style={clipDelay}
+                >
+                  <div
                     class={`
-                      rounded-lg bg-red-100 p-2 text-red-700
+                      absolute inset-0 -z-10 translate-1 bg-red-500 opacity-40 saturate-50
+                      transition-[transform_opacity] duration-300 ease-in-out
 
-                      hover:bg-red-200
-
-                      focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none
+                      starting:translate-x-0 starting:translate-y-0 starting:opacity-0
                     `}
-                    title="Delete task"
+                    style={clipDelay}
+                  />
+                  <div
+                    class={`
+                      flex min-h-20 grow border-l-2 border-dotted border-white bg-red-500
+                      p-1.5 sepia-30
+                    `}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class={`h-5 w-5`}
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
+                    <div
+                      class={`
+                        relative flex w-12 items-center justify-center border-2 border-gray-800
+                        bg-orange-100/90
+                      `}
                     >
-                      <path
-                        fill-rule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      <div
+                        class={`
+                          absolute right-0 flex -rotate-90 transform flex-col items-center
+                          justify-center text-sm font-bold text-gray-800 uppercase
+                        `}
+                      >
+                        <BadgeCheckCircleIcon
+                          class={`h-[1lh] text-green-600`}
+                        />
+                        Done
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                class={`
+                  mt-4 transition-[transform_opacity] duration-300
 
-          <div class={`mt-6 flex justify-center`}>
-            <a
-              href="/"
-              fx-action="/"
-              fx-swap="innerHTML"
-              fx-target="body"
-              class={`
-                inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-medium
-                text-gray-700
-
-                hover:bg-gray-200
-
-                focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none
-              `}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class={`mr-2 -ml-1 h-5 w-5`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
+                  starting:-translate-x-8 starting:opacity-0
+                `}
+                style={ticketDelay}
               >
-                <path
-                  fill-rule="evenodd"
-                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              Back to Current Tasks
-            </a>
-          </div>
-        </div>
-      </div>
+                <button
+                  class={`
+                    mb-4 flex cursor-pointer items-center gap-1 rounded-lg border-2
+                    border-slate-400 bg-slate-950/80 px-4 py-2 text-gray-100 underline
+                    decoration-red-700 decoration-1
+
+                    hover:bg-slate-800 hover:decoration-3 hover:opacity-100
+
+                    active:outline-2 active:outline-offset-2 active:outline-white
+
+                    group
+                  `}
+                  ext-fx-confirm="Are you sure you want to delete this task?"
+                  fx-action="/done"
+                  fx-method="delete"
+                >
+                  Delete
+                  <TrashIcon class={`
+                               mb-0.5 ml-1 hidden h-[0.8lh] align-text-bottom
+
+                               sm:inline-block
+                             `} />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
+
+type TrashIconProps = JSX.IntrinsicElements["svg"];
+
+const TrashIcon = (props: TrashIconProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+      />
+    </svg>
+  );
+};
+
+type BadgeCheckCircleIconProps = JSX.IntrinsicElements["svg"];
+
+const BadgeCheckCircleIcon = (props: BadgeCheckCircleIconProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"
+      />
+    </svg>
+  );
+};
