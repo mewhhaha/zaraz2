@@ -13,6 +13,42 @@ export const loader = async ({ request }: t.LoaderArgs) => {
   return { todos };
 };
 
+export const action = async ({ request }: t.ActionArgs) => {
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string;
+  return new Response(
+    (
+      <div
+        id="todo"
+        style="view-transition-name: todo-1;"
+        class={`
+          relative min-h-48 
+
+          sm:min-h-64
+        `}
+      >
+        <Ticket />
+        <p
+          class={`
+            -mt-8 mb-10 text-center font-serif text-4xl underline backdrop-blur-xs
+
+            sm:text-6xl
+
+            peer
+          `}
+        >
+          Get elected
+        </p>
+      </div>
+    ).toString(),
+    {
+      headers: {
+        "Content-Type": "text/html",
+      },
+    },
+  );
+};
+
 export default function Home({ loaderData }: t.ComponentProps) {
   const { todos } = loaderData;
   const currentIndex = 0; // Using state isn't supported in this framework, use a static value
@@ -20,10 +56,11 @@ export default function Home({ loaderData }: t.ComponentProps) {
   return (
     <div class={`mx-auto w-full max-w-screen-sm`}>
       <h2 class={`sr-only`}>Home</h2>
-      <section class={`flex flex-col`}>
+      <section class={`flex flex-col `}>
         <div
+          id="todo"
           class={`
-            relative min-h-48
+            relative min-h-48 view-transition-[todo]
 
             sm:min-h-64
           `}
@@ -42,14 +79,18 @@ export default function Home({ loaderData }: t.ComponentProps) {
           </p>
         </div>
 
-        <div
+        <form
+          fx-action="/home"
+          fx-method="post"
+          ext-fx-confetti
+          fx-target={`#todo`}
           class={`
-            flex flex-wrap justify-center gap-8 text-xl
+            flex flex-wrap-reverse justify-center gap-8 text-xl
 
             sm:flex-nowrap
           `}
         >
-          <SecondaryButton>
+          <SecondaryButton value="what-else" name="intent">
             What else?{" "}
             <ArrowPathIcon
               class={`
@@ -59,7 +100,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
               `}
             />
           </SecondaryButton>
-          <PrimaryButton>
+          <PrimaryButton value="done" name="intent">
             I'm done!{" "}
             <AddCheckCircleIcon
               class={`
@@ -69,7 +110,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
               `}
             />
           </PrimaryButton>
-        </div>
+        </form>
       </section>
     </div>
   );
@@ -139,7 +180,7 @@ const SecondaryButton = ({ children, ...props }: SecondaryButtonProps) => {
   return (
     <button
       class={`
-        flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500 px-4
+        flex justify-center cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500 px-4
         py-2 underline decoration-gray-200 decoration-1
 
         hover:bg-slate-800 hover:decoration-3
@@ -161,7 +202,7 @@ const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
   return (
     <button
       class={`
-        relative flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500
+        relative justify-center flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500
         bg-slate-950 px-4 py-2 underline decoration-green-300 decoration-1 shadow
         shadow-white
 

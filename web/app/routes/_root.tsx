@@ -29,7 +29,7 @@ export default function Index({
               font-serif
             `}
           >
-            <div class={`row-span-2 text-5xl`}>🎉</div>
+            <div class={`row-span-2 p-2 text-5xl`}>🎉</div>
             <hgroup class={`divide-y divide-dotted divide-white/50`}>
               <h1>
                 <a
@@ -82,7 +82,8 @@ export default function Index({
                 </a>
               </h1>
               <p class={`p-2 text-lg font-thin italic`}>
-                Zaraz to zrobię, I'll do it in a moment
+                Zaraz to zrobię
+                <span class="hidden sm:inline">, I'll do it in a moment</span>
               </p>
             </hgroup>
           </div>
