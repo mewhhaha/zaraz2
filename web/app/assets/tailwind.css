@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 html,
 body {
@@ -11,3 +12,9 @@ body {
 }
 
 @custom-variant aria-current-page (&[aria-current="page"]);
+
+@custom-variant view-transition-new (&::view-transition-new(*));
+
+@custom-variant view-transition-old (&::view-transition-old(*));
+
+@custom-variant view-transition-group (&::view-transition-group(*));

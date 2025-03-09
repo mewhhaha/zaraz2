@@ -179,11 +179,13 @@ export default function Done({ loaderData }: t.ComponentProps) {
                   fx-method="delete"
                 >
                   Delete
-                  <TrashIcon class={`
+                  <TrashIcon
+                    class={`
                                mb-0.5 ml-1 hidden h-[0.8lh] align-text-bottom
 
                                sm:inline-block
-                             `} />
+                             `}
+                  />
                 </button>
               </div>
             </li>

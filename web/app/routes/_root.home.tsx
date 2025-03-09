@@ -18,15 +18,7 @@ export const action = async ({ request }: t.ActionArgs) => {
   const intent = formData.get("intent") as string;
   return new Response(
     (
-      <div
-        id="todo"
-        style="view-transition-name: todo-1;"
-        class={`
-          relative min-h-48 
-
-          sm:min-h-64
-        `}
-      >
+      <TicketView>
         <Ticket />
         <p
           class={`
@@ -39,7 +31,7 @@ export const action = async ({ request }: t.ActionArgs) => {
         >
           Get elected
         </p>
-      </div>
+      </TicketView>
     ).toString(),
     {
       headers: {
@@ -56,15 +48,8 @@ export default function Home({ loaderData }: t.ComponentProps) {
   return (
     <div class={`mx-auto w-full max-w-screen-sm`}>
       <h2 class={`sr-only`}>Home</h2>
-      <section class={`flex flex-col `}>
-        <div
-          id="todo"
-          class={`
-            relative min-h-48 view-transition-[todo]
-
-            sm:min-h-64
-          `}
-        >
+      <section class={`flex flex-col pt-10`}>
+        <TicketView>
           <Ticket />
           <p
             class={`
@@ -77,7 +62,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
           >
             Go shopping on Friday
           </p>
-        </div>
+        </TicketView>
 
         <form
           fx-action="/home"
@@ -266,6 +251,29 @@ const ArrowPathIcon = (props: ArrowPathIconProps) => {
         d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
       />
     </svg>
+  );
+};
+
+type TicketViewProps = JSX.IntrinsicElements["div"];
+
+const TicketView = ({ children, ...props }: TicketViewProps) => {
+  return (
+    <div
+      id="todo"
+      style="view-transition-name: todo-1;"
+      class={`
+        relative min-h-48
+
+        sm:min-h-64
+
+        view-transition-new:animate-out view-transition-new:slide-in-from-left
+
+        view-transition-old:animate-in view-transition-old:slide-out-to-right
+      `}
+      {...props}
+    >
+      {children}
+    </div>
   );
 };
 

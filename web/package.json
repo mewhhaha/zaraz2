@@ -31,6 +31,7 @@
     "prettier": "^3.4.2",
     "rolldown": "1.0.0-beta.3-commit.4666fd5",
     "tailwindcss": "^4.0.0",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.21.0",
     "vitest": "^3.0.4",
