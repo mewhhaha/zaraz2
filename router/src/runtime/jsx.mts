@@ -108,7 +108,7 @@ export namespace JSX {
     tabindex?: string | undefined;
     title?: string | undefined;
     translate?: string | boolean | undefined;
-    children?: HtmlNode | HtmlNode[];
+    children?: HtmlNode;
   }
   export interface HtmlAnchorTag extends HtmlTag {
     href?: string | undefined;
@@ -443,10 +443,10 @@ export namespace JSX {
 
   export type Element = Html;
 
-  export type HtmlNode = Element | string | null | undefined;
+  export type HtmlNode = Element | string | null | undefined | HtmlNode[];
 
   export interface ElementChildrenAttribute {
-    children?: HtmlNode | HtmlNode[];
+    children?: HtmlNode;
   }
   export interface IntrinsicElements {
     a: HtmlAnchorTag;

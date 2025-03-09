@@ -15,7 +15,7 @@ const generateRegexPattern = (routePath: string): string => {
 
   // Special case: empty path (root route)
   if (segments.length === 0) {
-    return `/^$/`;
+    return `/^\\/$/`;
   }
 
   // Special case: wildcard route
@@ -25,18 +25,12 @@ const generateRegexPattern = (routePath: string): string => {
 
   // Process segments and build regex parts
   let regexStr = "^";
-  let isFirstSegment = true;
 
   for (const segment of segments) {
     const isOptional = segment.startsWith("(") && segment.endsWith(")");
     const actualSegment = isOptional ? segment.slice(1, -1) : segment;
 
-    // Add path separator except for first segment
-    if (!isFirstSegment) {
-      regexStr += "\\/";
-    }
-    isFirstSegment = false;
-
+    regexStr += "\\/";
     if (actualSegment === "*") {
       // Wildcard segment
       regexStr += "(?<wildcard>.*)";

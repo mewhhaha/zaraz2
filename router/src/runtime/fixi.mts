@@ -16,6 +16,7 @@ declare global {
     "fx-method"?: "get" | "post" | "delete" | "put" | "patch";
     "fx-trigger"?: keyof FixiEvents | ({} & string);
     "fx-target"?: "body" | "self" | "parent" | "closest" | ({} & string);
+    "fx-ignore"?: true;
     "fx-swap"?:
       | "innerHTML"
       | "outerHTML"

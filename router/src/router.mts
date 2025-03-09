@@ -4,14 +4,7 @@ import { into, type Html } from "./runtime/node.mts";
 export type { Html } from "./runtime/node.mts";
 export type { JSX } from "./runtime/jsx.mts";
 
-export const render = (value: Html): string => {
-  if (!value) {
-    return "";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-
+export const render = (value: Html = into("")): string => {
   return value.toString();
 };
 
@@ -105,13 +98,8 @@ export const Router = (routes: route[]): router => {
 };
 
 const findRoute = (routes: route[], pathname: string) => {
-  // Remove leading slash for consistency
-  const path = pathname.startsWith("/") ? pathname.slice(1) : pathname;
-
-  console.log("PATH", path);
   for (const [regex, fragments] of routes) {
-    console.log("REGEX", regex);
-    const match = regex.exec(path);
+    const match = regex.exec(pathname);
     if (match) {
       const params: Record<string, string> = match?.groups ?? {};
 
@@ -142,14 +130,10 @@ const routeResponse = async (fragments: fragment[], ctx: ctx) => {
     fragments.map((fragment) => fragment.mod.loader?.(ctx)),
   );
 
-  const headers = await appendAllHeaders(
-    new Headers({
-      "Content-Type": "text/html",
-    }),
-    ctx,
-    fragments,
-    loaders,
-  );
+  const init = new Headers({
+    "Content-Type": "text/html",
+  });
+  const headers = await appendAllHeaders(init, ctx, fragments, loaders);
 
   const write = async () => {
     let html = "<!doctype html>";
@@ -189,9 +173,7 @@ const appendAllHeaders = async (
     }
 
     const h = await fragment.mod.headers?.({
-      context: ctx.context,
-      request: ctx.request,
-      params: ctx.params,
+      ...ctx,
       loaderData,
     });
 
