@@ -260,15 +260,21 @@ const TicketView = ({ children, ...props }: TicketViewProps) => {
   return (
     <div
       id="todo"
-      style="view-transition-name: todo-1;"
+      style="view-transition-name: todo;"
       class={`
         relative min-h-48
 
         sm:min-h-64
 
         view-transition-new:animate-out view-transition-new:slide-in-from-left
+        view-transition-new:duration-500
+        view-transition-new:ease-in-out
+        view-transition-new:fade-out
 
         view-transition-old:animate-in view-transition-old:slide-out-to-right
+             view-transition-old:duration-500
+        view-transition-old:ease-in-out
+        view-transition-old:fade-out
       `}
       {...props}
     >
