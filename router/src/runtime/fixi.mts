@@ -24,8 +24,6 @@ declare global {
       | "beforebegin"
       | "beforeend"
       | "afterend"
-      | "delete"
-      | "none"
       | ({} & string);
   }
 

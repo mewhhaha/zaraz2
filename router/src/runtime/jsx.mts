@@ -396,8 +396,8 @@ export namespace JSX {
     minlength?: string | undefined;
     name?: string | undefined;
     placeholder?: string | undefined;
-    readonly?: string | undefined;
-    required?: string | undefined;
+    readonly?: boolean | undefined;
+    required?: boolean | undefined;
     rows?: string | undefined;
     wrap?: string | undefined;
   }

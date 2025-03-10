@@ -18,7 +18,10 @@ export const action = async ({ request }: t.ActionArgs) => {
   const intent = formData.get("intent") as string;
   return new Response(
     (
-      <TicketView data-direction={intent === "done" ? "up" : "right"}>
+      <TicketView
+        data-direction={intent === "done" ? "up" : "right"}
+        data-view-transition
+      >
         <Ticket />
         <p
           ext-fx-confetti={intent === "done" ? "true" : undefined}

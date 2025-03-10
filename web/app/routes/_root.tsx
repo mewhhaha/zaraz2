@@ -35,7 +35,7 @@ export default function Index({
                 <a
                   class={`
                     relative isolate bg-gradient-to-r from-white to-white bg-clip-text p-2
-                    text-5xl font-bold text-transparent transition-colors duration-300
+                    text-5xl font-bold text-transparent transition-[background-color] duration-300
 
                     hover:from-pink-200 hover:to-blue-500
 
@@ -105,8 +105,8 @@ export default function Index({
               </NavLink>
             </li>
             <li>
-              <NavLink href={to("/tasks")}>
-                Tasks
+              <NavLink href={to("/add")}>
+                Add
                 <AddCircledIcon
                   class={`
                     mb-0.5 ml-1 hidden size-5 align-text-bottom
@@ -147,6 +147,7 @@ const NavLink = ({ href: [pathname, href], children }: NavLinkProps) => {
 
   return (
     <a
+      id={href}
       href={href}
       fx-action={href}
       fx-swap="innerHTML"

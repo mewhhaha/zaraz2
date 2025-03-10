@@ -7,6 +7,8 @@ const fixiConfettiUrl = new URL(
   "./assets/ext-fixi-confetti.js",
   import.meta.url,
 );
+const fixiResetUrl = new URL("./assets/ext-fixi-reset.js", import.meta.url);
+
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
 const svgUrl = new URL("./assets/favicon.svg", import.meta.url);
 
@@ -45,6 +47,7 @@ export default function Document({
         <script src={fixiHistoryUrl.pathname}></script>
         <script src={fixiConfirmUrl.pathname}></script>
         <script src={fixiConfettiUrl.pathname}></script>
+        <script src={fixiResetUrl.pathname}></script>
         <link rel="stylesheet" href={stylesUrl.pathname} />
         <script type="module">{`console.debug = function(){}`}</script>
       </head>

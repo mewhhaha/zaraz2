@@ -1,14 +1,6 @@
 import confetti from "canvas-confetti";
 
-let loaded = false;
-
-document.addEventListener("fx:config", (evt) => {
-  if (evt.target.hasAttribute("ext-fx-confetti")) {
-    loaded.push(evt.target);
-  }
-});
-
-// fixi confirmation extension
+// fixi confetti extension
 document.addEventListener("fx:swapped", () => {
   const elements = document.querySelectorAll("[ext-fx-confetti]");
   for (const element of elements) {
@@ -16,6 +8,7 @@ document.addEventListener("fx:swapped", () => {
   }
 
   if (elements.length > 0) {
+    confetti.reset();
     confetti({
       particleCount: 100,
       spread: 180,
