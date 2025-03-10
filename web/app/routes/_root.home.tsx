@@ -47,7 +47,6 @@ export const action = async ({ request }: t.ActionArgs) => {
 
 export default function Home({ loaderData }: t.ComponentProps) {
   const { todos } = loaderData;
-  const currentIndex = 0; // Using state isn't supported in this framework, use a static value
 
   return (
     <div class={`mx-auto w-full max-w-screen-sm`}>
@@ -82,7 +81,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
             What else?{" "}
             <ArrowPathIcon
               class={`
-                inline-block h-[0.8lh] flex-none transform transition-transform ease-in-out
+                inline-block h-[0.8lh] flex-none
 
                 group-hover:rotate-360 group-hover:duration-1000
               `}
