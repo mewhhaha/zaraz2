@@ -32,7 +32,7 @@ export default function Document({
         <link rel="icon" type="image/svg" href={svgUrl.pathname}></link>
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1.0"
+          content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
         ></meta>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

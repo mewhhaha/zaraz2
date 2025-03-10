@@ -1,5 +1,7 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root.home";
+import { SecondaryButton } from "../components/SecondaryButton";
+import { PrimaryButton } from "../components/PrimaryButton";
 
 export const loader = async ({ request }: t.LoaderArgs) => {
   // In a real app, you'd fetch this from a database
@@ -158,59 +160,6 @@ const Ticket = () => {
         </div>
       </div>
     </div>
-  );
-};
-
-type SecondaryButtonProps = JSX.IntrinsicElements["button"];
-
-const SecondaryButton = ({ children, ...props }: SecondaryButtonProps) => {
-  return (
-    <button
-      class={`
-        flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
-        border-slate-500 px-4 py-2 text-xl underline decoration-gray-200 decoration-1
-
-        hover:bg-slate-800 hover:decoration-3
-
-        active:outline-2 active:outline-offset-2 active:outline-white
-
-        group
-      `}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
-
-type PrimaryButtonProps = JSX.IntrinsicElements["button"];
-
-const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
-  return (
-    <button
-      class={`
-        relative flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
-        border-slate-500 bg-slate-950 px-4 py-2 text-xl underline decoration-green-300
-        decoration-1 shadow shadow-white
-
-        hover:bg-slate-800 hover:decoration-3
-
-        active:outline-2 active:outline-offset-2 active:outline-white
-
-        group
-      `}
-      {...props}
-    >
-      <div
-        class={`
-          pointer-events-none absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-red-300 to-blue-200
-          blur-md transition-[filter]
-
-          group-hover:blur-sm
-        `}
-      ></div>
-      {children}
-    </button>
   );
 };
 

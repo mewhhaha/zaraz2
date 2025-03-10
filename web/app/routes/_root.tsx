@@ -17,7 +17,12 @@ export default function Index({
   return (
     <div class={`relative flex size-full flex-col`}>
       <header
-        class={`sticky -top-32 z-50 bg-slate-950 text-gray-50 shadow shadow-slate-950`}
+        class={`
+          sticky -top-32 z-10 bg-slate-950 text-gray-50 shadow shadow-slate-950
+          transition-[filter]
+
+          [@media(height_<_30rem)]:blur-sm
+        `}
       >
         <div class={`mx-auto max-w-screen-sm`}>
           <a class={`underline`} href="/logout">
