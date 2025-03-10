@@ -18,15 +18,16 @@ export function jsx(
   for (const key in props) {
     let value = props[key];
 
-    const sanitized = sanitize(value);
+    let sanitized = sanitize(value);
     if (sanitized === undefined) {
       continue;
     }
 
     // Special case for class to make the class names more readable
+
     if (key === "class") {
-      value = value
-        ?.split(/\s+/)
+      sanitized = sanitized
+        ?.split(/\s+/g)
         .filter((x: string) => x !== "")
         .join(" ");
     }

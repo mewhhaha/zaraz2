@@ -18,9 +18,10 @@ export const action = async ({ request }: t.ActionArgs) => {
   const intent = formData.get("intent") as string;
   return new Response(
     (
-      <TicketView>
+      <TicketView data-direction={intent === "done" ? "up" : "right"}>
         <Ticket />
         <p
+          ext-fx-confetti={intent === "done" ? "true" : undefined}
           class={`
             -mt-8 mb-10 text-center font-serif text-4xl underline backdrop-blur-xs
 
@@ -67,7 +68,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
         <form
           fx-action="/home"
           fx-method="post"
-          ext-fx-confetti
           fx-target={`#todo`}
           class={`
             flex flex-wrap-reverse justify-center gap-8 text-xl
@@ -165,8 +165,8 @@ const SecondaryButton = ({ children, ...props }: SecondaryButtonProps) => {
   return (
     <button
       class={`
-        flex justify-center cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500 px-4
-        py-2 underline decoration-gray-200 decoration-1
+        flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
+        border-slate-500 px-4 py-2 underline decoration-gray-200 decoration-1
 
         hover:bg-slate-800 hover:decoration-3
 
@@ -187,9 +187,9 @@ const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
   return (
     <button
       class={`
-        relative justify-center flex cursor-pointer items-center gap-1 rounded-full border-2 border-slate-500
-        bg-slate-950 px-4 py-2 underline decoration-green-300 decoration-1 shadow
-        shadow-white
+        relative flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
+        border-slate-500 bg-slate-950 px-4 py-2 underline decoration-green-300
+        decoration-1 shadow shadow-white
 
         hover:bg-slate-800 hover:decoration-3
 
@@ -260,21 +260,13 @@ const TicketView = ({ children, ...props }: TicketViewProps) => {
   return (
     <div
       id="todo"
-      style="view-transition-name: todo;"
+      style={`
+        view-transition-name: todo;
+      `}
       class={`
-        relative min-h-48
+        relative min-h-48 view-name-[todo]
 
         sm:min-h-64
-
-        view-transition-new:animate-out view-transition-new:slide-in-from-left
-        view-transition-new:duration-500
-        view-transition-new:ease-in-out
-        view-transition-new:fade-out
-
-        view-transition-old:animate-in view-transition-old:slide-out-to-right
-             view-transition-old:duration-500
-        view-transition-old:ease-in-out
-        view-transition-old:fade-out
       `}
       {...props}
     >

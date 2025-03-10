@@ -1,5 +1,10 @@
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
+
+@custom-variant aria-current-page (&[aria-current="page"]);
+
+@utility view-name-* {
+  view-transition-name: --value([ *]);
+}
 
 html,
 body {
@@ -11,10 +16,54 @@ body {
   view-transition-name: --value([ *]);
 }
 
-@custom-variant aria-current-page (&[aria-current="page"]);
+/* Simple keyframes for slide transitions */
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
 
-@custom-variant view-transition-new (&::view-transition-new(*));
+/* Simple keyframes for slide transitions */
+@keyframes slide-out-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+    filter: saturate(200);
+  }
+}
 
-@custom-variant view-transition-old (&::view-transition-old(*));
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 
-@custom-variant view-transition-group (&::view-transition-group(*));
+:has([data-direction="right"])::view-transition-old(todo) {
+  /* Direct CSS for the specific view transition name */
+
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-right;
+}
+
+:has([data-direction="up"])::view-transition-old(todo) {
+  /* Direct CSS for the specific view transition name */
+
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-out-up;
+}
+
+::view-transition-new(todo) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-in-left;
+}

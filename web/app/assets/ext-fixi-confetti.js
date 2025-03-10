@@ -4,19 +4,24 @@ let loaded = false;
 
 document.addEventListener("fx:config", (evt) => {
   if (evt.target.hasAttribute("ext-fx-confetti")) {
-    loaded = true;
+    loaded.push(evt.target);
   }
 });
 
 // fixi confirmation extension
 document.addEventListener("fx:swapped", () => {
-  if (loaded) {
+  const elements = document.querySelectorAll("[ext-fx-confetti]");
+  for (const element of elements) {
+    element.removeAttribute("ext-fx-confetti");
+  }
+
+  if (elements.length > 0) {
     confetti({
       particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
+      spread: 180,
+      origin: { y: -0.1 },
+      startVelocity: -35,
       disableForReducedMotion: true,
     });
-    loaded = false;
   }
 });
