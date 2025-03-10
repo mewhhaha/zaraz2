@@ -68,7 +68,7 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
               focus-within:[@media(height_<_30rem)]:z-50
               focus-within:[@media(height_<_30rem)]:min-w-xs
               focus-within:[@media(height_<_30rem)]:-translate-x-1/2
-              focus-within:[@media(height_<_30rem)]:-translate-y-14
+              focus-within:[@media(height_<_30rem)]:-translate-y-4
             `}
           >
             <div
