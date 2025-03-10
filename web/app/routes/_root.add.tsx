@@ -22,18 +22,14 @@ export const action = async ({ request }: t.ActionArgs) => {
       <li
         style={`view-transition-name: A${crypto.randomUUID()}`}
         class={`
-          relative inset-0 list-none text-xl text-gray-200 transition-[transform_filter]
-          duration-300 ease-in-out
+          list-none gap-2 text-xl text-gray-200 transition-[transform_filter] duration-300
+          ease-in-out
 
           starting:-translate-x-full starting:blur-3xl
         `}
       >
-        <div class={`absolute -top-5 -left-5 -z-10 align-bottom text-6xl`}>
-          🎟️
-        </div>
-        <div class={`rounded-lg underline decoration-gray-200 decoration-2 backdrop-blur-2xl`}>
-          {text}
-        </div>
+        🎟️{" "}
+        <span class={`underline decoration-gray-200 decoration-2`}>{text}</span>
       </li>
     ).toString(),
     {
@@ -106,7 +102,7 @@ const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
     <button
       class={`
         relative flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
-        border-slate-500 bg-slate-950 px-4 py-2 underline decoration-green-300
+        border-slate-500 bg-slate-950 px-4 py-2 text-xl underline decoration-green-300
         decoration-1 shadow shadow-white
 
         hover:bg-slate-800 hover:decoration-3

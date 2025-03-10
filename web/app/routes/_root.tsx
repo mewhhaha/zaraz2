@@ -86,10 +86,10 @@ export default function Index({
                 Zaraz to zrobię
                 <span
                   class={`
-                        hidden
+                    hidden
 
-                        sm:inline
-                      `}
+                    sm:inline
+                  `}
                 >
                   , I'll do it in a moment
                 </span>

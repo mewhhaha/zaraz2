@@ -169,7 +169,7 @@ const SecondaryButton = ({ children, ...props }: SecondaryButtonProps) => {
     <button
       class={`
         flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
-        border-slate-500 px-4 py-2 underline decoration-gray-200 decoration-1
+        border-slate-500 px-4 py-2 text-xl underline decoration-gray-200 decoration-1
 
         hover:bg-slate-800 hover:decoration-3
 
@@ -191,7 +191,7 @@ const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
     <button
       class={`
         relative flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
-        border-slate-500 bg-slate-950 px-4 py-2 underline decoration-green-300
+        border-slate-500 bg-slate-950 px-4 py-2 text-xl underline decoration-green-300
         decoration-1 shadow shadow-white
 
         hover:bg-slate-800 hover:decoration-3
