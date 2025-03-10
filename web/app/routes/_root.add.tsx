@@ -22,16 +22,16 @@ export const action = async ({ request }: t.ActionArgs) => {
       <li
         style={`view-transition-name: A${crypto.randomUUID()}`}
         class={`
-          list-none text-gray-200  transition-[transform_filter]
-          duration-300 ease-in-out text-xl starting:-translate-x-full
+          relative inset-0 list-none text-xl text-gray-200 transition-[transform_filter]
+          duration-300 ease-in-out
 
-          starting:blur-3xl inset-0 relative
+          starting:-translate-x-full starting:blur-3xl
         `}
       >
-        <div class="text-6xl absolute -left-5 -top-5 -z-10 align-bottom">
+        <div class={`absolute -top-5 -left-5 -z-10 align-bottom text-6xl`}>
           🎟️
         </div>
-        <div class="underline rounded-lg decoration-gray-200 backdrop-blur-2xl decoration-2">
+        <div class={`rounded-lg underline decoration-gray-200 decoration-2 backdrop-blur-2xl`}>
           {text}
         </div>
       </li>
@@ -57,7 +57,11 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
       >
         <div
           id="task-input"
-          class={`relative mb-10 bg-red-500/50 focus-within:bg-red-500 p-1.5 sepia-30`}
+          class={`
+            relative mb-10 bg-red-500/50 p-1.5 sepia-30
+
+            focus-within:bg-red-500
+          `}
         >
           <div class={`relative isolate flex border-2 border-black`}>
             <textarea
@@ -85,12 +89,12 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
             ></div>
           </div>
         </div>
-        <div class={`flex justify-center mb-10`}>
+        <div class={`mb-10 flex justify-center`}>
           <PrimaryButton type="submit">I'll do it later.</PrimaryButton>
         </div>
       </form>
       <hr />
-      <ul id="list" class="pt-4 flex flex-col gap-3"></ul>
+      <ul id="list" class={`flex flex-col gap-3 pt-4`}></ul>
     </div>
   );
 }

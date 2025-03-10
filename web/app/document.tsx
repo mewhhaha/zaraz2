@@ -7,6 +7,7 @@ const fixiConfettiUrl = new URL(
   "./assets/ext-fixi-confetti.js",
   import.meta.url,
 );
+const fixiFocusUrl = new URL("./assets/ext-fixi-focus.js", import.meta.url);
 const fixiResetUrl = new URL("./assets/ext-fixi-reset.js", import.meta.url);
 
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
@@ -26,7 +27,7 @@ export default function Document({
   return (
     <html>
       <head>
-        <title>Blink example</title>
+        <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
         <link rel="icon" type="image/svg" href={svgUrl.pathname}></link>
         <meta
@@ -47,13 +48,12 @@ export default function Document({
         <script src={fixiHistoryUrl.pathname}></script>
         <script src={fixiConfirmUrl.pathname}></script>
         <script src={fixiConfettiUrl.pathname}></script>
+        <script src={fixiFocusUrl.pathname}></script>
         <script src={fixiResetUrl.pathname}></script>
         <link rel="stylesheet" href={stylesUrl.pathname} />
         <script type="module">{`console.debug = function(){}`}</script>
       </head>
-      <body class={`bg-slate-950 text-amber-50`} hx-boost="true" hx-ext="morph">
-        {children}
-      </body>
+      <body class={`bg-slate-950 text-amber-50`}>{children}</body>
     </html>
   );
 }

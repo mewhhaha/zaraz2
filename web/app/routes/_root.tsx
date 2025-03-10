@@ -35,7 +35,8 @@ export default function Index({
                 <a
                   class={`
                     relative isolate bg-gradient-to-r from-white to-white bg-clip-text p-2
-                    text-5xl font-bold text-transparent transition-[background-color] duration-300
+                    text-5xl font-bold text-transparent transition-[background-color]
+                    duration-300
 
                     hover:from-pink-200 hover:to-blue-500
 
@@ -83,7 +84,15 @@ export default function Index({
               </h1>
               <p class={`p-2 text-lg font-thin italic`}>
                 Zaraz to zrobię
-                <span class="hidden sm:inline">, I'll do it in a moment</span>
+                <span
+                  class={`
+                        hidden
+
+                        sm:inline
+                      `}
+                >
+                  , I'll do it in a moment
+                </span>
               </p>
             </hgroup>
           </div>
@@ -144,15 +153,16 @@ type NavLinkProps = Omit<JSX.IntrinsicElements["a"], "href"> & {
 
 const NavLink = ({ href: [pathname, href], children }: NavLinkProps) => {
   const ariaCurrent = pathname.startsWith(href) ? "page" : undefined;
-
+  const id = href.replace(/\//g, "_");
   return (
     <a
-      id={href}
+      id={id}
       href={href}
       fx-action={href}
       fx-swap="innerHTML"
       fx-target="body"
       ext-fx-push
+      ext-fx-focus={`#${id}`}
       aria-current={ariaCurrent}
       class={`
         relative isolate rounded-lg px-4 py-2 text-lg/loose font-bold whitespace-nowrap
