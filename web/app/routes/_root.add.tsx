@@ -60,8 +60,10 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
         fx-swap="afterbegin"
         fx-method="post"
       >
-        <div class={`min-h-48`}>
+        <div class={`min-h-48 sm:min-h-64`}>
           <div
+            // Special case when the screen is very small, like when you pull up the virtual keyboard
+            // on mobile. We need to push up the text field a bit to make space for the button
             class={`
               focus-within:[@media(height_<_30rem)]:absolute focus-within:[@media(height_<_30rem)]:top-0
               focus-within:[@media(height_<_30rem)]:left-1/2
@@ -109,7 +111,7 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
         </div>
         <div
           class={`
-            sticky bottom-4 mb-10 flex flex-wrap-reverse justify-center gap-6 text-xl
+            sticky bottom-4 mb-10 flex flex-wrap-reverse justify-center gap-8 text-xl
 
             sm:flex-nowrap
           `}
