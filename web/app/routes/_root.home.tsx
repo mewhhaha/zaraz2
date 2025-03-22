@@ -16,7 +16,7 @@ export const action = async ({ request }: t.ActionArgs) => {
         data-direction="right"
         data-view-transition
       >
-        Get selected {new Date().toLocaleTimeString()}
+        {another}
       </p>
     );
   }
@@ -67,10 +67,12 @@ export default function Home({ loaderData }: t.ComponentProps) {
     >
       <main class={`flex size-full`}>
         <div class={`absolute inset-x-0 top-0 flex justify-center`}>
-          <div class={`flex overflow-hidden rounded-b-xl shadow`}>
-            <div class={`bg-amber-600 px-4 py-2 text-xl`}>0</div>
-            <div class={`bg-sky-600 px-4 py-2 text-xl`}>0</div>
-            <div class={`bg-green-600 px-4 py-2 text-xl`}>0</div>
+          <div class={`rounded-b-2xl bg-black px-4 text-gray-300`}>
+            You've completed{" "}
+            <span class={`text-white`} id="task-count">
+              000
+            </span>{" "}
+            tasks
           </div>
         </div>
         <div
