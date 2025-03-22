@@ -58,9 +58,15 @@ export default function Tasks({ loaderData }: t.ComponentProps) {
         fx-action="/add"
         fx-target="#list"
         fx-swap="afterbegin"
-        fx-method="post"
+        fx-method="POST"
       >
-        <div class={`min-h-48 sm:min-h-64`}>
+        <div
+          class={`
+            relative mb-10 min-h-48 rounded-lg bg-slate-900/40 px-4 py-8 view-name-[todo]
+
+            sm:min-h-64
+          `}
+        >
           <div
             // Special case when the screen is very small, like when you pull up the virtual keyboard
             // on mobile. We need to push up the text field a bit to make space for the button

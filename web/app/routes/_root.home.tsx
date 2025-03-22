@@ -1,248 +1,137 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root.home";
-import { SecondaryButton } from "../components/SecondaryButton";
-import { PrimaryButton } from "../components/PrimaryButton";
-
-export const loader = async ({ request }: t.LoaderArgs) => {
-  // In a real app, you'd fetch this from a database
-  const todos = [
-    { id: "1", text: "Build a slick todo app", completed: false },
-    { id: "2", text: "Learn about view transitions", completed: false },
-    { id: "3", text: "Master Tailwind CSS", completed: false },
-    { id: "4", text: "Deploy to production", completed: false },
-  ];
-
-  return { todos };
-};
 
 export const action = async ({ request }: t.ActionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  return new Response(
-    (
-      <TicketView
-        data-direction={intent === "done" ? "up" : "right"}
+  const another = formData.get("another") as string;
+
+  const init = { headers: new Headers({ "Content-Type": "text/html" }) };
+
+  let response;
+  if (another) {
+    response = (
+      <p
+        class={`view-transition-[task]`}
+        id="task"
+        data-direction="right"
         data-view-transition
       >
-        <Ticket />
-        <p
-          ext-fx-confetti={intent === "done" ? "true" : undefined}
-          class={`
-            -mt-8 mb-10 text-center font-serif text-4xl underline backdrop-blur-xs
+        Get selected {new Date().toLocaleTimeString()}
+      </p>
+    );
+  }
 
-            sm:text-6xl
+  if (intent === "done") {
+    response = (
+      <p
+        class={`view-transition-[task]`}
+        id="task"
+        data-direction="up"
+        data-view-transition
+        ext-fx-confetti
+      >
+        Get done {new Date().toLocaleTimeString()}
+      </p>
+    );
+  }
 
-            peer
-          `}
-        >
-          Get elected
-        </p>
-      </TicketView>
-    ).toString(),
-    {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    },
-  );
+  if (intent === "cycle") {
+    response = (
+      <p
+        class={`view-transition-[task]`}
+        id="task"
+        data-direction="right"
+        data-view-transition
+      >
+        Get cycled {new Date().toLocaleTimeString()}
+      </p>
+    );
+  }
+
+  if (!response) {
+    throw new Response("Error", { status: 401 });
+  }
+
+  return new Response(response.toString(), init);
 };
 
 export default function Home({ loaderData }: t.ComponentProps) {
-  const { todos } = loaderData;
-
   return (
-    <div class={`mx-auto w-full max-w-screen-sm`}>
-      <h2 class={`sr-only`}>Home</h2>
-      <section class={`flex flex-col pt-10`}>
-        <TicketView>
-          <Ticket />
-          <p
-            class={`
-              -mt-8 mb-10 text-center font-serif text-4xl underline backdrop-blur-xs
+    <div
+      class={`
+        relative flex size-full flex-col items-center overflow-hidden backdrop-blur-3xl
+        transition-[backdrop-filter] duration-500 ease-in-out
 
-              sm:text-6xl
-
-              peer
-            `}
-          >
-            Go shopping on Friday
-          </p>
-        </TicketView>
-
-        <form
-          fx-action="/home"
-          fx-method="post"
-          fx-target={`#todo`}
+        starting:backdrop-blur-sm
+      `}
+    >
+      <main class={`flex size-full`}>
+        <div class={`absolute inset-x-0 top-0 flex justify-center`}>
+          <div class={`flex overflow-hidden rounded-b-xl shadow`}>
+            <div class={`bg-amber-600 px-4 py-2 text-xl`}>0</div>
+            <div class={`bg-sky-600 px-4 py-2 text-xl`}>0</div>
+            <div class={`bg-green-600 px-4 py-2 text-xl`}>0</div>
+          </div>
+        </div>
+        <div
           class={`
-            flex flex-wrap-reverse justify-center gap-8 text-xl
+            grid grow place-content-center
 
-            sm:flex-nowrap
+            *:[grid-area:1/1]
           `}
         >
-          <SecondaryButton value="what-else" name="intent">
-            What else?{" "}
-            <ArrowPathIcon
-              class={`
-                inline-block h-[0.8lh] flex-none
+          <div
+            class={`
+              grow scale-120 rounded-full bg-amber-700 blur-md
+              transition-[filter_transform_opacity] duration-500
 
-                group-hover:rotate-360 group-hover:duration-1000
-              `}
-            />
-          </SecondaryButton>
-          <PrimaryButton value="done" name="intent">
-            I'm done!{" "}
-            <AddCheckCircleIcon
-              class={`
-                inline-block h-[0.8lh] flex-none
+              starting:scale-200 starting:opacity-50 starting:blur-sm
+            `}
+          ></div>
+          <div
+            class={`
+              z-10 h-fit w-fit self-center justify-self-center px-4 text-center font-serif
+              text-4xl text-gray-100 transition-[opacity_transform] duration-300
 
-                group-hover:rotate-360 group-hover:duration-1000
-              `}
-            />
-          </PrimaryButton>
+              starting:scale-150 starting:opacity-0
+            `}
+          >
+            <p class={`view-transition-[task]`} id="task">
+              Go to shop and shop
+            </p>
+          </div>
+        </div>
+      </main>
+      <header class={`flex w-full justify-center`}>
+        <form
+          fx-action="/home"
+          fx-method="POST"
+          fx-target="#task"
+          class={`
+            flex h-12 w-full max-w-screen-md justify-between gap-4 bg-black px-4 text-gray-200
+
+            md:rounded-t-lg
+          `}
+        >
+          <button
+            name="another"
+            class={`cursor-pointer underline`}
+            ext-fx-prompt="What's next?"
+          >
+            Another? ➕
+          </button>
+          <button
+            name="intent"
+            value="cycle"
+            class={`cursor-pointer underline`}
+          >
+            Cycle? ♻️
+          </button>
+          <button name="intent" value="done" class={`cursor-pointer underline`}>
+            Done. 🎉
+          </button>
         </form>
-      </section>
+      </header>
     </div>
   );
 }
-
-const Ticket = () => {
-  return (
-    <div class={`relative mx-auto flex max-w-sm opacity-20`}>
-      <div class={`relative grow sepia-30`}>
-        <div
-          class={`flex min-h-20 grow border-r-2 border-dotted border-white bg-red-500 p-1.5`}
-        >
-          <div
-            class={`absolute top-1/2 left-0 flex h-13 w-7 -translate-y-1/2 items-center overflow-hidden`}
-          >
-            <div
-              class={`
-                size-6 flex-none -translate-x-1/2 rounded-full border-6 border-red-500
-                bg-slate-950 outline-2 outline-offset-0 outline-black
-              `}
-            />
-          </div>
-          <div class={`grow border-2 border-gray-800 bg-orange-100/90`}>
-            <h3
-              class={`
-                mb-4 text-center font-serif text-3xl text-gray-800 uppercase underline
-                decoration-double
-
-                [text-stroke:4px_white]
-              `}
-            >
-              Task
-            </h3>
-          </div>
-        </div>
-      </div>
-
-      <div class={`relative flex sepia-30`}>
-        <div
-          class={`flex min-h-20 grow border-l-2 border-dotted border-white bg-red-500 p-1.5`}
-        >
-          <div
-            class={`
-              relative flex w-12 items-center justify-center border-2 border-gray-800
-              bg-orange-100/90
-            `}
-          >
-            <div
-              class={`
-                absolute right-0 flex -rotate-90 transform flex-col items-center justify-center
-                text-sm font-bold text-gray-800 uppercase
-              `}
-            >
-              <BadgeCheckCircleIcon class={`h-[1lh] text-green-600`} />
-              Done
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-type BadgeCheckCircleIconProps = JSX.IntrinsicElements["svg"];
-
-const BadgeCheckCircleIcon = (props: BadgeCheckCircleIconProps) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"
-      />
-    </svg>
-  );
-};
-
-type ArrowPathIconProps = JSX.IntrinsicElements["svg"];
-
-const ArrowPathIcon = (props: ArrowPathIconProps) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-      />
-    </svg>
-  );
-};
-
-type TicketViewProps = JSX.IntrinsicElements["div"];
-
-const TicketView = ({ children, ...props }: TicketViewProps) => {
-  return (
-    <div
-      id="todo"
-      style={`
-        view-transition-name: todo;
-      `}
-      class={`
-        relative min-h-48 view-name-[todo]
-
-        sm:min-h-64
-      `}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-};
-
-type AddCheckCircleIcon = JSX.IntrinsicElements["svg"];
-
-const AddCheckCircleIcon = (props: AddCheckCircleIcon) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-      />
-    </svg>
-  );
-};

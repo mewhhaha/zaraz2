@@ -9,11 +9,18 @@ export default defineConfig({
   input: ["./main.ts"],
   experimental: {
     resolveNewUrlToAsset: true,
+    enableComposingJsPlugins: true,
   },
   resolve: {
     conditionNames: ["import"],
   },
-
+  moduleTypes: {
+    ".jpg": "dataurl",
+    ".jpeg": "dataurl",
+    ".png": "dataurl",
+    ".gif": "dataurl",
+    ".svg": "dataurl",
+  },
   output: {
     dir: "dist",
     format: "esm",

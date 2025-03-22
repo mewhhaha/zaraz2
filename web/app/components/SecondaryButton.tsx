@@ -12,7 +12,7 @@ export const SecondaryButton = ({
         flex cursor-pointer items-center justify-center gap-1 rounded-full border-2
         border-slate-500 px-4 py-2 text-xl underline decoration-gray-200 decoration-1
 
-        hover:bg-slate-800 hover:decoration-3
+        hover:bg-slate-800 hover:decoration-3 backdrop-blur-sm
 
         active:outline-2 active:outline-offset-2 active:outline-white
 

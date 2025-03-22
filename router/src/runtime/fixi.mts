@@ -13,7 +13,7 @@ declare global {
 
   interface FixiAttributes {
     "fx-action"?: string;
-    "fx-method"?: "get" | "post" | "delete" | "put" | "patch";
+    "fx-method"?: "GET" | "POST" | "DELETE" | "PUT" | "PATCH";
     "fx-trigger"?: keyof FixiEvents | ({} & string);
     "fx-target"?: "body" | "self" | "parent" | "closest" | ({} & string);
     "fx-ignore"?: true;

@@ -350,8 +350,9 @@ export namespace JSX {
   export interface HtmlScriptTag extends HtmlTag {
     src?: string | undefined;
     type?: string | undefined;
+    nonce?: string | undefined;
     charset?: string | undefined;
-    async?: string | undefined;
+    async?: boolean | undefined;
     defer?: string | undefined;
     crossorigin?: string | undefined;
     integrity?: string | undefined;
@@ -434,7 +435,21 @@ export namespace JSX {
     "stroke-width"?: string | undefined;
     stroke?: string | undefined;
     class?: string | undefined;
+    width?: number | undefined;
+    height?: number | undefined;
   }
+
+  export interface HtmlFeTurbulenceTag extends HtmlTag {
+    type?: string | undefined;
+    baseFrequency?: string | undefined;
+    numOctaves?: string | undefined;
+  }
+
+  export interface HtmlFeDisplacementMapTag extends HtmlTag {
+    in?: string | undefined;
+    scale?: string | undefined;
+  }
+
   export interface HtmlPathTag extends HtmlTag {
     "stroke-linecap"?: string | undefined;
     "stroke-linejoin"?: string | undefined;
@@ -564,5 +579,8 @@ export namespace JSX {
     wbr: HtmlTag;
     svg: HtmlSvgTag;
     path: HtmlPathTag;
+    filter: HtmlSvgTag;
+    feTurbulence: HtmlFeTurbulenceTag;
+    feDisplacementMap: HtmlFeDisplacementMapTag;
   }
 }

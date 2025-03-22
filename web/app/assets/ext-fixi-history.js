@@ -1,8 +1,8 @@
-// function initJS() {}
+function initJS() {}
 
-// document.addEventListener("DOMContentLoaded", (evt) => {
-//   initJS();
-// });
+document.addEventListener("DOMContentLoaded", (evt) => {
+  initJS();
+});
 
 document.addEventListener("fx:after", (evt) => {
   if (evt.target.getAttribute("ext-fx-push")) {

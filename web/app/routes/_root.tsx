@@ -1,156 +1,7 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root";
 
-export const loader = async ({ request }: t.LoaderArgs) => {
-  const url = new URL(request.url);
-  return { pathname: url.pathname };
-};
-
-export default function Index({
-  loaderData: { pathname },
-  children,
-}: t.ComponentProps) {
-  const to = (path: string): [string, string] => {
-    return [pathname, path];
-  };
-
-  return (
-    <div class={`relative flex size-full flex-col`}>
-      <header
-        class={`
-          sticky -top-32 z-10 bg-slate-950 text-gray-50 shadow shadow-slate-950
-          transition-[filter]
-
-          [@media(height_<_30rem)]:blur-sm
-        `}
-      >
-        <div class={`mx-auto max-w-screen-sm`}>
-          <a class={`underline`} href="/logout">
-            logout
-          </a>
-          <div
-            class={`
-              flex max-w-screen-sm divide-x divide-dotted border-b border-white/50
-              font-serif
-            `}
-          >
-            <div class={`row-span-2 p-2 text-5xl`}>🎉</div>
-            <hgroup class={`divide-y divide-dotted divide-white/50`}>
-              <h1>
-                <a
-                  class={`
-                    relative isolate bg-gradient-to-r from-white to-white bg-clip-text p-2
-                    text-5xl font-bold text-transparent transition-[background-color]
-                    duration-300
-
-                    hover:from-pink-200 hover:to-blue-500
-
-                    group
-                  `}
-                  href="/"
-                >
-                  <span
-                    class={`
-                      absolute left-0 -z-10 bg-gradient-to-r from-white/10 to-white bg-clip-text
-                      text-transparent opacity-0 transition-[transform_opacity]
-                      duration-300
-
-                      group-hover:translate-x-1/2 group-hover:opacity-100 group-hover:duration-1000
-                    `}
-                  >
-                    zaraz
-                  </span>
-                  <span
-                    class={`
-                      absolute left-0 -z-10 bg-gradient-to-r from-white/10 to-white/50
-                      bg-clip-text text-transparent opacity-0
-                      transition-[transform_opacity] duration-300
-
-                      group-hover:translate-x-full group-hover:opacity-100 group-hover:delay-50
-                      group-hover:duration-950
-                    `}
-                  >
-                    zaraz
-                  </span>
-                  <span
-                    class={`
-                      absolute left-0 -z-10 bg-gradient-to-r from-white/10 to-white/20
-                      bg-clip-text text-transparent opacity-0
-                      transition-[transform_opacity] duration-300
-
-                      group-hover:translate-x-[150%] group-hover:opacity-100 group-hover:delay-100
-                      group-hover:duration-900
-                    `}
-                  >
-                    zaraz
-                  </span>
-                  zaraz
-                </a>
-              </h1>
-              <p class={`p-2 text-lg font-thin italic`}>
-                Zaraz to zrobię
-                <span
-                  class={`
-                    hidden
-
-                    sm:inline
-                  `}
-                >
-                  , I'll do it in a moment
-                </span>
-              </p>
-            </hgroup>
-          </div>
-        </div>
-        <nav class={`mx-auto w-fit px-6`}>
-          <ul
-            class={`flex max-w-screen-sm gap-4 pt-6 pb-2 view-transition-[nav]`}
-          >
-            <li>
-              <NavLink href={to("/home")}>
-                Home
-                <HomeIcon
-                  class={`
-                    mb-0.5 ml-1 hidden size-5 align-text-bottom
-
-                    sm:inline-block
-                  `}
-                />
-              </NavLink>
-            </li>
-            <li>
-              <NavLink href={to("/add")}>
-                Add
-                <AddCircledIcon
-                  class={`
-                    mb-0.5 ml-1 hidden size-5 align-text-bottom
-
-                    sm:inline-block
-                  `}
-                />
-              </NavLink>
-            </li>
-            <li>
-              <NavLink href={to("/done")}>
-                Done
-                <ListBulletIcon
-                  class={`
-                    mb-0.5 ml-1 hidden h-[0.5lh] align-text-bottom
-
-                    sm:inline-block
-                  `}
-                />
-              </NavLink>
-            </li>
-          </ul>
-        </nav>
-      </header>
-      <main class={`flex grow flex-col px-6`}>{children}</main>
-
-      <footer class={`p-6 text-center text-sm`}>Copyright 2025</footer>
-    </div>
-  );
-}
+export const loader = async ({ request }: t.LoaderArgs) => {};
 
 type NavLinkProps = Omit<JSX.IntrinsicElements["a"], "href"> & {
   href: [pathname: string, href: string];
@@ -171,7 +22,7 @@ const NavLink = ({ href: [pathname, href], children }: NavLinkProps) => {
       aria-current={ariaCurrent}
       class={`
         relative isolate rounded-lg px-4 py-2 text-lg/loose font-bold whitespace-nowrap
-        text-gray-300 underline decoration-sky-500 decoration-1 underline-offset-2
+        text-gray-400 underline decoration-sky-500 decoration-1 underline-offset-2
 
         hover:bg-white/15 hover:text-gray-200
 
@@ -179,8 +30,10 @@ const NavLink = ({ href: [pathname, href], children }: NavLinkProps) => {
 
         active:decoration-amber-400 active:outline-2 active:outline-offset-4 active:outline-white
 
-        aria-current-page:bg-gray-800 aria-current-page:text-gray-200 aria-current-page:decoration-amber-400
+        aria-current-page:bg-gray-800 aria-current-page:text-gray-300 aria-current-page:decoration-amber-400
         aria-current-page:decoration-3
+
+        hover:aria-current-page:text-gray-200
       `}
     >
       <span

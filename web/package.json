@@ -16,25 +16,25 @@
     "dev": "run-p wrangler-dev watch"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250124.3",
+    "@cloudflare/workers-types": "^4.20250317.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.13",
     "@mewhhaha/fx-router": "workspace:^",
-    "@tailwindcss/node": "^4.0.0",
-    "@tailwindcss/oxide": "^4.0.0",
+    "@tailwindcss/node": "^4.0.14",
+    "@tailwindcss/oxide": "^4.0.14",
     "@types/node": "^22.10.10",
     "eslint": "^9.19.0",
-    "eslint-plugin-oxlint": "^0.15.8",
+    "eslint-plugin-oxlint": "^0.16.0",
     "fast-glob": "^3.3.3",
-    "lightningcss": "^1.29.1",
+    "lightningcss": "^1.29.3",
     "npm-run-all": "^4.1.5",
-    "oxlint": "^0.15.8",
+    "oxlint": "^0.16.0",
     "prettier": "^3.4.2",
-    "rolldown": "1.0.0-beta.3-commit.4666fd5",
-    "tailwindcss": "^4.0.0",
+    "rolldown": "1.0.0-beta.6-commit.231bdea",
+    "tailwindcss": "^4.0.14",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.21.0",
-    "vitest": "^3.0.4",
-    "wrangler": "^3.105.1"
+    "typescript-eslint": "^8.26.1",
+    "vitest": "^3.0.9",
+    "wrangler": "^4.2.0"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3"
