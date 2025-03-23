@@ -1,0 +1,25 @@
+{
+    "name": "@packages/passkey",
+    "private": true,
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "exports": {
+      ".": {
+        "import": {
+          "import": "./src/passkey.mts",
+          "types": "./src/passkey.mts"
+        }
+      }
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "sideEffects": false,
+    "devDependencies": {
+      "@passwordless-id/webauthn": "^2.1.2",
+      "esbuild": "^0.24.2",
+      "typescript": "^5.4.5",
+      "wrangler": "3.102.0"
+    }
+  }

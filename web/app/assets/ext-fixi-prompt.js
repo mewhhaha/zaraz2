@@ -1,5 +1,8 @@
 // fixi confirmation extension
 document.addEventListener("fx:config", (evt) => {
+  if (!(evt.target instanceof HTMLFormElement)) {
+    return;
+  }
   let target;
   if (evt.target.hasAttribute("ext-fx-prompt")) {
     target = evt.target;
@@ -7,11 +10,11 @@ document.addEventListener("fx:config", (evt) => {
     target = evt.target.querySelector("[ext-fx-prompt]");
   }
 
-  if (
-    !(evt.target instanceof HTMLFormElement) ||
-    !target ||
-    !target.getAttribute("name")
-  ) {
+  if (target !== evt.detail.cfg.trigger.submitter) {
+    return;
+  }
+
+  if (!target || !target.getAttribute("name")) {
     return;
   }
 

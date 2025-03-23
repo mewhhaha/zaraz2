@@ -1,3 +1,4 @@
+import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types._root.home";
 
 export const action = async ({ request }: t.ActionArgs) => {
@@ -10,41 +11,25 @@ export const action = async ({ request }: t.ActionArgs) => {
   let response;
   if (another) {
     response = (
-      <p
-        class={`view-transition-[task]`}
-        id="task"
-        data-direction="right"
-        data-view-transition
-      >
+      <Task id="task" data-direction="right" data-view-transition>
         {another}
-      </p>
+      </Task>
     );
   }
 
   if (intent === "done") {
     response = (
-      <p
-        class={`view-transition-[task]`}
-        id="task"
-        data-direction="up"
-        data-view-transition
-        ext-fx-confetti
-      >
-        Get done {new Date().toLocaleTimeString()}
-      </p>
+      <Task id="task" data-direction="up" data-view-transition ext-fx-confetti>
+        After done {new Date().toLocaleTimeString()}
+      </Task>
     );
   }
 
   if (intent === "cycle") {
     response = (
-      <p
-        class={`view-transition-[task]`}
-        id="task"
-        data-direction="right"
-        data-view-transition
-      >
+      <Task id="task" data-direction="right" data-view-transition>
         Get cycled {new Date().toLocaleTimeString()}
-      </p>
+      </Task>
     );
   }
 
@@ -98,9 +83,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
               starting:scale-150 starting:opacity-0
             `}
           >
-            <p class={`view-transition-[task]`} id="task">
-              Go to shop and shop
-            </p>
+            <Task>Go to shop and shop</Task>
           </div>
         </div>
       </main>
@@ -137,3 +120,20 @@ export default function Home({ loaderData }: t.ComponentProps) {
     </div>
   );
 }
+
+type TaskProps = JSX.IntrinsicElements["p"];
+
+const Task = ({ children, class: className }: TaskProps) => {
+  return (
+    <p
+      class={cx(`bg-black px-2 py-1 view-transition-[task]`, className)}
+      id="task"
+    >
+      {children}
+    </p>
+  );
+};
+
+const cx = (...classes: (string | undefined | false | null)[]) => {
+  return classes.filter((x) => !!x).join(" ");
+};

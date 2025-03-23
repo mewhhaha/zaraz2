@@ -17,6 +17,10 @@ html *:focus-visible {
   outline-offset: 4px;
 }
 
+@view-transition {
+  navigation: auto;
+}
+
 @utility view-transition-* {
   view-transition-name: --value([ *]);
 }
@@ -28,7 +32,7 @@ html *:focus-visible {
     opacity: 1;
   }
   to {
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.9);
     opacity: 0;
   }
 }
@@ -40,7 +44,7 @@ html *:focus-visible {
     opacity: 1;
   }
   to {
-    transform: translateY(-100%);
+    transform: translateY(-50vh) scale(1.5);
     opacity: 0;
     filter: saturate(200);
   }
@@ -48,7 +52,7 @@ html *:focus-visible {
 
 @keyframes slide-in-left {
   from {
-    transform: translateX(-100%);
+    transform: translateX(-100%) scale(0.9);
     opacity: 0;
   }
   to {
