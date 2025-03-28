@@ -1,3 +1,5 @@
+import type { Env } from "@mewhhaha/fx-router";
+
 // Cookie implementation
 interface CookieSerializeOptions {
   maxAge?: number;
@@ -15,80 +17,82 @@ export const cookie = {
     value: string,
     options: CookieSerializeOptions = {},
   ): string {
-    const parts = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
+    const pairs = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
 
-    if (options.maxAge) {
-      parts.push(`Max-Age=${options.maxAge}`);
-    }
+    // Add options to cookie string
+    if (options.maxAge) pairs.push(`Max-Age=${options.maxAge}`);
+    if (options.domain) pairs.push(`Domain=${options.domain}`);
+    if (options.path) pairs.push(`Path=${options.path}`);
+    if (options.expires) pairs.push(`Expires=${options.expires.toUTCString()}`);
+    if (options.httpOnly) pairs.push("HttpOnly");
+    if (options.secure) pairs.push("Secure");
+    if (options.sameSite) pairs.push(`SameSite=${options.sameSite}`);
 
-    if (options.domain) {
-      parts.push(`Domain=${options.domain}`);
-    }
-
-    if (options.path) {
-      parts.push(`Path=${options.path}`);
-    }
-
-    if (options.expires) {
-      parts.push(`Expires=${options.expires.toUTCString()}`);
-    }
-
-    if (options.httpOnly) {
-      parts.push("HttpOnly");
-    }
-
-    if (options.secure) {
-      parts.push("Secure");
-    }
-
-    if (options.sameSite) {
-      parts.push(`SameSite=${options.sameSite}`);
-    }
-
-    return parts.join("; ");
+    return pairs.join("; ");
   },
 
-  parse(str: string): Record<string, string> {
-    const result: Record<string, string> = {};
+  parse(str: string, key: string): string | null {
+    if (!str) return null;
 
-    if (!str) {
-      return result;
-    }
+    // Find only the specified key's value
+    const match = str
+      .split(";")
+      .find((pair) => pair.trim().startsWith(`${encodeURIComponent(key)}=`));
 
-    str.split(";").forEach((pair) => {
-      const parts = pair.split("=");
-      const key = parts[0]?.trim();
+    if (!match) return null;
 
-      if (!key) return;
-
-      const value = parts[1]?.trim() || "";
-      result[decodeURIComponent(key)] = decodeURIComponent(value);
-    });
-
-    return result;
+    const value = match.split("=")[1]?.trim();
+    if (!value) return null;
+    return value;
   },
 };
 
-export const createCookie = (name: string, secret: string) => {
+export const createCookie = <T,>(
+  name: string,
+  secret: string,
+  options: CookieSerializeOptions = {
+    httpOnly: true,
+    secure: true,
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+  },
+) => {
   return {
-    serialize: async (value: unknown) => {
+    serialize: async (value: T) => {
       const encodedValue = encode(JSON.stringify(value));
       const signature = encode(await hmac(secret, encodedValue));
       const signed = `${encodedValue}.${signature}`;
-      return cookie.serialize(name, signed, {
-        httpOnly: true,
-        secure: true,
-        path: "/",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30,
-      });
+      const pairs = [
+        `${encodeURIComponent(name)}=${encodeURIComponent(signed)}`,
+      ];
+
+      // Add options to cookie string
+      if (options.maxAge) pairs.push(`Max-Age=${options.maxAge}`);
+      if (options.domain) pairs.push(`Domain=${options.domain}`);
+      if (options.path) pairs.push(`Path=${options.path}`);
+      if (options.expires)
+        pairs.push(`Expires=${options.expires.toUTCString()}`);
+      if (options.httpOnly) pairs.push("HttpOnly");
+      if (options.secure) pairs.push("Secure");
+      if (options.sameSite) pairs.push(`SameSite=${options.sameSite}`);
+
+      return pairs.join("; ");
     },
-    parse: async <T,>(value: string) => {
-      const { [name]: parsed } = cookie.parse(value);
-      if (!parsed) {
-        return null;
-      }
-      const [encodedValue, signature] = parsed.split(".");
+    parse: async (cookieHeader: string): Promise<T | null> => {
+      if (!cookieHeader) return null;
+
+      // Find only the specified key's value
+      const match = cookieHeader
+        .split(";")
+        .find((pair) => pair.trim().startsWith(`${encodeURIComponent(name)}=`));
+
+      if (!match) return null;
+
+      const value = match.split("=")[1]?.trim();
+      if (!value) return null;
+
+      const [encodedValue, signature] = decodeURIComponent(value).split(".");
       if (!encodedValue || !signature) {
         return null;
       }
@@ -130,4 +134,78 @@ export const hmac = async (
   return [...new Uint8Array(signature)]
     .map((b) => String.fromCharCode(b))
     .join("");
+};
+
+export function invariant<T>(condition: T, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+const now = () => new Date().toISOString();
+
+const minute1 = () => fromNow(1000 * 60);
+
+const fromNow = (ms: number) => {
+  return new Date(new Date().getTime() + ms);
+};
+
+export const extractVisitorHeaders = (headers: Headers): VisitedHeaders => {
+  const result: VisitedHeaders = {};
+
+  const keys: (keyof VisitedHeaders)[] = [
+    "city",
+    "country",
+    "continent",
+    "longitude",
+    "latitude",
+    "region",
+    "regionCode",
+    "metroCode",
+    "postalCode",
+    "timezone",
+  ];
+
+  for (const key of keys) {
+    result[key] = headers.get(key)?.toString() ?? undefined;
+  }
+
+  return result;
+};
+
+export type VisitedHeaders = {
+  city?: string | undefined;
+  country?: string | undefined;
+  continent?: string | undefined;
+  longitude?: string | undefined;
+  latitude?: string | undefined;
+  region?: string | undefined;
+  regionCode?: string | undefined;
+  metroCode?: string | undefined;
+  postalCode?: string | undefined;
+  timezone?: string | undefined;
+};
+
+type User = {
+  userId: string;
+  passkeyId: string;
+  expires: string;
+};
+
+export const createUserCookie = createCookie<User>;
+
+export const authenticate = async (request: Request, env: Env) => {
+  const cookie = request.headers.get("Cookie") ?? "";
+  const userCookie = createUserCookie("user", env.SECRET_KEY);
+  const user = await userCookie.parse(cookie);
+
+  if (!user) {
+    throw Response.redirect(new URL("/auth/register", request.url));
+  }
+
+  if (new Date(user.expires) < new Date()) {
+    throw Response.redirect(new URL("/auth/verify", request.url));
+  }
+
+  return user;
 };

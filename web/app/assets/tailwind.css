@@ -21,38 +21,38 @@ html *:focus-visible {
   navigation: auto;
 }
 
-@utility view-transition-* {
-  view-transition-name: --value([ *]);
-}
-
-/* Simple keyframes for slide transitions */
-@keyframes slide-out-right {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%) scale(0.9);
-    opacity: 0;
-  }
-}
-
 /* Simple keyframes for slide transitions */
 @keyframes slide-out-up {
   from {
     transform: translateY(0);
     opacity: 1;
   }
+  50% {
+    transform: translateY(-150%) scale(1.2);
+    opacity: 0.5;
+    filter: hue-rotate(-80deg);
+  }
   to {
-    transform: translateY(-50vh) scale(1.5);
+    transform: translateY(-50vh) scale(0);
     opacity: 0;
-    filter: saturate(200);
+    filter: hue-rotate(-80deg);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%) translateY(-50%) scale(0.5) skew(180deg);
+    opacity: 0;
   }
 }
 
 @keyframes slide-in-left {
   from {
-    transform: translateX(-100%) scale(0.9);
+    transform: translateX(-100%) translateY(-50%) scale(0.5) skew(180deg);
     opacity: 0;
   }
   to {

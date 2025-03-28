@@ -101,7 +101,7 @@ const sanitize = (value: any) => {
   if (typeof value === "string") {
     return value.replaceAll(/"/g, "&quot;");
   }
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === false) {
     return undefined;
   }
 

@@ -1,9 +1,5 @@
-import { type VisitedHeaders } from "../helpers/headers.js";
-import { now } from "../helpers/time.js";
 import { server } from "@passwordless-id/webauthn";
 import { DurableObject } from "cloudflare:workers";
-
-import type { Env } from "./env.mjs";
 import type {
   AuthenticationInfo,
   AuthenticationJSON,
@@ -11,6 +7,7 @@ import type {
   CredentialInfo,
   RegistrationJSON,
 } from "@passwordless-id/webauthn/dist/esm/types.js";
+import type { Env } from "@mewhhaha/fx-router";
 
 const VISITOR_HISTORY_LENGTH = 10;
 
@@ -225,4 +222,19 @@ type Visitor = {
   timezone?: string | undefined;
   authentication?: AuthenticationInfo | undefined;
   timestamp: string;
+};
+
+const now = () => new Date().toISOString();
+
+export type VisitedHeaders = {
+  city?: string | undefined;
+  country?: string | undefined;
+  continent?: string | undefined;
+  longitude?: string | undefined;
+  latitude?: string | undefined;
+  region?: string | undefined;
+  regionCode?: string | undefined;
+  metroCode?: string | undefined;
+  postalCode?: string | undefined;
+  timezone?: string | undefined;
 };

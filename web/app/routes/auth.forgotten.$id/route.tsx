@@ -20,19 +20,22 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   }
 
   const formData = await request.formData();
+
+  const id = formData.get("id")?.toString();
+  if (!id) {
+    return new Response("id_missing", { status: 422 });
+  }
+
   const token = formData.get("token")?.toString();
   if (!token) {
-    return new Response("token_missing", { status: 403 });
+    return new Response("token_missing", { status: 422 });
   }
 
-  const username = formData.get("username")?.toString();
-  if (!username) {
-    return new Response("username_missing", { status: 403 });
-  }
+  const stub = env.OBJECT_FORGOTTEN.get(env.OBJECT_FORGOTTEN.idFromName(id));
 
-  const email = formData.get("email")?.toString();
-  if (!email) {
-    return new Response("email_missing", { status: 403 });
+  const { error: destroyError, username } = await stub.destroy();
+  if (destroyError) {
+    return new Response("link_expired", { status: 403 });
   }
 
   const [challengeId, signature, registrationBase64Json] = token.split(".");
@@ -83,12 +86,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
       userId: user.id,
     });
 
-    try {
-      await user.create({ username, email, passkey: passkeyLink });
-      await env.KV_USERS.put(username, "taken");
-    } catch {
-      return new Response("user_exists", { status: 403 });
-    }
+    await user.addPasskey(passkeyLink);
 
     const cookie = createUserCookie("user", env.SECRET_KEY);
 
@@ -110,49 +108,29 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
 const client = new URL("./route.client.mts", import.meta.url);
 
-export const loader = async ({ context: [env] }: t.LoaderArgs) => {
+export const loader = async ({
+  context: [env],
+  params: { id },
+}: t.LoaderArgs) => {
+  const stub = env.OBJECT_FORGOTTEN.get(env.OBJECT_FORGOTTEN.idFromName(id));
+  if (stub === null) {
+    throw new Response("not_found", { status: 404 });
+  }
+
   return {
+    id,
     nonce: env.nonce,
   };
 };
 
-export default function Route({ loaderData: { nonce } }: t.ComponentProps) {
+export default function Route({ loaderData: { nonce, id } }: t.ComponentProps) {
   return (
     <>
       <script nonce={nonce} type="module" src={client.pathname}></script>
-      <div class={`mx-auto max-w-md`}>
-        <form
-          method="POST"
-          id="register-form"
-          class={`flex flex-col gap-4 rounded-lg border p-4`}
-        >
-          <input type="hidden" name="token" />
-
-          <div>
-            <label for="username" class={`mb-1 block`}>
-              Username
-            </label>
-            <input
-              type="text"
-              name="username"
-              class={`rounded-lg border-2 px-2 py-1`}
-            />
-          </div>
-          <div>
-            <label for="email" class={`mb-1 block`}>
-              Email
-            </label>
-            <input
-              type="text"
-              name="email"
-              class={`rounded-lg border-2 px-2 py-1`}
-            />
-          </div>
-          <button type="submit" class={`rounded-lg border p-2`}>
-            Register
-          </button>
-        </form>
-      </div>
+      <form method="POST" id="register-form" class={`hidden`}>
+        <input type="hidden" name="token" />
+        <input type="hidden" name="id" value={id} />
+      </form>
     </>
   );
 }

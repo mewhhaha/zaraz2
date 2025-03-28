@@ -353,7 +353,7 @@ export namespace JSX {
     nonce?: string | undefined;
     charset?: string | undefined;
     async?: boolean | undefined;
-    defer?: string | undefined;
+    defer?: boolean | undefined;
     crossorigin?: string | undefined;
     integrity?: string | undefined;
     text?: string | undefined;
@@ -458,7 +458,13 @@ export namespace JSX {
 
   export type Element = Html;
 
-  export type HtmlNode = Element | string | null | undefined | HtmlNode[];
+  export type HtmlNode =
+    | Element
+    | string
+    | null
+    | undefined
+    | false
+    | HtmlNode[];
 
   export interface ElementChildrenAttribute {
     children?: HtmlNode;

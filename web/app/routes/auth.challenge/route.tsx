@@ -1,4 +1,4 @@
-import { hmac } from "../../helpers/crypto";
+import { hmac } from "../../helpers/auth.mts";
 import * as t from "./+types.route";
 
 export const action = async ({

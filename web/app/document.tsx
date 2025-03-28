@@ -13,14 +13,13 @@ const fixiResetUrl = new URL("./assets/ext-fixi-reset.js", import.meta.url);
 
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
 const svgUrl = new URL("./assets/favicon.svg", import.meta.url);
-const bgUrl = new URL("./assets/happy.jpg", import.meta.url);
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   const nonce = crypto.randomUUID();
   return { nonce: undefined };
 };
 
-export const headers: t.HeadersFunction = ({ loaderData }) => {
+export const headers: t.HeadersFunction = ({ loaderData, context: [env] }) => {
   const { nonce } = loaderData;
   const headers = new Headers();
   headers.set("Strict-Transport-Security", "max-age=31536000");
@@ -29,7 +28,7 @@ export const headers: t.HeadersFunction = ({ loaderData }) => {
     headers.set(
       "Content-Security-Policy",
       `
-script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline' http: https:;
+script-src 'strict-dynamic' 'nonce-${env.nonce}' 'unsafe-inline' http: https:;
 object-src 'none';
 base-uri 'none';
 require-trusted-types-for 'script';
@@ -45,7 +44,7 @@ export default function Document({
   loaderData: { nonce },
 }: t.ComponentProps) {
   return (
-    <html>
+    <html lang="en">
       <head>
         <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
@@ -65,22 +64,15 @@ export default function Document({
           rel="stylesheet"
         />
         <link rel="stylesheet" href={stylesUrl.pathname} />
-        <script nonce={nonce} src={fixiUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiHistoryUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiConfirmUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiPromptUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiConfettiUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiFocusUrl.pathname} async></script>
-        <script nonce={nonce} src={fixiResetUrl.pathname} async></script>
+        <script nonce={nonce} src={fixiUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiHistoryUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiConfirmUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiPromptUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiConfettiUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiFocusUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiResetUrl.pathname} defer></script>
       </head>
-      <body class="bg-slate-950 text-amber-50">
-        <img
-          src={bgUrl.pathname}
-          alt=""
-          class="absolute inset-0 -z-10 w-full h-full"
-        />
-        {children}
-      </body>
+      <body class={`bg-slate-950 text-amber-50`}>{children}</body>
     </html>
   );
 }

@@ -1,3 +1,4 @@
+import "@mewhhaha/fx-router";
 
 declare module "@mewhhaha/fx-router" {
   interface FxAttributes {

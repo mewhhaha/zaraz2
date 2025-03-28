@@ -4,9 +4,9 @@ import type {
   InferHeadersFunction,
   InferLoaderArgs,
 } from "@mewhhaha/fx-router/types";
-import * as r from "./_root.add.js";
+import * as r from "./route.js";
 
-export type RouteParams = Record<never, never>;
+export type RouteParams = { id: string; };
 
 export type ComponentProps = InferComponentProps<typeof r>;
 export type LoaderArgs = InferLoaderArgs<RouteParams>;

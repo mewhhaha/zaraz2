@@ -61,7 +61,11 @@ export const Router = (routes: route[]): router => {
       r.fragments = r.fragments.slice(1);
     }
 
-    const ctx = { request, params: r.params ?? {}, context: args };
+    const ctx = {
+      request,
+      params: r.params ?? {},
+      context: args,
+    };
 
     try {
       const leaf = r.fragments.at(-1)?.mod;

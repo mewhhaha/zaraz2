@@ -7,5 +7,29 @@ compatibility_date = "2025-03-08"
 compatibility_flags = ["nodejs_compat"]
 assets = { directory = "./dist/", binding = "ASSETS" }
 
+[[kv_namespaces]]
+binding = "KV_USERS"
+id = "d081ddb4cd634225bee59466c65f6c68"
+
+[[durable_objects.bindings]]
+name = "OBJECT_USER"
+class_name = "DurableObjectUser"
+
+[[durable_objects.bindings]]
+name = "OBJECT_PASSKEY"
+class_name = "DurableObjectPasskey"
+
+[[durable_objects.bindings]]
+name = "OBJECT_FORGOTTEN"
+class_name = "DurableObjectForgotten"
+
 [vars]
 SECRET = "secret"
+
+[[migrations]]
+tag = "v1"
+new_classes = [
+    "DurableObjectUser",
+    "DurableObjectPasskey",
+    "DurableObjectForgotten",
+]

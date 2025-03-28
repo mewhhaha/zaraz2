@@ -37,7 +37,9 @@
     "wrangler": "^4.4.0"
   },
   "dependencies": {
+    "@packages/passkey": "workspace:*",
     "@passwordless-id/webauthn": "^2.3.0",
-    "canvas-confetti": "^1.9.3"
+    "canvas-confetti": "^1.9.3",
+    "resend": "^4.1.2"
   }
 }

@@ -1,11 +1,14 @@
-import { extractVisitorHeaders } from "../../helpers/headers.js";
 import type * as t from "./+types.route.js";
-import { createCookie } from "../../helpers/cookie.js";
 import type { AuthenticationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import { finish } from "../auth.challenge/route.js";
-import { hmac } from "../../helpers/crypto.js";
-import { redirect, htmx } from "../../helpers/responses.js";
-import { invariant } from "../../helpers/invariant.js";
+import {
+  createCookie,
+  createUserCookie,
+  extractVisitorHeaders,
+  hmac,
+} from "../../helpers/auth.mjs";
+
+const client = new URL("./route.client.mts", import.meta.url);
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   if (request.method !== "POST") {
@@ -63,34 +66,32 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
     const { userId, passkeyId } = authenticated.data;
 
-    const cookie = createCookie("user", env.SECRET_KEY);
+    const cookie = createUserCookie("user", env.SECRET_KEY);
 
-    return redirect("/me", {
-      htmx: true,
+    const user = {
+      userId,
+      passkeyId,
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+    };
+
+    return new Response(JSON.stringify(user), {
+      status: 200,
       headers: {
-        "Set-Cookie": await cookie.serialize({ userId, passkeyId }),
+        "Content-Type": "application/json",
+        "Set-Cookie": await cookie.serialize(user),
       },
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    const currentUrl = request.headers.get("hx-current-url")?.toString();
-    invariant(currentUrl, "Missing current url");
-
-    const headers = new Headers();
-    headers.set("HX-Reswap", "none");
-    headers.set("HX-Replace-Url", currentUrl);
-
-    return await htmx(
-      <p id="error" hx-swap-oob="true" class="text-red-300">
-        {message}
-      </p>,
-      {
-        headers: {
-          "hx-reswap": "none",
-          "hx-replace-url":
-            request.headers.get("hx-current-url")?.toString() ?? "",
-        },
-      },
-    );
+    return new Response("error", { status: 500 });
   }
 };
+
+export const loader = ({ context: [env] }: t.LoaderArgs) => {
+  return {
+    nonce: env.nonce,
+  };
+};
+
+export default function Route({ loaderData: { nonce } }: t.ComponentProps) {
+  return <script nonce={nonce} type="module" src={client.pathname}></script>;
+}
