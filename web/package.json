@@ -16,30 +16,29 @@
     "dev": "run-p wrangler-dev watch"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250321.0",
+    "@cloudflare/workers-types": "^4.20250327.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.13",
     "@mewhhaha/fx-router": "workspace:^",
-    "@tailwindcss/node": "^4.0.15",
-    "@tailwindcss/oxide": "^4.0.15",
-    "@types/node": "^22.13.11",
+    "@tailwindcss/node": "^4.0.17",
+    "@tailwindcss/oxide": "^4.0.17",
+    "@types/node": "^22.13.14",
     "eslint": "^9.23.0",
-    "eslint-plugin-oxlint": "^0.16.2",
+    "eslint-plugin-oxlint": "^0.16.3",
     "fast-glob": "^3.3.3",
     "lightningcss": "^1.29.3",
     "npm-run-all": "^4.1.5",
-    "oxlint": "^0.16.2",
+    "oxlint": "^0.16.3",
     "prettier": "^3.4.2",
     "rolldown": "1.0.0-beta.6-commit.231bdea",
-    "tailwindcss": "^4.0.15",
+    "tailwindcss": "^4.0.17",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.27.0",
+    "typescript-eslint": "^8.28.0",
     "vitest": "^3.0.9",
-    "wrangler": "^4.4.0"
+    "wrangler": "^4.6.0"
   },
   "dependencies": {
     "@packages/passkey": "workspace:*",
     "@passwordless-id/webauthn": "^2.3.0",
-    "canvas-confetti": "^1.9.3",
-    "resend": "^4.1.2"
+    "canvas-confetti": "^1.9.3"
   }
 }

@@ -20,6 +20,7 @@ export default defineConfig({
     ".png": "dataurl",
     ".gif": "dataurl",
     ".svg": "dataurl",
+    ".ico": "dataurl",
   },
   output: {
     dir: "dist",
@@ -93,6 +94,7 @@ export default defineConfig({
   treeshake: true,
   external: ["cloudflare:workers", "crypto"],
   jsx: {
+    mode: "automatic",
     jsxImportSource: "@mewhhaha/fx-router",
   },
 });

@@ -8,15 +8,14 @@ const fixiConfettiUrl = new URL(
   "./assets/ext-fixi-confetti.js",
   import.meta.url,
 );
-const fixiFocusUrl = new URL("./assets/ext-fixi-focus.js", import.meta.url);
 const fixiResetUrl = new URL("./assets/ext-fixi-reset.js", import.meta.url);
 
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
-const svgUrl = new URL("./assets/favicon.svg", import.meta.url);
+const iconUrl = new URL("./assets/favicon.ico", import.meta.url);
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   const nonce = crypto.randomUUID();
-  return { nonce: undefined };
+  return { nonce };
 };
 
 export const headers: t.HeadersFunction = ({ loaderData, context: [env] }) => {
@@ -48,7 +47,7 @@ export default function Document({
       <head>
         <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
-        <link rel="icon" type="image/svg" href={svgUrl.pathname}></link>
+        <link rel="icon" type="image/svg" href={iconUrl.pathname}></link>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
@@ -69,7 +68,6 @@ export default function Document({
         <script nonce={nonce} src={fixiConfirmUrl.pathname} defer></script>
         <script nonce={nonce} src={fixiPromptUrl.pathname} defer></script>
         <script nonce={nonce} src={fixiConfettiUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiFocusUrl.pathname} defer></script>
         <script nonce={nonce} src={fixiResetUrl.pathname} defer></script>
       </head>
       <body class={`bg-slate-950 text-amber-50`}>{children}</body>

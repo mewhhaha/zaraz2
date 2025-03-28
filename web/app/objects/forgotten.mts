@@ -1,12 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "@mewhhaha/fx-router";
-import { Resend } from "resend";
 
 const EMAIL_EXPIRATION = 1000 * 60 * 60 * 3;
 
 export class DurableObjectForgotten extends DurableObject<Env> {
-  email: string = "";
-  username: string = "";
+  private email: string = "";
+  private username: string = "";
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
@@ -35,27 +34,23 @@ export class DurableObjectForgotten extends DurableObject<Env> {
     void this.ctx.storage.put("email", email);
     void this.ctx.storage.put("username", username);
 
-    const resend = new Resend(this.env.RESEND_API_KEY);
+    const resend = createResend(this.env.RESEND_API_KEY);
 
     const href = `${this.env.ORIGIN}/auth/forgotten/${this.ctx.id}`;
-    const { data, error } = await resend.emails.send({
-      from: "zaraz@zaraz.app",
-      to: [email],
-      subject: "Register a new passkey",
-      html: `<a href="${href}">${href}</a>`,
-    });
-
-    if (error) {
-      return { error: true, message: "failed_to_send" } as const;
-    }
-
-    if (data?.id === undefined) {
+    try {
+      await resend.send({
+        from: "zaraz@zaraz.app",
+        to: [email],
+        subject: "Register a new passkey",
+        html: `<a href="${href}">${href}</a>`,
+      });
+    } catch {
       return { error: true, message: "failed_to_send" } as const;
     }
 
     this.ctx.storage.setAlarm(Date.now() + EMAIL_EXPIRATION);
 
-    return { error: false, id: data.id } as const;
+    return { error: false } as const;
   }
 
   async destroy() {
@@ -76,3 +71,39 @@ export class DurableObjectForgotten extends DurableObject<Env> {
     this.username = "";
   }
 }
+
+const createResend = (apiKey: string) => {
+  const send = async ({
+    from,
+    to,
+    subject,
+    html,
+  }: {
+    from: string;
+    to: string[];
+    subject: string;
+    html: string;
+  }) => {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to send email");
+    }
+
+    return response.json<{ id: string }>();
+  };
+
+  return { send };
+};
