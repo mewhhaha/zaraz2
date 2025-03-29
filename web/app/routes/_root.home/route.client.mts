@@ -3,24 +3,22 @@ document.addEventListener("fx:init", (ev) => {
     return;
   }
 
-  if (ev.target.id !== "menu-button") {
+  const el = ev.target;
+
+  if (el.id !== "menu-button") {
     return;
   }
 
-  ev.target.addEventListener("fx:config", (ev) => {
+  el.addEventListener("fx:config", (ev) => {
     if (ev instanceof CustomEvent) {
       ev.detail.cfg.preventTrigger = false;
     }
   });
 
-  ev.target.addEventListener("click", () => {
-    console.log("clicked");
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("open")) {
-      url.searchParams.delete("open");
-    } else {
-      url.searchParams.set("open", "");
+  el.addEventListener("click", () => {
+    const input = document.querySelector("input[name='open']");
+    if (input instanceof HTMLInputElement) {
+      input.value = input.value === "true" ? "" : "true";
     }
-    window.history.replaceState(null, "", url.pathname + url.search);
   });
 });
