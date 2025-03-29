@@ -22,8 +22,12 @@ class_name = "DurableObjectPasskey"
 name = "OBJECT_FORGOTTEN"
 class_name = "DurableObjectForgotten"
 
+
 [placement]
 mode = "smart"
+
+[observability.logs]
+enabled = true
 
 [[migrations]]
 tag = "v1"

@@ -17,16 +17,19 @@ export const action = async ({
   const sendEmail = async () => {
     const stub = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(username));
 
-    const { error, message, email } = await stub.attemptRecovery();
-    if (error) {
-      console.error(message);
+    const recovery = await stub.attemptRecovery();
+    if (recovery.error) {
+      console.error(recovery.message);
       return;
     }
 
     const forgotten = env.OBJECT_FORGOTTEN.get(
       env.OBJECT_FORGOTTEN.newUniqueId(),
     );
-    await forgotten.create(email, username);
+    const result = await forgotten.create(recovery.email, username);
+    if (result.error) {
+      console.error(result.message);
+    }
   };
 
   ctx.waitUntil(sendEmail());
@@ -57,8 +60,10 @@ export default function Route({ loaderData: { nonce } }: t.ComponentProps) {
   return (
     <>
       <script nonce={nonce} type="module" src={client.pathname}></script>
-      <form fx-action="/auth/forgotten" fx-method="POST" class={`hidden`}>
-        <input type="hidden" name="username" />
+      <form fx-action="/auth/forgotten" fx-method="POST" fx-swap="outerHTML">
+        <button ext-fx-prompt="What's your username?" name="username">
+          RECLAIM YOUR PASSKEY
+        </button>
       </form>
     </>
   );

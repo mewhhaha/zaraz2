@@ -29,4 +29,12 @@ declare global {
 
   /** @ignore */
   interface HTMLElement extends FixiAttributes {}
+
+  interface DocumentEventMap {
+    "fx:before": Event;
+    "fx:after": Event;
+    "fx:error": Event;
+    "fx:finally": Event;
+    "fx:swapped": Event;
+  }
 }

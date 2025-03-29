@@ -9,7 +9,10 @@ const router = Router(routes);
 
 const handler: ExportedHandler<Env> = {
   fetch: (request, env, ctx) => {
-    env.nonce = generateNonce();
+    if (!env.DEMO) {
+      env.nonce = generateNonce();
+    }
+
     return router.handle(request, env, ctx);
   },
 };

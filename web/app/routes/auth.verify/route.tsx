@@ -2,7 +2,6 @@ import type * as t from "./+types.route.js";
 import type { AuthenticationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import { finish } from "../auth.challenge/route.js";
 import {
-  createCookie,
   createUserCookie,
   extractVisitorHeaders,
   hmac,

@@ -1,21 +1,13 @@
 import type * as t from "./+types.document";
 
 const fixiUrl = new URL("./assets/fixi.js", import.meta.url);
-const fixiPromptUrl = new URL("./assets/ext-fixi-prompt.js", import.meta.url);
-const fixiHistoryUrl = new URL("./assets/ext-fixi-history.js", import.meta.url);
-const fixiConfirmUrl = new URL("./assets/ext-fixi-confirm.js", import.meta.url);
-const fixiConfettiUrl = new URL(
-  "./assets/ext-fixi-confetti.js",
-  import.meta.url,
-);
-const fixiResetUrl = new URL("./assets/ext-fixi-reset.js", import.meta.url);
+const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url);
 
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
 const iconUrl = new URL("./assets/favicon.ico", import.meta.url);
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
-  const nonce = crypto.randomUUID();
-  return { nonce };
+  return { nonce: env.nonce };
 };
 
 export const headers: t.HeadersFunction = ({ loaderData, context: [env] }) => {
@@ -64,11 +56,7 @@ export default function Document({
         />
         <link rel="stylesheet" href={stylesUrl.pathname} />
         <script nonce={nonce} src={fixiUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiHistoryUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiConfirmUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiPromptUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiConfettiUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiResetUrl.pathname} defer></script>
+        <script nonce={nonce} src={fixiExtUrl.pathname} defer></script>
       </head>
       <body class={`bg-slate-950 text-amber-50`}>{children}</body>
     </html>

@@ -122,7 +122,7 @@ export class DurableObjectUser extends DurableObject<Env> {
 
   async exists() {
     try {
-      await this.assertUser();
+      this.assertUser();
       return true;
     } catch {
       return false;
@@ -134,7 +134,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     passkey,
     username,
   }: Metadata & { email: string; passkey?: PasskeyLink }) {
-    await this.assertEmpty();
+    this.assertEmpty();
 
     this.metadata = { username };
     void this.ctx.storage.put("metadata", this.metadata);
@@ -152,11 +152,11 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async data() {
-    return await this.assertUser();
+    return this.assertUser();
   }
 
   async verifyEmail(unverifiedEmail: string) {
-    await this.assertUser();
+    this.assertUser();
 
     const { emails, attempts } = this.recovery;
     const email = emails.find((e) => e.address === unverifiedEmail);
@@ -172,6 +172,12 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async attemptRecovery() {
+    return {
+      error: false,
+      email: this.recovery.emails[0].address,
+    } as const;
+    this.assertUser();
+
     const { emails, attempts: oldAttempts } = this.recovery;
 
     const attempts = oldAttempts.filter((a) => {
@@ -199,7 +205,7 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async addPasskey(link: PasskeyLink) {
-    const { passkeys } = await this.assertUser();
+    const { passkeys } = this.assertUser();
     const added = [...passkeys, link];
 
     this.passkeys = added;
@@ -208,7 +214,7 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async getPasskey(passkeyId: string) {
-    const { passkeys } = await this.assertUser();
+    const { passkeys } = this.assertUser();
     const passkey = passkeys.find((p) => p.passkeyId === passkeyId);
     if (!passkey) {
       throw new Error(`Missing passkey with id ${passkeyId}`);
@@ -248,7 +254,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     return new RpcTargetPasskey();
   }
 
-  private async assertUser() {
+  private assertUser() {
     const metadata = this.metadata;
     const recovery = this.recovery;
     const passkeys = this.passkeys;
@@ -259,7 +265,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     return { metadata, recovery, passkeys };
   }
 
-  private async assertEmpty() {
+  private assertEmpty() {
     if (this.metadata !== undefined) {
       throw new Error("Object is occupied");
     }

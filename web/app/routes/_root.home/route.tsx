@@ -30,130 +30,219 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     url.searchParams.set("confetti", "true");
   }
 
-  throw Response.redirect(url, 303);
+  return Response.redirect(url, 303);
 };
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   const user = await authenticate(request, env);
+
   const url = new URL(request.url);
   const direction = url.searchParams.get("direction");
   const confetti = url.searchParams.get("confetti");
+  const menuOpen = url.searchParams.has("open");
 
   const stub = env.OBJECT_USER.get(env.OBJECT_USER.idFromString(user.userId));
   const { tasks, completed } = await stub.listTasks();
 
-  return { direction, confetti, current: tasks.at(0), completed };
+  return {
+    direction,
+    nonce: env.nonce,
+    confetti,
+    menuOpen,
+    current: tasks.at(0),
+    completed,
+  };
 };
 
+const bgUrl = new URL("./../../assets/happy.jpg", import.meta.url);
+const client = new URL("./route.client.mts", import.meta.url);
+
 export default function Home({
-  loaderData: { direction, confetti, current, completed },
+  loaderData: { direction, nonce, confetti, menuOpen, current, completed },
 }: t.ComponentProps) {
   return (
     <div
       data-empty={current === undefined || undefined}
-      class={`
-        relative flex size-full flex-col items-center overflow-hidden backdrop-blur-2xl
-        transition-[backdrop-filter] duration-500 ease-in-out view-name-[home]
-
-        data-empty:backdrop-blur-md
-
-        starting:backdrop-blur-sm
-      `}
+      class={`relative mx-auto flex size-full max-w-screen-lg flex-col`}
     >
-      <main class={`flex size-full`}>
-        <div class={`absolute inset-x-0 top-0 flex justify-center`}>
-          <div class={`rounded-b-2xl bg-black px-4 text-gray-300`}>
-            You've completed{" "}
-            <span
-              data-updated={confetti !== null}
-              class={`
-                text-white transition-[color_transform_font-size]
-
-                duration-1000 view-name-[task-count] delay-300
-
-                data-updated:starting:text-xl data-updated:starting:text-green-300
-              `}
-              id="task-count"
-            >
-              {completed.toString().padStart(3, "0")}
-            </span>{" "}
-            tasks
-          </div>
-        </div>
-        <div
+      <script nonce={nonce} type="module" src={client.pathname}></script>
+      <div
+        class={`
+          absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden rounded-lg border-2
+          border-gray-400/30 view-name-[background]
+        `}
+      >
+        <img
+          src={bgUrl.pathname}
+          alt=""
           class={`
-            grid grow place-content-center px-2
+            grow object-cover object-center blur-2xl transition-[filter] duration-500
+            ease-in-out
 
-            *:[grid-area:1/1]
+            in-data-empty:blur-md
+
+            starting:blur-sm
           `}
-        >
-          <div class={`rounded-full bg-white p-10 blur-2xl`} />
-          <Task
-            data-last={current === undefined}
-            data-direction={direction}
-            ext-fx-confetti={confetti}
-          >
-            {current?.text}
-          </Task>
-          {!current && (
+        />
+      </div>
+      <div
+        class={`relative flex size-full flex-col items-center overflow-hidden view-name-[home]`}
+      >
+        <main class={`flex size-full`}>
+          <div class={`absolute inset-x-0 top-2 flex justify-center`}>
             <div
-              ext-fx-confetti={confetti}
-              class={`z-10 flex items-center text-xl font-bold text-black`}
+              class={`
+                rounded-b-2xl border-2 border-t-0 border-gray-400/50 bg-slate-950 px-4 text-gray-300
+                shadow-lg
+              `}
             >
-              You did it. You're a real human 🫘.
+              You've completed{" "}
+              <span
+                data-updated={confetti !== null}
+                class={`
+                  text-white transition-[color_transform_font-size] delay-300 duration-1000
+                  view-name-[task-count]
+
+                  data-updated:starting:text-xl data-updated:starting:text-green-300
+                `}
+                id="task-count"
+              >
+                {completed.toString().padStart(3, "0")}
+              </span>{" "}
+              tasks
             </div>
-          )}
-        </div>
-      </main>
-      <header class={`flex w-full justify-center`}>
-        <form
-          fx-action="/home"
-          fx-method="POST"
-          fx-target="body"
-          fx-swap="innerHTML"
-          class={`
-            flex h-12 w-full max-w-screen-md justify-between gap-4 bg-black px-4 text-gray-200
+          </div>
+          <div class={`flex grow flex-col`}>
+            <div class={`h-1/4 w-full`}></div>
+            <div
+              class={`
+                grid place-content-center px-2
 
-            md:rounded-t-lg
-          `}
-        >
-          {current && <input type="hidden" name="id" value={current.id} />}
-          <button
-            name="another"
-            class={`cursor-pointer underline active:text-red-500 delay-200 transition-colors`}
-            ext-fx-prompt="What's next?"
-          >
-            Another? ➕
-          </button>
-          <button
-            name="intent"
-            value="cycle"
-            disabled={current === undefined}
+                *:[grid-area:1/1]
+              `}
+            >
+              <div class={`rounded-full bg-white p-10 blur-2xl`} />
+              <Task
+                data-last={current === undefined}
+                data-direction={direction}
+                ext-fx-confetti={confetti}
+              >
+                {current?.text}
+              </Task>
+              {!current && (
+                <div
+                  ext-fx-confetti={confetti}
+                  class={`z-10 flex items-center text-xl font-bold text-black`}
+                >
+                  You did it. You're a real human 🫘.
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+        <header class={`relative flex w-full justify-end`}>
+          <details
+            open={menuOpen}
             class={`
-              cursor-pointer underline active:text-red-500 delay-200 transition-colors
+              absolute right-0 bottom-4 mr-2 flex h-64 flex-col justify-between gap-4 rounded-l-lg
+              border-y-2 border-l-2 border-gray-400/50 bg-slate-950 py-2 pl-18
+              text-gray-200 shadow-lg view-name-[menu]
 
-              disabled:opacity-50 disabled:cursor-not-allowed
+              sm:bottom-20
+
+              [&::details-content]:w-0 [&::details-content]:transition-[width]
+
+              open:[&::details-content]:w-40 
             `}
           >
-            Cycle? ♻️
-          </button>
-          <button
-            name="intent"
-            value="done"
-            class={`
-              cursor-pointer underline active:text-red-500 delay-200 transition-colors
+            <summary
+              id="menu-button"
+              fx-action=""
+              ext-fx-drop
+              class={`
+                absolute inset-y-0 left-0 m-2 flex items-center rounded-xl py-2 font-bold
+                tracking-widest uppercase
 
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-            disabled={current === undefined}
-          >
-            Done. 🎉
-          </button>
-        </form>
-      </header>
+                marker:text-slate-400
+
+                hover:bg-black/90
+              `}
+            >
+              <div class={`rotate-270 cursor-pointer`}>
+                <span class={`in-open:hidden`}>Open</span>
+                <span
+                  class={`
+                    hidden
+
+                    in-open:inline
+                  `}
+                >
+                  Close
+                </span>
+              </div>
+            </summary>
+            <div class={`flex overflow-hidden`}>
+              <form
+                fx-action={"/home" + (menuOpen ? "?open=" : "")}
+                fx-method="POST"
+                fx-target="body"
+                fx-swap="innerHTML"
+                class={`flex flex-none grow flex-col pr-4`}
+              >
+                {current && (
+                  <input type="hidden" name="id" value={current.id} />
+                )}
+                <MenuButton name="another" ext-fx-prompt="What's next?">
+                  Another? ➕
+                </MenuButton>
+                <MenuButton
+                  name="intent"
+                  value="cycle"
+                  disabled={current === undefined}
+                >
+                  Cycle? ♻️
+                </MenuButton>
+                <MenuButton
+                  class={`
+                    mt-11.25
+
+                    override:border-2 override:border-gray-800
+                  `}
+                  name="intent"
+                  value="done"
+                  disabled={current === undefined}
+                >
+                  Done. 🎉
+                </MenuButton>
+              </form>
+            </div>
+          </details>
+        </header>
+      </div>
     </div>
   );
 }
+type MenuButtonProps = JSX.IntrinsicElements["button"];
+
+const MenuButton = ({ class: className, ...props }: MenuButtonProps) => {
+  return (
+    <button
+      class={cx(
+        `
+          cursor-pointer rounded-xl border-4 border-transparent px-6 py-4
+
+          hover:bg-black/90
+
+          active:border-gray-500 active:bg-white active:text-slate-950
+
+          disabled:cursor-not-allowed disabled:opacity-50
+        `,
+        className,
+      )}
+      {...props}
+    />
+  );
+};
 
 type TaskProps = JSX.IntrinsicElements["p"];
 

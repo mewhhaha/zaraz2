@@ -186,7 +186,7 @@ export namespace JSX {
     name?: string | undefined;
   }
   export interface HtmlFormTag extends HtmlTag {
-    acceptCharset?: string | undefined;
+    "accept-charset"?: string | undefined;
     action?: string | undefined;
     autocomplete?: string | undefined;
     enctype?: string | undefined;
@@ -195,6 +195,11 @@ export namespace JSX {
     novalidate?: string | boolean | undefined;
     target?: string | undefined;
   }
+
+  export interface HtmlDialogTag extends HtmlTag {
+    open?: boolean | undefined;
+  }
+
   export interface HtmlHtmlTag extends HtmlTag {
     manifest?: string | undefined;
   }
@@ -359,7 +364,7 @@ export namespace JSX {
     text?: string | undefined;
   }
   export interface HtmlDetailsTag extends HtmlTag {
-    open?: string | undefined;
+    open?: boolean | undefined;
   }
   export interface HtmlSelectTag extends HtmlTag {
     autofocus?: string | undefined;
@@ -498,6 +503,7 @@ export namespace JSX {
     dd: HtmlTag;
     del: HtmlModTag;
     details: HtmlDetailsTag;
+    summary: HtmlTag;
     dfn: HtmlTag;
     div: HtmlTag;
     dl: HtmlTag;
@@ -509,6 +515,7 @@ export namespace JSX {
     figure: HtmlTag;
     footer: HtmlTag;
     form: HtmlFormTag;
+    dialog: HtmlDialogTag;
     h1: HtmlTag;
     h2: HtmlTag;
     h3: HtmlTag;

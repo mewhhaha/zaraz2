@@ -2,6 +2,8 @@
 
 @custom-variant aria-current-page (&[aria-current="page"]);
 
+@custom-variant override (&);
+
 @utility view-name-* {
   view-transition-name: --value([ *]);
 }

@@ -24,7 +24,7 @@ export class DurableObjectForgotten extends DurableObject<Env> {
   }
 
   async create(email: string, username: string) {
-    if (this.email !== undefined || this.username !== undefined) {
+    if (this.email || this.username) {
       return { error: true, message: "already_sent" } as const;
     }
 
@@ -39,7 +39,7 @@ export class DurableObjectForgotten extends DurableObject<Env> {
     const href = `${this.env.ORIGIN}/auth/forgotten/${this.ctx.id}`;
     try {
       await resend.send({
-        from: "zaraz@zaraz.app",
+        from: "support@zaraz2.app",
         to: [email],
         subject: "Register a new passkey",
         html: `<a href="${href}">${href}</a>`,
@@ -51,6 +51,13 @@ export class DurableObjectForgotten extends DurableObject<Env> {
     this.ctx.storage.setAlarm(Date.now() + EMAIL_EXPIRATION);
 
     return { error: false } as const;
+  }
+
+  async data() {
+    return {
+      email: this.email,
+      username: this.username,
+    };
   }
 
   async destroy() {
@@ -99,6 +106,9 @@ const createResend = (apiKey: string) => {
     });
 
     if (!response.ok) {
+      console.error(
+        `Failed to send email, status: ${response.status}, message: ${await response.text()}`,
+      );
       throw new Error("Failed to send email");
     }
 

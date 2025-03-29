@@ -112,24 +112,31 @@ export const loader = async ({
   context: [env],
   params: { id },
 }: t.LoaderArgs) => {
-  const stub = env.OBJECT_FORGOTTEN.get(env.OBJECT_FORGOTTEN.idFromName(id));
-  if (stub === null) {
-    throw new Response("not_found", { status: 404 });
-  }
+  const stub = env.OBJECT_FORGOTTEN.get(env.OBJECT_FORGOTTEN.idFromString(id));
+
+  const data = await stub.data();
 
   return {
     id,
     nonce: env.nonce,
+    data,
   };
 };
 
-export default function Route({ loaderData: { nonce, id } }: t.ComponentProps) {
+export default function Route({
+  loaderData: {
+    nonce,
+    id,
+    data: { username },
+  },
+}: t.ComponentProps) {
   return (
     <>
       <script nonce={nonce} type="module" src={client.pathname}></script>
-      <form method="POST" id="register-form" class={`hidden`}>
+      <form method="POST" class={`hidden`}>
         <input type="hidden" name="token" />
         <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="username" value={username} />
       </form>
     </>
   );

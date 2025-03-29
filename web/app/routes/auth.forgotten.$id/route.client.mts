@@ -1,12 +1,12 @@
 import { register } from "@packages/passkey";
 
 const challengeUri = "/auth/challenge";
-const registerForm = document.getElementById("register-form");
+const registerForm = document.querySelector("form");
 const registerToken = registerForm?.querySelector("input[name=token]");
 const registerUsername = registerForm?.querySelector("input[name=username]");
 
 if (!(registerForm instanceof HTMLFormElement)) {
-  throw new Error('Missing form with id "register-form"');
+  throw new Error("Missing form");
 }
 if (!(registerUsername instanceof HTMLInputElement)) {
   throw new Error("Missing username input");
