@@ -149,9 +149,9 @@ export default function Home({
           <details
             open={menuOpen}
             class={`
-              absolute right-0 bottom-10 mr-2 flex h-64 flex-col justify-between gap-4 rounded-l-2xl
-              border-y-2 border-l-2 border-gray-400/50 bg-slate-950 py-2 pl-18
-              text-gray-200 shadow-lg view-name-[menu] 
+              absolute right-0 bottom-10 mr-2 flex h-64 flex-col justify-between gap-4
+              rounded-l-2xl border-y-2 border-l-2 border-gray-400/50 bg-slate-950 py-2
+              pl-18 text-gray-200 shadow-lg view-name-[menu]
 
               sm:bottom-20
 
@@ -319,7 +319,9 @@ const Task = ({ children, class: className, ...props }: TaskProps) => {
         `
           z-10 h-fit w-fit self-center justify-self-center rounded-full bg-blue-800 px-10 py-2
           text-center font-serif text-4xl text-gray-100 transition-[opacity_transform]
-          duration-300 view-name-[task] data-indicator:animate-bounce
+          duration-300 view-name-[task]
+
+          data-indicator:animate-bounce
 
           data-last:invisible
 
