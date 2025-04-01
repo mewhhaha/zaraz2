@@ -77,6 +77,13 @@ export const createCookie = <T,>(
 
       return pairs.join("; ");
     },
+    destroy: () => {
+      const pairs = [
+        `${encodeURIComponent(name)}=${encodeURIComponent("")}`,
+        `Max-Age=0`,
+      ];
+      return pairs.join("; ");
+    },
     parse: async (cookieHeader: string): Promise<T | null> => {
       if (!cookieHeader) return null;
 

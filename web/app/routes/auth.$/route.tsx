@@ -5,10 +5,10 @@ import refresh from "./paths/refresh";
 import verify from "./paths/verify";
 import recover from "./paths/recover";
 import recover$id from "./paths/recover.$id";
-import { authenticate, createUserCookie } from "./helpers.mts";
 import email from "./paths/email";
 import email$id from "./paths/email.$id";
 import type { EnvAuth } from "./env";
+import signout from "./paths/signout";
 
 export const action = async ({
   request,
@@ -69,11 +69,13 @@ export const action = async ({
     });
   }
 
+  if (url.pathname.match(/^\/signout\/?$/)) {
+    return await signout(args);
+  }
+
   if (url.pathname.match(/^\/register\/?$/)) {
     return await register(args);
   }
 
   return new Response("Not found", { status: 404 });
 };
-
-
