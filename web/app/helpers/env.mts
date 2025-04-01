@@ -1,12 +1,10 @@
-import type { DurableObjectPasskey } from "./passkey.mjs";
-import type { DurableObjectUser } from "./user.mjs";
-import type { DurableObjectForgotten } from "./forgotten.mjs";
+import type { DurableObjectPasskey } from "../objects/passkey.mjs";
+import type { DurableObjectUser } from "../objects/user.mjs";
 
 declare module "@mewhhaha/fx-router" {
   interface Env {
     OBJECT_PASSKEY: DurableObjectNamespace<DurableObjectPasskey>;
     OBJECT_USER: DurableObjectNamespace<DurableObjectUser>;
-    OBJECT_FORGOTTEN: DurableObjectNamespace<DurableObjectForgotten>;
     KV_USERS: KVNamespace;
 
     SECRET_KEY: string;

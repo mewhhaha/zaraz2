@@ -1,6 +1,6 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import * as t from "./+types.route";
-import { authenticate } from "../../helpers/auth.mts";
+import { authenticate } from "../auth.$/helpers.mts";
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const user = await authenticate(request, env);

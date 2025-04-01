@@ -1,5 +1,3 @@
-import type { Env } from "@mewhhaha/fx-router";
-
 // Cookie implementation
 interface CookieSerializeOptions {
   maxAge?: number;
@@ -142,14 +140,6 @@ export function invariant<T>(condition: T, message: string): asserts condition {
   }
 }
 
-const now = () => new Date().toISOString();
-
-const minute1 = () => fromNow(1000 * 60);
-
-const fromNow = (ms: number) => {
-  return new Date(new Date().getTime() + ms);
-};
-
 export const extractVisitorHeaders = (headers: Headers): VisitedHeaders => {
   const result: VisitedHeaders = {};
 
@@ -194,9 +184,9 @@ type User = {
 
 export const createUserCookie = createCookie<User>;
 
-export const authenticate = async (request: Request, env: Env) => {
+export const authenticate = async (request: Request, secret: string) => {
   const cookie = request.headers.get("Cookie") ?? "";
-  const userCookie = createUserCookie("user", env.SECRET_KEY);
+  const userCookie = createUserCookie("user", secret);
   const user = await userCookie.parse(cookie);
 
   if (!user) {

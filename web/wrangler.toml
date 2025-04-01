@@ -31,8 +31,4 @@ enabled = true
 
 [[migrations]]
 tag = "v1"
-new_classes = [
-    "DurableObjectUser",
-    "DurableObjectPasskey",
-    "DurableObjectForgotten",
-]
+new_classes = ["DurableObjectUser", "DurableObjectPasskey"]

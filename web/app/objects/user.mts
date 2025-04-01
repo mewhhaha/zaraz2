@@ -1,5 +1,6 @@
 import type { Env } from "@mewhhaha/fx-router";
-import { DurableObject, RpcTarget } from "cloudflare:workers";
+import { DurableObject } from "cloudflare:workers";
+import { store } from "../helpers/store";
 
 type PasskeyLink = {
   name: string;
@@ -12,14 +13,9 @@ export type Metadata = {
   username: string;
 };
 
-export type Recovery = {
-  emails: { address: string; verified: boolean; primary: boolean }[];
-  attempts: Date[];
-};
-
+const BUCKET_SIZE = 100;
 const ATTEMPT_LIMIT = 3;
 const ATTEMPT_INTERVAL = 1000 * 60 * 5;
-const BUCKET_SIZE = 100;
 
 type Task = {
   id: string;
@@ -28,249 +24,153 @@ type Task = {
   completed: Date | undefined;
 };
 
-type History = {
-  bucket: number;
-  size: number;
+type Account = {
+  username: string;
+  passkeys: PasskeyLink[];
+  recovery: {
+    email?: string;
+    attempts: Date[];
+  };
 };
 
 export class DurableObjectUser extends DurableObject<Env> {
-  private metadata: Metadata | undefined = undefined;
-  private recovery: Recovery = { emails: [], attempts: [] };
-  private passkeys: PasskeyLink[] = [];
-  private tasks: Task[] = [];
-  private history: History = { bucket: 0, size: 0 };
-
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    void state.blockConcurrencyWhile(async () => {
-      const load = async (
-        key: "metadata" | "recovery" | "passkeys" | "tasks" | "history",
-      ) => {
-        const value = await this.ctx.storage.get(key);
-        if (value !== undefined) {
-          // @ts-expect-error we can't see private variables
-          this[key] = value;
-        }
-      };
-      await Promise.all([
-        load("metadata"),
-        load("recovery"),
-        load("passkeys"),
-        load("tasks"),
-        load("history"),
-      ]);
-    });
+    const read = async <T,>(initial: Promise<T>, key: string) => {
+      const v = await state.storage.get<T>(key);
+      if (!v) {
+        return initial;
+      }
+      return v;
+    };
+
+    this.#account = read<Account>(this.#account, "#account");
+    this.#tasks = read<Map<string, Task>>(this.#tasks, "#tasks");
+    this.#completed = read<number>(this.#completed, "#completed");
   }
 
+  @store
+  accessor #account: Promise<Account> = Promise.reject();
+
+  @store
+  accessor #tasks: Promise<Map<string, Task>> = Promise.reject();
+
+  @store
+  accessor #completed: Promise<number> = Promise.reject();
+
   async listTasks() {
+    const tasks = await this.#tasks;
+    const completed = await this.#completed;
+
     return {
-      error: false,
-      tasks: this.tasks,
-      completed: this.history.bucket * BUCKET_SIZE + this.history.size,
+      tasks: [...tasks.values()],
+      completed,
     } as const;
   }
 
   async addTask(text: string) {
-    this.tasks = [
-      {
-        id: crypto.randomUUID(),
-        text,
-        created: new Date(),
-        completed: undefined,
-      },
-      ...this.tasks,
-    ];
-    void this.ctx.storage.put("tasks", this.tasks);
+    const tasks = await this.#tasks;
+    const id = crypto.randomUUID();
+    tasks.set(id, {
+      id,
+      text,
+      created: new Date(),
+      completed: undefined,
+    });
+    this.#tasks = Promise.resolve(tasks);
+
+    return { next: [...tasks].at(0) } as const;
   }
 
   async completeTask(id: string) {
-    const task = this.tasks.find((t) => t.id === id);
+    const tasks = await this.#tasks;
+    const task = tasks.get(id);
     if (task === undefined) {
       return { error: true, message: "missing_task" } as const;
     }
     task.completed = new Date();
-    this.tasks = this.tasks.filter((t) => t.id !== id);
-    void this.ctx.storage.put("tasks", this.tasks);
+    tasks.delete(id);
+    this.#tasks = Promise.resolve(tasks);
 
-    const historyKey = `history#${this.history.bucket}`;
+    const completed = await this.#completed;
+    const historyKey = createHistoryKey(completed);
     let next = await this.ctx.storage.get<Task[]>(historyKey);
-    if (next === undefined) {
-      next = [];
-    }
+    next ??= [];
     next.push(task);
     this.ctx.storage.put(historyKey, next);
 
-    this.history.size += 1;
-    if (this.history.size >= BUCKET_SIZE) {
-      this.history.bucket += 1;
-      this.history.size = 0;
-    }
-
-    void this.ctx.storage.put("history", this.history);
-    return { error: false, tasks: this.tasks } as const;
+    this.#completed = Promise.resolve(completed + 1);
+    return { error: false, next: [...tasks].at(0) } as const;
   }
 
   async cycleTasks() {
-    this.tasks = [
-      this.tasks[this.tasks.length - 1],
-      ...this.tasks.slice(0, -1),
-    ];
-    void this.ctx.storage.put("tasks", this.tasks);
+    const tasks = await this.#tasks;
+    const next = [...tasks];
+    const first = next.shift();
+    if (first) {
+      next.push(first);
+    }
 
-    return { error: false, tasks: this.tasks } as const;
+    this.#tasks = Promise.resolve(new Map(next));
+    return { error: false, next: next.at(0) } as const;
   }
 
   async exists() {
     try {
-      this.assertUser();
+      await this.#account;
       return true;
     } catch {
       return false;
     }
   }
 
-  async create({
-    email,
-    passkey,
-    username,
-  }: Metadata & { email: string; passkey?: PasskeyLink }) {
-    this.assertEmpty();
-
-    this.metadata = { username };
-    void this.ctx.storage.put("metadata", this.metadata);
-    if (email !== undefined) {
-      this.recovery = {
-        emails: [{ address: email, verified: false, primary: true }],
-        attempts: [],
-      };
-      void this.ctx.storage.put("recovery", this.recovery);
-    }
-    if (passkey !== undefined) {
-      this.passkeys = [passkey];
-      void this.ctx.storage.put("passkeys", this.passkeys);
+  async create(account: Account) {
+    try {
+      await this.#account;
+      return "user_exists" as const;
+    } catch {
+      this.#account = Promise.resolve(account);
+      this.#completed = Promise.resolve(0);
+      this.#tasks = Promise.resolve(new Map());
+      return account;
     }
   }
 
-  async data() {
-    return this.assertUser();
+  async link(passkeyLink: PasskeyLink) {
+    const account = await this.#account;
+    account.passkeys.push(passkeyLink);
+    this.#account = Promise.resolve(account);
   }
 
-  async verifyEmail(unverifiedEmail: string) {
-    this.assertUser();
+  async email(email: string) {
+    const account = await this.#account;
+    account.recovery.email = email;
+    this.#account = Promise.resolve(account);
+  }
 
-    const { emails, attempts } = this.recovery;
-    const email = emails.find((e) => e.address === unverifiedEmail);
-    if (email === undefined) {
-      return { error: true, message: "missing_email" } as const;
+  async recover() {
+    const account = await this.#account;
+    const email = account.recovery.email;
+    if (!email) {
+      return "no_recovery_email" as const;
     }
 
-    email.verified = true;
-    this.recovery = { emails, attempts };
-    void this.ctx.storage.put("recovery", this.recovery);
-
-    return { error: false } as const;
-  }
-
-  async attemptRecovery() {
-    return {
-      error: false,
-      email: this.recovery.emails[0].address,
-    } as const;
-    this.assertUser();
-
-    const { emails, attempts: oldAttempts } = this.recovery;
-
-    const attempts = oldAttempts.filter((a) => {
-      const now = new Date();
-      return now.getTime() - a.getTime() < ATTEMPT_INTERVAL;
+    account.recovery.attempts = account.recovery.attempts.filter((attempt) => {
+      const diff = Date.now() - attempt.getTime();
+      return diff < ATTEMPT_INTERVAL;
     });
-
-    if (attempts.length >= ATTEMPT_LIMIT) {
-      return { error: true, message: "attempt_limit_reached" } as const;
+    this.#account = Promise.resolve(account);
+    if (account.recovery.attempts.length >= ATTEMPT_LIMIT) {
+      return "too_many_attempts" as const;
     }
-
-    attempts.push(new Date());
-    this.recovery = { emails, attempts };
-    void this.ctx.storage.put("recovery", this.recovery);
-
-    const email = emails.find((e) => e.primary)?.address;
-    if (email === undefined) {
-      return { error: true, message: "missing_email" } as const;
-    }
-
-    return {
-      error: false,
-      email,
-    } as const;
-  }
-
-  async addPasskey(link: PasskeyLink) {
-    const { passkeys } = this.assertUser();
-    const added = [...passkeys, link];
-
-    this.passkeys = added;
-    void this.ctx.storage.put("passkeys", this.passkeys);
-    return { passkeys: added };
-  }
-
-  async getPasskey(passkeyId: string) {
-    const { passkeys } = this.assertUser();
-    const passkey = passkeys.find((p) => p.passkeyId === passkeyId);
-    if (!passkey) {
-      throw new Error(`Missing passkey with id ${passkeyId}`);
-    }
-
-    const rename = async (name: string) => {
-      passkey.name = name;
-      this.passkeys = passkeys;
-      void this.ctx.storage.put("passkeys", this.passkeys);
-
-      return { passkeys } as const;
-    };
-
-    const remove = async () => {
-      const removed = passkeys.filter((p) => p.passkeyId !== passkeyId);
-      if (removed.length === passkeys.length) {
-        return { error: true, message: "missing_passkey" } as const;
-      }
-
-      const passkeyIdFromString =
-        this.env.OBJECT_PASSKEY.idFromString(passkeyId);
-      const passkey = this.env.OBJECT_PASSKEY.get(passkeyIdFromString);
-
-      this.ctx.waitUntil(passkey.destruct());
-
-      this.passkeys = removed;
-      void this.ctx.storage.put("passkeys", this.passkeys);
-
-      return { error: false, passkey: removed } as const;
-    };
-
-    class RpcTargetPasskey extends RpcTarget {
-      rename = rename;
-      remove = remove;
-    }
-
-    return new RpcTargetPasskey();
-  }
-
-  private assertUser() {
-    const metadata = this.metadata;
-    const recovery = this.recovery;
-    const passkeys = this.passkeys;
-    if (metadata === undefined) {
-      throw new Error("Object is unoccupied");
-    }
-
-    return { metadata, recovery, passkeys };
-  }
-
-  private assertEmpty() {
-    if (this.metadata !== undefined) {
-      throw new Error("Object is occupied");
-    }
+    return { email } as const;
   }
 }
+
+const createHistoryKey = (completed: number) => {
+  const bucket = (completed / BUCKET_SIZE) | 0;
+  return `history#${bucket}`;
+};
 
 export const makePasskeyLink = ({
   passkeyId,
