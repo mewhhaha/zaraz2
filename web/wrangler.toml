@@ -18,10 +18,6 @@ class_name = "DurableObjectUser"
 name = "OBJECT_PASSKEY"
 class_name = "DurableObjectPasskey"
 
-[[durable_objects.bindings]]
-name = "OBJECT_FORGOTTEN"
-class_name = "DurableObjectForgotten"
-
 
 [placement]
 mode = "smart"
@@ -31,4 +27,12 @@ enabled = true
 
 [[migrations]]
 tag = "v1"
-new_classes = ["DurableObjectUser", "DurableObjectPasskey"]
+new_classes = [
+    "DurableObjectUser",
+    "DurableObjectPasskey",
+    "DurableObjectForgotten",
+]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["DurableObjectForgotten"]

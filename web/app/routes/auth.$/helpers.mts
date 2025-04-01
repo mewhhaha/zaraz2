@@ -197,11 +197,11 @@ export const authenticate = async (request: Request, secret: string) => {
   const user = await userCookie.parse(cookie);
 
   if (!user) {
-    throw Response.redirect(new URL("/auth/register", request.url));
+    throw Response.redirect(new URL("/auth", request.url));
   }
 
   if (new Date(user.expires) < new Date()) {
-    throw Response.redirect(new URL("/auth/verify", request.url));
+    throw Response.redirect(new URL("/auth", request.url));
   }
 
   return user;

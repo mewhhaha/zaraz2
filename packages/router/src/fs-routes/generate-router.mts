@@ -2,16 +2,24 @@ import { readdir, writeFile } from "node:fs/promises";
 import path from "node:path/posix";
 import { bySpecificity } from "./sort.mts";
 
+const unescapedDotRegex = /(?<!\[)\.(?![^[]*\])/g;
+
+const tsRegex = /\.ts(x)?$/;
+
+const paramRegex = /^\$/g;
+
+const splatRegex = /\$$/g;
+
+const pathlessRegex = /^_.*/;
+
 /**
  * Generate a regex literal for a route path using named capture groups
  * Supports optional segments marked with parentheses: (segment) or ($param)
  */
 const generateRegexPattern = (routePath: string): string => {
-  // Remove leading slash and split into segments
-  const pathWithoutLeadingSlash = routePath.startsWith("/")
-    ? routePath.slice(1)
-    : routePath;
-  const segments = pathWithoutLeadingSlash.split("/").filter(Boolean);
+  const segments = routePath
+    .split(unescapedDotRegex)
+    .filter((value) => !value.startsWith("_"));
 
   // Special case: empty path (root route)
   if (segments.length === 0) {
@@ -19,7 +27,7 @@ const generateRegexPattern = (routePath: string): string => {
   }
 
   // Special case: wildcard route
-  if (segments.length === 1 && segments[0] === "*") {
+  if (segments.length === 1 && segments[0] === "$") {
     return `/^(?<wildcard>.*)$/`;
   }
 
@@ -31,11 +39,11 @@ const generateRegexPattern = (routePath: string): string => {
     const actualSegment = isOptional ? segment.slice(1, -1) : segment;
 
     regexStr += "\\/";
-    if (actualSegment === "*") {
+    if (actualSegment === "$") {
       // Wildcard segment
       regexStr += "(?<wildcard>.*)";
       break;
-    } else if (actualSegment.startsWith(":")) {
+    } else if (actualSegment.startsWith("$")) {
       // Parameter segment
       const paramName = actualSegment.slice(1);
       const paramPattern = `(?<${paramName}>[^/]+)`;
@@ -85,16 +93,6 @@ const generateRegexPattern = (routePath: string): string => {
 export const generateRouter = async (appFolder: string): Promise<void> => {
   const routesFolder = path.join(appFolder, "routes");
 
-  const unescapedDotRegex = /(?<!\[)\.(?![^[]*\])/g;
-
-  const tsRegex = /\.ts(x)?$/;
-
-  const paramRegex = /^\$/g;
-
-  const splatRegex = /\$$/g;
-
-  const pathlessRegex = /^_.*/;
-
   const files = await readdir(routesFolder);
 
   const varName = (file: string) => {
@@ -116,26 +114,7 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
     .map((file) => file.replace(tsRegex, ""))
     .sort(bySpecificity)
     .map((file) => {
-      const route = file
-        .split(unescapedDotRegex)
-        .map((segment) => {
-          // Check for optional segments (wrapped in parentheses)
-          const isOptional = segment.startsWith("(") && segment.endsWith(")");
-          const actualSegment = isOptional ? segment.slice(1, -1) : segment;
-
-          // Process the segment content
-          const processedSegment = actualSegment
-            .replace(paramRegex, ":")
-            .replace(splatRegex, "*")
-            .replace(pathlessRegex, "");
-
-          // Re-wrap in parentheses if it was optional
-          return isOptional ? `(${processedSegment})` : processedSegment;
-        })
-        .filter((segment) => segment !== "")
-        .join("/");
-
-      return [file, varName(file), `/${route}`] as const;
+      return [file, varName(file), generateRegexPattern(file)] as const;
     });
 
   const routeVars = routes
@@ -173,7 +152,7 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
         return !suffix.startsWith(`${file}.`);
       });
     })
-    .map(([file, name, path]) => {
+    .map(([file, name, regex]) => {
       const fragments = [
         "$document",
         ...routes
@@ -185,10 +164,7 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
         `$${name}`,
       ];
 
-      // Generate regex pattern for this route
-      const regexLiteral = generateRegexPattern(path);
-
-      return `[${regexLiteral}, [${fragments.join(",")}]]`;
+      return `[${regex}, [${fragments.join(",")}]]`;
     })
     .join(",\n");
 

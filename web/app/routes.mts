@@ -15,5 +15,5 @@ const $document = { id: "", mod: document };
 
 export const routes: route[] = [[/^\/auth$/, [$document,$$auth__index]],
 [/^\/home$/, [$document,$$_root,$$_root_home]],
-[/^\/auth\/(?<>[^/]+)$/, [$document,$$auth__]],
+[/^\/auth\/(?<wildcard>.*)$/, [$document,$$auth__]],
 [/^\/$/, [$document,$$_index]]];
