@@ -8,3 +8,9 @@ export type EnvAuth = {
   SECRET: string;
   RESEND_API_KEY: string;
 };
+
+declare global {
+  interface ImportMeta {
+    url: string;
+  }
+}

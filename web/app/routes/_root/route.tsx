@@ -2,7 +2,9 @@ import * as t from "./+types.route";
 import { authenticate } from "../auth.$/helpers.mts";
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+  console.log("before authenticate");
   const user = await authenticate(request, env.SECRET_KEY);
+  console.log("after authenticate");
 
   return {
     nonce: env.nonce,
@@ -19,6 +21,7 @@ export default function Root({
     nonce,
   },
 }: t.ComponentProps) {
+  console.log("big render");
   return (
     <>
       <input type="hidden" name="expires" value={expires} />

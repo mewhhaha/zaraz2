@@ -54,7 +54,7 @@ export default defineConfig({
         });
 
         const sources = (await FastGlob("app/**/*.tsx", { cwd: base })).map(
-          (v) => ({ base, pattern: v }),
+          (v) => ({ base, pattern: v, negated: false }),
         );
 
         const scanner = new Scanner({ sources });

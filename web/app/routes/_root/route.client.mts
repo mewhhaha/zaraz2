@@ -29,7 +29,7 @@ const refresh = async () => {
   }
 
   if (response.ok) {
-    const { expires } = await response.json<{ expires: string }>();
+    const { expires }: { expires: string } = await response.json();
     input.value = expires;
   }
   busy = false;

@@ -31,36 +31,40 @@ type CacheBody = {
 };
 
 export const save = async <T extends keyof CacheBody>(
-  cache: T,
+  namespace: T,
   request: Request,
   id: string,
   ...[body]: CacheBody[T] extends undefined ? [] : [body: CacheBody[T]]
 ) => {
-  const openedCache = await caches.open(cache);
-  const url = new URL(`/${id}`, new URL(request.url).origin);
+  const cache = await caches.open(`challenge:${namespace}`);
+
+  const url = new URL(`/${encodeURIComponent(id)}`, request.url);
+
   const key = new Request(url, {
     headers: { "Cache-Control": "max-age=3600" },
   });
-  const value = new Response(body && JSON.stringify(body));
-  await openedCache.put(key, value);
+
+  const value = new Response(body ? JSON.stringify(body) : null);
+  await cache.put(key, value);
 };
 
 export const finish = async <T extends keyof CacheBody>(
-  cache: T,
+  namespace: T,
   request: Request,
   id: string,
 ) => {
-  const url = new URL(`/${id}`, new URL(request.url).origin);
+  const url = new URL(`/${encodeURIComponent(id)}`, request.url);
+
   const key = new Request(url);
-  const openedCache = await caches.open(cache);
-  const response = await openedCache.match(key);
+
+  const cache = await caches.open(`challenge:${namespace}`);
+  const response = await cache.match(key);
 
   if (!response) {
     return "missing_challenge" as const;
   }
 
-  await openedCache.delete(key);
-
+  await cache.delete(key);
   const text = await response.text();
 
   return {

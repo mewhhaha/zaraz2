@@ -12,6 +12,7 @@ import signout from "./paths/signout";
 
 export const action = async ({
   request,
+
   context: [env, ctx],
 }: t.ActionArgs) => {
   if (request.method !== "POST") {
@@ -32,48 +33,49 @@ export const action = async ({
   const args = { request, context };
 
   const url = new URL(request.url);
+  const pathname = url.pathname.slice("/auth".length);
 
   let match;
 
-  if (url.pathname.match(/^\/refresh\/?$/)) {
+  if (pathname.match(/^\/refresh\/?$/)) {
     return await refresh(args);
   }
 
-  if (url.pathname.match(/^\/challenge\/?$/)) {
+  if (pathname.match(/^\/challenge\/?$/)) {
     return await challenge(args);
   }
 
-  if (url.pathname.match(/^\/verify\/?$/)) {
+  if (pathname.match(/^\/verify\/?$/)) {
     return await verify(args);
   }
 
-  if (url.pathname.match(/^\/recover\/?$/)) {
+  if (pathname.match(/^\/recover\/?$/)) {
     return await recover(args);
   }
 
-  if ((match = url.pathname.match(/^\/recover\/(<?id>[^/]+)\/?$/))) {
+  if ((match = pathname.match(/^\/recover\/(<?id>[^/]+)\/?$/))) {
     return await recover$id({
       ...args,
       params: { id: decodeURIComponent(match.groups?.id as string) },
     });
   }
 
-  if (url.pathname.match(/^\/email\/?$/)) {
+  if (pathname.match(/^\/email\/?$/)) {
     return await email(args);
   }
 
-  if ((match = url.pathname.match(/^\/email\/(<?id>[^/]+)\/?$/))) {
+  if ((match = pathname.match(/^\/email\/(<?id>[^/]+)\/?$/))) {
     return await email$id({
       ...args,
       params: { id: decodeURIComponent(match.groups?.id as string) },
     });
   }
 
-  if (url.pathname.match(/^\/signout\/?$/)) {
+  if (pathname.match(/^\/signout\/?$/)) {
     return await signout(args);
   }
 
-  if (url.pathname.match(/^\/register\/?$/)) {
+  if (pathname.match(/^\/register\/?$/)) {
     return await register(args);
   }
 

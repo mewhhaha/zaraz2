@@ -31,8 +31,8 @@ export default async function ({
     throw new Response(challenge, { status: 403 });
   }
 
-  const credentialId = json.id;
-  const passkey = env.PASSKEY.get(env.PASSKEY.idFromString(credentialId));
+  const credentialName = json.id;
+  const passkey = env.PASSKEY.get(env.PASSKEY.idFromName(credentialName));
   const user = env.USER.get(env.USER.idFromString(recover.body.userId));
 
   const data = await passkey.register({
@@ -52,7 +52,7 @@ export default async function ({
 
   const passkeyLink = makePasskeyLink({
     passkeyId: passkey.id,
-    credentialId,
+    credentialId: credentialName,
     userId: user.id,
   });
 

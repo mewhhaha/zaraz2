@@ -33,19 +33,21 @@ export type Metadata = {
 };
 
 export type Passkey = {
-  credential: Credential;
+  credential: CredentialInfo;
   metadata: Metadata;
 };
 
 export class DurableObjectPasskey extends DurableObject<Env> {
   @store
-  accessor #metadata: Promise<Metadata> = Promise.reject();
+  accessor #metadata: Promise<Metadata> = Promise.reject("Missing #metadata");
 
   @store
-  accessor #credential: Promise<CredentialInfo> = Promise.reject();
+  accessor #credential: Promise<CredentialInfo> = Promise.reject(
+    "Missing #credential",
+  );
 
   @store
-  accessor #visitors: Promise<Visitor[]> = Promise.reject();
+  accessor #visitors: Promise<Visitor[]> = Promise.reject("Missing #visitors");
 
   @store
   accessor #authenticator: Promise<AuthenticatorInfo> = Promise.reject();

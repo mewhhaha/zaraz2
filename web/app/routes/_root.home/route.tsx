@@ -3,7 +3,7 @@ import * as t from "./+types.route";
 import { authenticate } from "../auth.$/helpers.mts";
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
-  const user = await authenticate(request, env);
+  const user = await authenticate(request, env.SECRET_KEY);
 
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
@@ -35,19 +35,24 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     url.searchParams.set("open", "");
   }
 
-  return Response.redirect(url, 303);
+  return Response.redirect(url.href, 303);
 };
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
-  const user = await authenticate(request, env);
+  console.log("before authenticate");
+  const { userId } = await authenticate(request, env.SECRET_KEY);
+  console.log("after authenticate");
 
   const url = new URL(request.url);
   const direction = url.searchParams.get("direction");
   const confetti = url.searchParams.get("confetti");
   const menuOpen = url.searchParams.has("open");
 
-  const stub = env.OBJECT_USER.get(env.OBJECT_USER.idFromString(user.userId));
-  const { tasks, completed } = await stub.listTasks();
+  console.log("uhhh");
+  const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromString(userId));
+  console.log("uhhssssh");
+  const { tasks, completed } = await user.listTasks();
+  console.log("uasdasdasdhhh");
 
   return {
     direction,
@@ -65,6 +70,7 @@ const client = new URL("./route.client.mts", import.meta.url);
 export default function Home({
   loaderData: { direction, nonce, confetti, menuOpen, current, completed },
 }: t.ComponentProps) {
+  console.log("big render");
   return (
     <div
       data-empty={current === undefined || undefined}

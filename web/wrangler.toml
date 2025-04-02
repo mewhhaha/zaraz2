@@ -3,8 +3,10 @@ name = "zaraz2"
 main = "./dist/main.js"
 build.watch_dir = "dist"
 
+
 compatibility_date = "2025-03-08"
 assets = { directory = "./dist/", binding = "ASSETS" }
+
 
 [[kv_namespaces]]
 binding = "KV_USERS"
@@ -17,10 +19,6 @@ class_name = "DurableObjectUser"
 [[durable_objects.bindings]]
 name = "OBJECT_PASSKEY"
 class_name = "DurableObjectPasskey"
-
-
-[placement]
-mode = "smart"
 
 [observability.logs]
 enabled = true

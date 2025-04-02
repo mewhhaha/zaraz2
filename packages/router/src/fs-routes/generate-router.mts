@@ -86,7 +86,7 @@ const generateRegexPattern = (routePath: string): string => {
     }
   }
 
-  regexStr += "$";
+  regexStr += "\\/?$";
   return `/${regexStr}/`;
 };
 

@@ -25,7 +25,8 @@ export default async function ({
     throw new Response(challenge, { status: 403 });
   }
 
-  const passkey = env.PASSKEY.get(env.PASSKEY.idFromString(json.id));
+  const credentialName = json.id;
+  const passkey = env.PASSKEY.get(env.PASSKEY.idFromName(credentialName));
 
   const payload = { challengeId, visited, json };
   const data = await passkey.authenticate(payload);

@@ -34,6 +34,16 @@ type Account = {
 };
 
 export class DurableObjectUser extends DurableObject<Env> {
+  @store
+  accessor #account: Promise<Account> = Promise.reject("Missing #account");
+
+  @store
+  accessor #tasks: Promise<Map<string, Task>> =
+    Promise.reject("Missing #tasks");
+
+  @store
+  accessor #completed: Promise<number> = Promise.reject("Missing #completed");
+
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     const read = async <T,>(initial: Promise<T>, key: string) => {
@@ -48,15 +58,6 @@ export class DurableObjectUser extends DurableObject<Env> {
     this.#tasks = read<Map<string, Task>>(this.#tasks, "#tasks");
     this.#completed = read<number>(this.#completed, "#completed");
   }
-
-  @store
-  accessor #account: Promise<Account> = Promise.reject();
-
-  @store
-  accessor #tasks: Promise<Map<string, Task>> = Promise.reject();
-
-  @store
-  accessor #completed: Promise<number> = Promise.reject();
 
   async listTasks() {
     const tasks = await this.#tasks;
@@ -134,6 +135,13 @@ export class DurableObjectUser extends DurableObject<Env> {
       this.#tasks = Promise.resolve(new Map());
       return account;
     }
+  }
+
+  async data() {
+    const account = await this.#account;
+    return {
+      account,
+    } as const;
   }
 
   async link(passkeyLink: PasskeyLink) {

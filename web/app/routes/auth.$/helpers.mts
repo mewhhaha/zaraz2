@@ -141,12 +141,6 @@ export const hmac = async (
     .join("");
 };
 
-export function invariant<T>(condition: T, message: string): asserts condition {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
-
 export const extractVisitorHeaders = (headers: Headers): VisitedHeaders => {
   const result: VisitedHeaders = {};
 
@@ -197,11 +191,11 @@ export const authenticate = async (request: Request, secret: string) => {
   const user = await userCookie.parse(cookie);
 
   if (!user) {
-    throw Response.redirect(new URL("/auth", request.url));
+    throw Response.redirect(new URL("/auth", request.url).href);
   }
 
   if (new Date(user.expires) < new Date()) {
-    throw Response.redirect(new URL("/auth", request.url));
+    throw Response.redirect(new URL("/auth", request.url).href);
   }
 
   return user;
