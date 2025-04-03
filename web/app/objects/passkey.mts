@@ -39,36 +39,31 @@ export type Passkey = {
 
 export class DurableObjectPasskey extends DurableObject<Env> {
   @store
-  accessor #metadata: Promise<Metadata> = Promise.reject("Missing #metadata");
+  accessor #metadata: Promise<Metadata>;
 
   @store
-  accessor #credential: Promise<CredentialInfo> = Promise.reject(
-    "Missing #credential",
-  );
+  accessor #credential: Promise<CredentialInfo>;
 
   @store
-  accessor #visitors: Promise<Visitor[]> = Promise.reject("Missing #visitors");
+  accessor #visitors: Promise<Visitor[]>;
 
   @store
-  accessor #authenticator: Promise<AuthenticatorInfo> = Promise.reject();
+  accessor #authenticator: Promise<AuthenticatorInfo>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    const read = async <T,>(initial: Promise<T>, key: string) => {
+    const read = async <T,>(key: string): Promise<T> => {
       const v = await state.storage.get<T>(key);
-      if (!v) {
-        return initial;
+      if (v === undefined) {
+        return Promise.reject("Missing " + key);
       }
       return v;
     };
 
-    this.#metadata = read<Metadata>(this.#metadata, "metadata");
-    this.#credential = read<CredentialInfo>(this.#credential, "credential");
-    this.#visitors = read<Visitor[]>(this.#visitors, "visitors");
-    this.#authenticator = read<AuthenticatorInfo>(
-      this.#authenticator,
-      "authenticator",
-    );
+    this.#metadata = read("#metadata");
+    this.#credential = read("#credential");
+    this.#visitors = read("#visitors");
+    this.#authenticator = read("#authenticator");
   }
 
   async register({ json, visited, userId, challengeId }: Registration) {

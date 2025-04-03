@@ -51,11 +51,16 @@ export default function Route({
               Login
             </button>
           </form>
-          <form fx-action="/auth/register" fx-method="POST">
+          <form
+            fx-action="/auth/register"
+            fx-method="POST"
+            class={`flex gap-2`}
+          >
             <input
-              type="hidden"
+              class={`rounded-lg border-2 px-4`}
+              placeholder="Username"
+              type="text"
               name="username"
-              ext-fx-prompt="What username?"
             />
             <button
               ext-fx-passkey-register="/auth/challenge"
@@ -70,7 +75,13 @@ export default function Route({
               Register
             </button>
           </form>
-          <form fx-action="/auth/recover" fx-method="POST">
+          <form fx-action="/auth/recover" fx-method="POST" class={`flex gap-2`}>
+            <input
+              class={`rounded-lg border-2 px-4`}
+              placeholder="Username"
+              type="text"
+              name="username"
+            />
             <button
               type="submit"
               name="username"

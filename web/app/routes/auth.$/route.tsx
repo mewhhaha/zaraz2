@@ -26,6 +26,7 @@ export const action = async ({
       REGISTERED_USERS: env.KV_USERS,
       SECRET: env.SECRET_KEY,
       RESEND_API_KEY: env.RESEND_API_KEY,
+      CHALLENGE: env.OBJECT_CHALLENGE,
     } satisfies EnvAuth,
     ctx,
   ] as const;

@@ -2,7 +2,6 @@ import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.
 import { createUserCookie, extractVisitorHeaders } from "../helpers.mjs";
 import { hmac } from "../helpers.mjs";
 import { makePasskeyLink } from "../../../objects/user.mjs";
-import { finish } from "./challenge";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -18,7 +17,9 @@ export default async function ({
 
   const { json, challengeId } = await parseToken(token, env.SECRET);
 
-  const challenge = await finish("challenge", request, challengeId);
+  const challenge = await env.CHALLENGE.get(
+    env.CHALLENGE.idFromString(challengeId),
+  ).finish();
   if (typeof challenge === "string") {
     throw new Response(challenge, { status: 403 });
   }

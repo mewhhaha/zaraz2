@@ -39,20 +39,16 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 };
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
-  console.log("before authenticate");
   const { userId } = await authenticate(request, env.SECRET_KEY);
-  console.log("after authenticate");
 
   const url = new URL(request.url);
   const direction = url.searchParams.get("direction");
   const confetti = url.searchParams.get("confetti");
   const menuOpen = url.searchParams.has("open");
 
-  console.log("uhhh");
   const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromString(userId));
-  console.log("uhhssssh");
+
   const { tasks, completed } = await user.listTasks();
-  console.log("uasdasdasdhhh");
 
   return {
     direction,
@@ -70,7 +66,7 @@ const client = new URL("./route.client.mts", import.meta.url);
 export default function Home({
   loaderData: { direction, nonce, confetti, menuOpen, current, completed },
 }: t.ComponentProps) {
-  console.log("big render");
+
   return (
     <div
       data-empty={current === undefined || undefined}

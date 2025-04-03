@@ -3,6 +3,7 @@ import { Router, type Env } from "@mewhhaha/fx-router";
 
 export { DurableObjectUser } from "./app/objects/user.mjs";
 export { DurableObjectPasskey } from "./app/objects/passkey.mjs";
+export { DurableObjectChallenge } from "./app/objects/challenge.mjs";
 
 const router = Router(routes);
 

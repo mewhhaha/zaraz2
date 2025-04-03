@@ -1,14 +1,8 @@
-import { save } from "./challenge";
 import { createResend } from "../resend";
 import type { EnvAuth } from "../env";
 
-const parseFormData = async (request: Request) => {
-  const formData = await request.formData();
-  const username = formData.get("username")?.toString();
-  if (!username) {
-    throw new Response("username_missing", { status: 403 });
-  }
-  return { username };
+export type RecoverChallenge = {
+  userId: string;
 };
 
 export default async function ({
@@ -32,14 +26,18 @@ export default async function ({
       throw new Response(data, { status: 429 });
     }
 
-    const id = crypto.randomUUID();
-    await save("recover", request, id, { userId: user.id.toString() });
+    const challengeId = env.CHALLENGE.newUniqueId();
+
+    await env.CHALLENGE.get(challengeId).save({
+      userId: user.id.toString(),
+    } satisfies RecoverChallenge);
 
     const directory = request.url.endsWith("/")
       ? request.url
       : request.url + "/";
 
-    const href = new URL(encodeURIComponent(id), directory).href;
+    const href = new URL(encodeURIComponent(challengeId.toString()), directory)
+      .href;
 
     try {
       const resend = createResend(env.RESEND_API_KEY);
@@ -56,3 +54,12 @@ export default async function ({
 
   ctx.waitUntil(sendEmail());
 }
+
+const parseFormData = async (request: Request) => {
+  const formData = await request.formData();
+  const username = formData.get("username")?.toString();
+  if (!username) {
+    throw new Response("username_missing", { status: 403 });
+  }
+  return { username };
+};

@@ -1,7 +1,11 @@
-import { save } from "./challenge";
 import { authenticate } from "../helpers.mts";
 import type { EnvAuth } from "../env";
 import { createResend } from "../resend";
+
+export type EmailChallenge = {
+  email: string;
+  userId: string;
+};
 
 export default async function ({
   request,
@@ -15,14 +19,19 @@ export default async function ({
   const { email } = await parseFormData(request);
 
   const sendEmail = async () => {
-    const id = crypto.randomUUID();
-    await save("email", request, id, { email, userId: cookie.userId });
+    const challenge = env.CHALLENGE.get(env.CHALLENGE.newUniqueId());
+
+    await challenge.save({
+      email,
+      userId: cookie.userId,
+    } satisfies EmailChallenge);
 
     const directory = request.url.endsWith("/")
       ? request.url
       : request.url + "/";
 
-    const href = new URL(encodeURIComponent(id), directory).href;
+    const href = new URL(encodeURIComponent(challenge.id.toString()), directory)
+      .href;
     try {
       const resend = createResend(env.RESEND_API_KEY);
       await resend.send({
