@@ -54,7 +54,7 @@ const parseFormData = async (request: Request) => {
   const formData = await request.formData();
   const email = formData.get("email")?.toString();
   if (!email) {
-    throw new Response("email_missing", { status: 403 });
+    throw new Response("email_missing", { status: 400 });
   }
   return { email };
 };

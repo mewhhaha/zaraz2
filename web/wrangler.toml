@@ -27,18 +27,14 @@ class_name = "DurableObjectChallenge"
 [observability.logs]
 enabled = true
 
+[vars]
+ORIGIN = "https://zaraz2.app"
+
+
 [[migrations]]
 tag = "v1"
 new_classes = [
     "DurableObjectUser",
     "DurableObjectPasskey",
-    "DurableObjectForgotten",
+    "DurableObjectChallenge",
 ]
-
-[[migrations]]
-tag = "v2"
-deleted_classes = ["DurableObjectForgotten"]
-
-[[migrations]]
-tag = "v3"
-new_classes = ["DurableObjectChallenge"]

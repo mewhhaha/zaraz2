@@ -21,7 +21,7 @@ export default async function ({
     env.CHALLENGE.idFromString(challengeId),
   ).finish();
   if (typeof challenge === "string") {
-    throw new Response(challenge, { status: 403 });
+    throw new Response(challenge, { status: 400 });
   }
 
   const credentialName = json.id;
@@ -36,7 +36,7 @@ export default async function ({
   });
 
   if (typeof data === "string") {
-    throw new Response(data, { status: 403 });
+    throw new Response(data, { status: 400 });
   }
 
   const passkeyLink = makePasskeyLink({
@@ -51,7 +51,7 @@ export default async function ({
     recovery: { attempts: [] },
   });
   if (!created) {
-    throw new Response("user_exists", { status: 403 });
+    throw new Response("user_exists", { status: 409 });
   }
   await env.REGISTERED_USERS.put(username, "taken");
 
@@ -73,11 +73,11 @@ const parseFormData = async (request: Request) => {
   const formData = await request.formData();
   const token = formData.get("token")?.toString();
   if (!token) {
-    throw new Response("token_missing", { status: 403 });
+    throw new Response("token_missing", { status: 400 });
   }
   const username = formData.get("username")?.toString();
   if (!username) {
-    throw new Response("username_missing", { status: 403 });
+    throw new Response("username_missing", { status: 400 });
   }
   return { token, username };
 };
@@ -89,11 +89,11 @@ const parseToken = async (token: string, secret: string) => {
     signature === undefined ||
     registrationBase64Json === undefined
   ) {
-    throw new Response("token_invalid", { status: 403 });
+    throw new Response("token_invalid", { status: 400 });
   }
 
   if (signature !== btoa(await hmac(secret, challengeId))) {
-    throw new Response("signature_invalid", { status: 403 });
+    throw new Response("signature_invalid", { status: 400 });
   }
 
   const registrationRaw = atob(registrationBase64Json);

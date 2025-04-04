@@ -36,6 +36,8 @@ export class DurableObjectChallenge extends DurableObject<Env> {
   alarm() {
     void this.ctx.storage.deleteAlarm();
     void this.ctx.storage.deleteAll();
+
+    this.#data = Promise.reject("Challenge expired");
   }
 
   async finish() {

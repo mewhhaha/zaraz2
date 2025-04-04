@@ -14,7 +14,7 @@ export default async function ({
   const formData = await request.formData();
   const token = formData.get("token")?.toString();
   if (!token) {
-    throw new Response("token_missing", { status: 403 });
+    throw new Response("token_missing", { status: 400 });
   }
 
   const { json, challengeId } = await parseToken(token, env.SECRET);
@@ -23,7 +23,7 @@ export default async function ({
     env.CHALLENGE.idFromString(challengeId),
   ).finish();
   if (typeof challenge === "string") {
-    throw new Response(challenge, { status: 403 });
+    throw new Response(challenge, { status: 400 });
   }
 
   const credentialName = json.id;
@@ -32,7 +32,7 @@ export default async function ({
   const payload = { challengeId, visited, json };
   const data = await passkey.authenticate(payload);
   if (typeof data === "string") {
-    throw new Response(data, { status: 403 });
+    throw new Response(data, { status: 401 });
   }
 
   const cookie = createUserCookie("user", env.SECRET);
@@ -56,11 +56,11 @@ const parseToken = async (token: string, secret: string) => {
     signature === undefined ||
     authenticationBase64Json === undefined
   ) {
-    throw new Response("token_invalid", { status: 403 });
+    throw new Response("token_invalid", { status: 400 });
   }
 
   if (signature !== btoa(await hmac(secret, challengeId))) {
-    throw new Response("signature_invalid", { status: 403 });
+    throw new Response("signature_invalid", { status: 401 });
   }
 
   const authenticationJson = atob(authenticationBase64Json);

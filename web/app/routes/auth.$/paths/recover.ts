@@ -19,7 +19,7 @@ export default async function ({
 
     const data = await user.recover();
     if (data === "no_recovery_email") {
-      throw new Response(data, { status: 501 });
+      throw new Response(data, { status: 422 });
     }
 
     if (data === "too_many_attempts") {
@@ -59,7 +59,7 @@ const parseFormData = async (request: Request) => {
   const formData = await request.formData();
   const username = formData.get("username")?.toString();
   if (!username) {
-    throw new Response("username_missing", { status: 403 });
+    throw new Response("username_missing", { status: 400 });
   }
   return { username };
 };

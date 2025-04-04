@@ -16,7 +16,7 @@ export default async function ({
   const cookie = createUserCookie("user", env.SECRET);
   const user = await cookie.parse(cookieHeader);
   if (!user) {
-    throw new Response("invalid_cookie", { status: 403 });
+    throw new Response("invalid_cookie", { status: 401 });
   }
 
   user.expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
