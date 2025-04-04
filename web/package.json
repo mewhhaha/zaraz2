@@ -16,11 +16,11 @@
     "dev": "run-p wrangler-dev watch"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250402.0",
+    "@cloudflare/workers-types": "^4.20250404.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.13",
     "@mewhhaha/fx-router": "workspace:^",
-    "@tailwindcss/node": "^4.1.1",
-    "@tailwindcss/oxide": "^4.1.1",
+    "@tailwindcss/node": "^4.1.2",
+    "@tailwindcss/oxide": "^4.1.2",
     "@types/node": "^22.14.0",
     "eslint": "^9.23.0",
     "eslint-plugin-oxlint": "^0.16.4",
@@ -30,11 +30,11 @@
     "oxlint": "^0.16.4",
     "prettier": "^3.4.2",
     "rolldown": "1.0.0-beta.6-commit.231bdea",
-    "tailwindcss": "^4.1.1",
+    "tailwindcss": "^4.1.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.29.0",
     "vitest": "^3.1.1",
-    "wrangler": "^4.7.0"
+    "wrangler": "^4.7.1"
   },
   "dependencies": {
     "@packages/passkey": "workspace:*",
