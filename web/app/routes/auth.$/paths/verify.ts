@@ -1,5 +1,9 @@
 import type { AuthenticationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
-import { createUserCookie, extractVisitorHeaders, hmac } from "../helpers.mjs";
+import {
+  createUserCookie,
+  extractVisitorHeaders,
+  parseToken,
+} from "../helpers.mjs";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -17,7 +21,10 @@ export default async function ({
     throw new Response("token_missing", { status: 400 });
   }
 
-  const { json, challengeId } = await parseToken(token, env.SECRET);
+  const { json, challengeId } = await parseToken<AuthenticationJSON>(
+    token,
+    env.SECRET,
+  );
 
   const challenge = await env.CHALLENGE.get(
     env.CHALLENGE.idFromString(challengeId),
@@ -48,24 +55,3 @@ export default async function ({
     },
   });
 }
-
-const parseToken = async (token: string, secret: string) => {
-  const [challengeId, signature, authenticationBase64Json] = token.split(".");
-  if (
-    challengeId === undefined ||
-    signature === undefined ||
-    authenticationBase64Json === undefined
-  ) {
-    throw new Response("token_invalid", { status: 400 });
-  }
-
-  if (signature !== btoa(await hmac(secret, challengeId))) {
-    throw new Response("signature_invalid", { status: 401 });
-  }
-
-  const authenticationJson = atob(authenticationBase64Json);
-
-  const json = JSON.parse(authenticationJson) as AuthenticationJSON;
-
-  return { json, challengeId };
-};

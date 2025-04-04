@@ -200,3 +200,40 @@ export const authenticate = async (request: Request, secret: string) => {
 
   return user;
 };
+
+export const parseToken = async <T,>(
+  token: string,
+  secret: string,
+): Promise<{ json: T; challengeId: string }> => {
+  const [challengeId, signatureB64, registrationBase64Json] = token.split(".");
+  if (
+    challengeId === undefined ||
+    signatureB64 === undefined ||
+    registrationBase64Json === undefined
+  ) {
+    throw new Response("token_invalid", { status: 400 });
+  }
+
+  const encoder = new TextEncoder();
+
+  // Decode both expected and provided signatures to ArrayBuffers
+  const a = encoder.encode(btoa(await hmac(secret, challengeId)));
+  const b = encoder.encode(signatureB64);
+
+  // Ensure buffers are the same length before comparison
+  if (a.byteLength !== b.byteLength) {
+    throw new Response("signature_invalid", { status: 400 });
+  }
+
+  const validSignature = crypto.subtle.timingSafeEqual(a, b);
+
+  if (!validSignature) {
+    throw new Response("signature_invalid", { status: 400 });
+  }
+
+  const registrationRaw = atob(registrationBase64Json);
+
+  const json = JSON.parse(registrationRaw) as T;
+
+  return { json, challengeId };
+};

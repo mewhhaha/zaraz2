@@ -1,7 +1,10 @@
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 
-import { createUserCookie, extractVisitorHeaders } from "../helpers.mjs";
-import { hmac } from "../helpers.mjs";
+import {
+  createUserCookie,
+  extractVisitorHeaders,
+  parseToken,
+} from "../helpers.mjs";
 import { makePasskeyLink } from "../../../objects/user.mjs";
 import type { EnvAuth } from "../env";
 import type { Finish } from "../../../objects/challenge.mts";
@@ -20,7 +23,10 @@ export default async function ({
 
   const { token } = await parseFormData(request);
 
-  const { json, challengeId } = await parseToken(token, env.SECRET);
+  const { json, challengeId } = await parseToken<RegistrationJSON>(
+    token,
+    env.SECRET,
+  );
 
   const challenge = await env.CHALLENGE.get(
     env.CHALLENGE.idFromString(challengeId),
@@ -84,25 +90,4 @@ const parseFormData = async (request: Request) => {
     throw new Response("token_missing", { status: 400 });
   }
   return { token };
-};
-
-const parseToken = async (token: string, secret: string) => {
-  const [challengeId, signature, registrationBase64Json] = token.split(".");
-  if (
-    challengeId === undefined ||
-    signature === undefined ||
-    registrationBase64Json === undefined
-  ) {
-    throw new Response("token_invalid", { status: 400 });
-  }
-
-  if (signature !== btoa(await hmac(secret, challengeId))) {
-    throw new Response("signature_invalid", { status: 400 });
-  }
-
-  const registrationJson = atob(registrationBase64Json);
-
-  const registration = JSON.parse(registrationJson) as RegistrationJSON;
-
-  return { json: registration, challengeId };
 };
