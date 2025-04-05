@@ -179,39 +179,56 @@ export default function Home({
         </header>
         <footer>
           <div class={`relative`}>
-            <button
-              aria-label="Passkey menu"
-              aria-controls="passkeys-menu"
-              class={`
-                mb-1 flex size-10 cursor-pointer items-center justify-center rounded-lg
-                border-2 border-blue-600 bg-slate-950 p-1 text-white drop-shadow-sm/100
-                transition-[border-color_background]
-
-                hover:border-white hover:bg-black
-
-                active:bg-white active:text-black active:text-shadow-sm/100
-
-                peer
-              `}
+            <div
+              fx-action="/auth"
+              fx-target="#passkeys-settings"
+              fx-trigger="click"
+              ext-fx-transition="#passkeys-settings"
+              ext-fx-allow-default
             >
-              <PasskeyIcon class={`size-6`} />
-            </button>
+              <button
+                aria-label="Passkey menu"
+                commandfor="passkeys-menu"
+                command="show-modal"
+                class={`
+                  mb-1 flex size-10 cursor-pointer items-center justify-center rounded-lg
+                  border-2 border-blue-600 bg-slate-950 p-1 text-white
+                  drop-shadow-sm/100 transition-[border-color_background]
+
+                  [anchor-name:--passkeys]
+
+                  hover:border-white hover:bg-black
+
+                  active:bg-white active:text-black active:text-shadow-sm/100
+
+                  peer
+                `}
+              >
+                <PasskeyIcon class={`size-6`} />
+              </button>
+            </div>
 
             <dialog
               id="passkeys-menu"
+              popover
               class={`
-                pointer-events-none absolute inset-0 -top-4 left-1/2 h-56 w-48 -translate-x-1/2
-                -translate-y-13/14 rounded-lg border-2 bg-slate-950 mask-t-from-0%
-                mask-t-to-50% opacity-0 drop-shadow-sm/100
-                transition-[transform_opacity]
+                fixed h-fit w-fit overflow-visible bg-transparent
 
-                open:-translate-y-full open:opacity-100
-                backdrop:bg-black/50
+                [position-anchor:--passkeys]
+
+                [position-area:top]
+
+                backdrop:bg-black/50 backdrop:transition-colors backdrop:view-name-[backdrop]
+
+                starting:backdrop:bg-black/0
               `}
             >
-              <form>
-                <input type="password" />
-              </form>
+              <button
+                class={`fixed inset-0 -z-10 bg-transparent`}
+                commandfor="passkeys-menu"
+                command="close"
+              />
+              <div id="passkeys-settings" />
             </dialog>
           </div>
         </footer>
@@ -230,7 +247,7 @@ const MenuButton = ({ class: className, ...props }: MenuButtonProps) => {
           w-40 cursor-pointer rounded-l-full border-y-2 border-l-2 border-gray-600
           bg-slate-950 px-6 py-4 text-left drop-shadow-sm/100
 
-          hover:w-50 hover:bg-black/90 hover:transition-[width]
+          not-disabled:hover:w-50 not-disabled:hover:bg-black/90 not-disabled:hover:transition-[width]
 
           active:border-gray-500 active:bg-white active:text-slate-950 active:text-shadow-sm/100
 

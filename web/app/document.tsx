@@ -5,6 +5,7 @@ const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url);
 
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
 const iconUrl = new URL("./assets/favicon.ico", import.meta.url);
+const cmdUrl = new URL("./assets/cmd.js", import.meta.url);
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
@@ -57,6 +58,7 @@ export default function Document({
         <link rel="stylesheet" href={stylesUrl.pathname} />
         <script nonce={nonce} src={fixiUrl.pathname} defer></script>
         <script nonce={nonce} src={fixiExtUrl.pathname} defer></script>
+        <script nonce={nonce} src={cmdUrl.pathname} defer></script>
       </head>
       <body class={`bg-slate-950 text-amber-50`}>{children}</body>
     </html>

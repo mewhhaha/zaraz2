@@ -22,86 +22,84 @@ export default function Route({
 }: t.ComponentProps) {
   if (user && account) {
     return (
-      <main>
-        <h1>Passkeys</h1>
-        <p>You're logged in as {account.username}</p>
-      </main>
+      <div
+        id="passkeys-settings"
+        class={`
+      w-48 p-1 -translate-y-2 rounded-lg border-2 bg-slate-950
+      drop-shadow-sm/100 transition-[transform_opacity]
+
+      starting:translate-y-0 starting:opacity-0 view-name-[passkeys-settings]
+
+
+    `}
+      >
+        <form class="flex flex-col gap-2">
+          <ul></ul>
+          <button
+            type="button"
+            class={`
+        cursor-pointer rounded-lg bg-white/1 text-white py-2
+
+        hover:bg-black
+      `}
+          >
+            Add passkey
+          </button>
+          <button
+            type="button"
+            class={`
+        cursor-pointer rounded-lg bg-white/1 text-white py-2
+
+        hover:bg-black
+      `}
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
     );
   }
   return (
-    <main class={`max-w-sm rounded-lg border-2 border-white bg-blue-950 p-4`}>
-      <div>
-        <h1 class={`font-serif text-xl font-extrabold tracking-widest`}>
-          Passkeys
-        </h1>
-        <p class={`mb-4`}>You're not logged in.</p>
-        <div class={`flex flex-col gap-2`}>
-          <form fx-action="/auth/verify" fx-method="POST">
-            <button
-              ext-fx-passkey-verify="/auth/challenge"
-              class={`
-                w-32 cursor-pointer rounded-lg bg-blue-600/20 px-4 py-2 text-left
-                font-semibold text-white
+    <form id="passkeys-settings" class="flex flex-col gap-2">
+      <ul></ul>
+      <button
+        type="button"
+        class={`
+      cursor-pointer rounded-lg bg-white/1 text-white py-2
 
-                hover:bg-blue-600/40
-              `}
-              type="submit"
-            >
-              <KeyIcon class={`mr-2 inline-block h-[1lh] w-5`} />
-              Login
-            </button>
-          </form>
-          <form
-            fx-action="/auth/register"
-            fx-method="POST"
-            class={`flex gap-2`}
-          >
-            <input
-              class={`rounded-lg border-2 px-4`}
-              placeholder="Username"
-              type="text"
-              name="username"
-            />
-            <button
-              ext-fx-passkey-register="/auth/challenge"
-              class={`
-                w-32 cursor-pointer rounded-lg bg-blue-600/20 px-4 py-2 text-left
-                font-semibold text-white
+      hover:bg-black
+    `}
+      >
+        Register
+      </button>
+      <button
+        type="button"
+        class={`
+      cursor-pointer rounded-lg bg-white/1 text-white py-2
 
-                hover:bg-blue-600/40
-              `}
-            >
-              <UserPlusIcon class={`mr-2 inline-block h-[1lh] w-5`} />
-              Register
-            </button>
-          </form>
-          <form fx-action="/auth/recover" fx-method="POST" class={`flex gap-2`}>
-            <input
-              class={`rounded-lg border-2 px-4`}
-              placeholder="Username"
-              type="text"
-              name="username"
-            />
-            <button
-              type="submit"
-              name="username"
-              ext-fx-prompt="What username?"
-              class={`
-                w-32 cursor-pointer rounded-lg bg-blue-600/20 px-4 py-2 text-left
-                font-semibold text-white
-
-                hover:bg-blue-600/40
-              `}
-            >
-              <BuoyeIcon class={`mr-2 inline-block h-[1lh] w-5`} />
-              Recover
-            </button>
-          </form>
-        </div>
-      </div>
-    </main>
+      hover:bg-black
+    `}
+      >
+        Sign in
+      </button>
+    </form>
   );
 }
+
+const MenuButton = () => {
+  return (
+    <button
+      type="button"
+      class={`
+cursor-pointer rounded-lg bg-white/1 text-white py-2
+
+hover:bg-black
+`}
+    >
+      Register
+    </button>
+  );
+};
 
 const KeyIcon = (props: JSX.IntrinsicElements["svg"]) => {
   return (

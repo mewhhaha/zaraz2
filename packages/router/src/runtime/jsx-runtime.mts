@@ -105,8 +105,8 @@ const sanitize = (value: any) => {
     return undefined;
   }
 
-  if (typeof value === "boolean") {
-    return value.toString();
+  if (value === true) {
+    return "";
   }
 
   if (typeof value === "number") {

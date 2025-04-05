@@ -99,6 +99,9 @@ export namespace JSX {
     contenteditable?: string | undefined;
     dir?: string | undefined;
     hidden?: string | boolean | undefined;
+    popover?: boolean | undefined;
+    popovertarget?: string | undefined;
+    popoveraction?: "close" | "open" | "toggle" | (string & {}) | undefined;
     id?: string | undefined;
     role?: string | undefined;
     lang?: string | undefined;
@@ -152,6 +155,15 @@ export namespace JSX {
     autofocus?: string | undefined;
     disabled?: boolean | undefined;
     enctype?: string | undefined;
+    commandfor?: string | undefined;
+    command?:
+      | "toggle-popover"
+      | "show-popover"
+      | "hide-popover"
+      | "show-modal"
+      | "close"
+      | (string & {})
+      | undefined;
     form?: string | undefined;
     method?: string | undefined;
     name?: string | undefined;
