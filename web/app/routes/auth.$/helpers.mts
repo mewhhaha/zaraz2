@@ -214,20 +214,10 @@ export const parseToken = async <T,>(
     throw new Response("token_invalid", { status: 400 });
   }
 
-  const encoder = new TextEncoder();
+  const a = btoa(await hmac(secret, challengeId));
+  const b = signatureB64;
 
-  // Decode both expected and provided signatures to ArrayBuffers
-  const a = encoder.encode(btoa(await hmac(secret, challengeId)));
-  const b = encoder.encode(signatureB64);
-
-  // Ensure buffers are the same length before comparison
-  if (a.byteLength !== b.byteLength) {
-    throw new Response("signature_invalid", { status: 400 });
-  }
-
-  const validSignature = crypto.subtle.timingSafeEqual(a, b);
-
-  if (!validSignature) {
+  if (a !== b) {
     throw new Response("signature_invalid", { status: 400 });
   }
 
@@ -237,3 +227,4 @@ export const parseToken = async <T,>(
 
   return { json, challengeId };
 };
+

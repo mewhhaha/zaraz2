@@ -95,7 +95,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
       return { metadata };
     } catch (e) {
-      console.log(e);
+      console.error(e);
       return "registration_failed" as const;
     }
   }
@@ -122,7 +122,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
       return { metadata };
     } catch (e) {
-      if (e instanceof Error) console.log(e);
+      if (e instanceof Error) console.error(e);
       return "authentication_failed" as const;
     }
   }

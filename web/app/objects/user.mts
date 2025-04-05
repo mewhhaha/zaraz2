@@ -63,7 +63,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     const completed = await this.#completed;
 
     return {
-      tasks: [...tasks.values()],
+      current: [...tasks.values()].at(-1),
       completed,
     } as const;
   }
@@ -79,7 +79,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     });
     this.#tasks = Promise.resolve(tasks);
 
-    return { next: [...tasks].at(0) } as const;
+    return { next: [...tasks].at(-1) } as const;
   }
 
   async completeTask(id: string) {
@@ -100,19 +100,18 @@ export class DurableObjectUser extends DurableObject<Env> {
     this.ctx.storage.put(historyKey, next);
 
     this.#completed = Promise.resolve(completed + 1);
-    return { error: false, next: [...tasks].at(0) } as const;
+    return { error: false, next: [...tasks].at(-1) } as const;
   }
 
   async cycleTasks() {
-    const tasks = await this.#tasks;
-    const next = [...tasks];
-    const first = next.shift();
+    const tasks = [...(await this.#tasks)];
+    const first = tasks.pop();
     if (first) {
-      next.push(first);
+      tasks.unshift(first);
     }
 
-    this.#tasks = Promise.resolve(new Map(next));
-    return { error: false, next: next.at(0) } as const;
+    this.#tasks = Promise.resolve(new Map(tasks));
+    return { error: false, next: tasks.at(-1) } as const;
   }
 
   async exists() {
