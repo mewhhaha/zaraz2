@@ -7,6 +7,8 @@ type PasskeyLink = {
   credentialId: string;
   userId: string;
   passkeyId: string;
+  createdAt: Date;
+  lastUsedAt: Date;
 };
 
 export type Metadata = {
@@ -148,6 +150,15 @@ export class DurableObjectUser extends DurableObject<Env> {
     this.#account = Promise.resolve(account);
   }
 
+  async used(passkeyId: string) {
+    const account = await this.#account;
+    const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
+    if (passkey) {
+      passkey.lastUsedAt = new Date();
+    }
+    this.#account = Promise.resolve(account);
+  }
+
   async email(email: string) {
     const account = await this.#account;
     account.recovery.email = email;
@@ -188,10 +199,13 @@ export const makePasskeyLink = ({
   userId: DurableObjectId | string;
 }): PasskeyLink => {
   const passkeyIdString = passkeyId.toString();
+  const date = new Date();
   return {
     passkeyId: passkeyIdString,
     credentialId,
     userId: userId.toString(),
+    createdAt: date,
+    lastUsedAt: date,
     name: `passkey-${passkeyIdString.slice(0, 3) + passkeyIdString.slice(-3)}`,
   };
 };

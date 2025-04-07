@@ -19,7 +19,7 @@
   "devDependencies": {
     "@passwordless-id/webauthn": "^2.1.2",
     "esbuild": "^0.25.2",
-    "typescript": "^5.4.5",
-    "wrangler": "4.7.1"
+    "typescript": "^5.8.3",
+    "wrangler": "4.8.0"
   }
 }

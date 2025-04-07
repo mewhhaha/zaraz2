@@ -178,7 +178,7 @@ export type VisitedHeaders = {
 };
 
 type User = {
-  userId: string;
+  username: string;
   passkeyId: string;
   expires: string;
 };
@@ -227,4 +227,3 @@ export const parseToken = async <T,>(
 
   return { json, challengeId };
 };
-

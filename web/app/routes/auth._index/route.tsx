@@ -1,102 +1,268 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import { authenticate } from "../auth.$/helpers.mts";
 import t from "./+types.route";
+import { cx } from "../../helpers/style";
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+  const locale =
+    request.headers.get("accept-language")?.split(",")[0] ?? "en-SV";
+  const timezone = request.headers.get("cf-timezone") ?? "Europe/Stockholm";
+
   try {
     // Check if the user is authenticated via cookie
     const user = await authenticate(request, env.SECRET_KEY);
     const account = env.OBJECT_USER.get(
-      env.OBJECT_USER.idFromString(user.userId),
+      env.OBJECT_USER.idFromName(user.username),
     );
-    return { user, ...(await account.data()) };
+    return { user, ...(await account.data()), locale, timezone };
   } catch {
     // If authentication fails or cookie is invalid/expired, return undefined user
-    return { user: undefined, account: undefined };
+    return { user: undefined, account: undefined, locale, timezone };
   }
 };
 
 // Main component for the authentication route
 export default function Route({
-  loaderData: { user, account },
+  loaderData: { user, account, locale, timezone },
 }: t.ComponentProps) {
   if (user && account) {
     return (
       <div
         id="passkeys-settings"
         class={`
-      w-48 p-1 -translate-y-2 rounded-lg border-2 bg-slate-950
-      drop-shadow-sm/100 transition-[transform_opacity]
+        w-128 translate-x-12 translate-y-4 shadow-2xl/100
+        drop-shadow-sm/100 transition-[transform_opacity]
+        view-name-[passkeys-settings]
 
-      starting:translate-y-0 starting:opacity-0 view-name-[passkeys-settings]
-
-
-    `}
+        starting:translate-y-0 starting:opacity-0 relative
+      `}
       >
-        <form class="flex flex-col gap-2">
-          <ul></ul>
-          <button
-            type="button"
-            class={`
-        cursor-pointer rounded-lg bg-white/1 text-white py-2
+        <div class="rotate-45 absolute right-3 top-0 -translate-1.25 border-t-2 border-l-2 border-white -translate-x-1/2 size-3 bg-slate-950"></div>
+        <div
+          class={`
+         rounded-lg border-2 bg-slate-950 p-6 
+          text-gray-100
+   
 
-        hover:bg-black
-      `}
-          >
-            Add passkey
-          </button>
-          <button
-            type="button"
-            class={`
-        cursor-pointer rounded-lg bg-white/1 text-white py-2
+        `}
+        >
+          <div class={`flex flex-col`}>
+            <hgroup class={`mb-4 space-y-3`}>
+              <h2 class={`text-xl font-medium text-gray-200`}>
+                Passkeys for {user.username}
+              </h2>
+              <hr class={`border-slate-700`} />
+              <p>
+                Passkeys are your webauthn credentials that validate your
+                identity using touch, facial recognition, a device password, or
+                a PIN.
+              </p>
+            </hgroup>
+            <div
+              class={`
+              mb-10 divide-y divide-slate-700 overflow-hidden rounded-lg border
+              border-slate-700
+            `}
+            >
+              <div
+                class={`flex items-center justify-between bg-gray-900 py-4 pr-2 pl-4`}
+              >
+                <h3 class={`text-base font-semibold`}>Your passkeys</h3>
+                <button
+                  class={`
+                  flex cursor-pointer items-center rounded-lg border border-slate-700
+                  bg-gray-900 px-3 py-1.5
 
-        hover:bg-black
-      `}
-          >
-            Sign out
-          </button>
-        </form>
+                  hover:bg-gray-800
+                `}
+                >
+                  Add new passkey
+                </button>
+              </div>
+              <ul class={`divide-y divide-slate-900`}>
+                {account.passkeys.map((passkey) => (
+                  <li
+                    style={`view-transition-name: ${passkey.passkeyId};`}
+                    class={`flex flex-col gap-2 py-4 pr-2 pl-4`}
+                  >
+                    <div class={`flex justify-between`}>
+                      <div class={`flex items-center`}>
+                        <KeyIcon class={`inline-block size-6`} />
+                        <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
+                        <div
+                          hidden={passkey.passkeyId !== user.passkeyId}
+                          class={`rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500`}
+                        >
+                          Current
+                        </div>
+                      </div>
+                      <div class={`flex gap-2`}>
+                        <form fx-action="/auth/passkeys" fx-method="PATCH">
+                          <input
+                            type="hidden"
+                            name="passkey"
+                            value={passkey.passkeyId}
+                          />
+                          <IconButton
+                            aria-label="Rename passkey"
+                            name="name"
+                            ext-fx-prompt="What should we call this passkey?"
+                          >
+                            <PencilIcon class={`inline-block size-5`} />
+                          </IconButton>
+                        </form>
+                        <form
+                          fx-method="DELETE"
+                          fx-action="/auth/passkeys"
+                          ext-fx-confirm="Are you sure you want to delete this passkey?"
+                          // hidden={passkey.passkeyId === user.passkeyId}
+                        >
+                          <input
+                            type="hidden"
+                            name="passkey"
+                            value={passkey.passkeyId}
+                          />
+                          <IconButton
+                            aria-label="Delete passkey"
+                            class={`
+                            override:text-red-400
+
+                            override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
+                          `}
+                          >
+                            <TrashIconSolid class={`inline-block size-5`} />
+                          </IconButton>
+                        </form>
+                      </div>
+                    </div>
+                    <p class={`text-gray-400`}>
+                      Added on{" "}
+                      <time datetime={passkey.createdAt.toISOString()}>
+                        {formatDate(passkey.createdAt, locale, timezone)}
+                      </time>{" "}
+                      | Last used{" "}
+                      <time datetime={passkey.lastUsedAt.toISOString()}>
+                        {formatRelativeDate(passkey.lastUsedAt, locale)}
+                      </time>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <MenuButton fx-action="/auth/signout">Sign out</MenuButton>
+          </div>
+        </div>
       </div>
     );
   }
   return (
-    <form id="passkeys-settings" class="flex flex-col gap-2">
-      <ul></ul>
-      <button
-        type="button"
-        class={`
-      cursor-pointer rounded-lg bg-white/1 text-white py-2
-
-      hover:bg-black
-    `}
+    <div id="passkeys-settings" class={`flex flex-col gap-4`}>
+      <form
+        fx-action="/auth/register"
+        fx-method="POST"
+        ext-fx-passkey-register="/auth/challenge"
+        class={`flex flex-col gap-2`}
       >
-        Register
-      </button>
-      <button
-        type="button"
-        class={`
-      cursor-pointer rounded-lg bg-white/1 text-white py-2
-
-      hover:bg-black
-    `}
+        <input
+          type="text"
+          minlength={3}
+          maxlength={16}
+          name="username"
+          autocomplete="username"
+          class={`rounded-lg border border-slate-900 px-2 py-1 text-white`}
+        />
+        <MenuButton>Register</MenuButton>
+      </form>
+      <MenuButton
+        fx-action="/auth/verify"
+        fx-method="POST"
+        ext-fx-passkey-verify="/auth/challenge"
       >
         Sign in
-      </button>
-    </form>
+      </MenuButton>
+    </div>
   );
 }
 
-const MenuButton = () => {
+const IconButton = ({
+  class: className,
+  ...props
+}: JSX.IntrinsicElements["button"]) => {
   return (
     <button
-      type="button"
-      class={`
-cursor-pointer rounded-lg bg-white/1 text-white py-2
+      class={cx(
+        `
+        text-gray-400
+          flex cursor-pointer items-center rounded-lg border border-slate-700 bg-gray-900 p-2
 
-hover:bg-black
-`}
+          hover:bg-gray-800
+        `,
+        className,
+      )}
+      {...props}
+    ></button>
+  );
+};
+
+const TrashIconSolid = (props: JSX.IntrinsicElements["svg"]) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      {...props}
     >
-      Register
+      <path
+        fill-rule="evenodd"
+        d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
+        clip-rule="evenodd"
+      />
+    </svg>
+  );
+};
+
+const PencilIcon = (props: JSX.IntrinsicElements["svg"]) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      {...props}
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
+      />
+    </svg>
+  );
+};
+
+type MenuButtonProps = JSX.IntrinsicElements["button"];
+
+const MenuButton = ({
+  children,
+  class: className,
+  ...props
+}: MenuButtonProps) => {
+  return (
+    <button
+      class={cx(
+        `
+          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2 text-white
+
+          hover:bg-gray-800
+
+          active:bg-white active:text-slate-950 active:text-shadow-sm/100
+        `,
+        className,
+      )}
+      {...props}
+    >
+      {children}
     </button>
   );
 };
@@ -120,40 +286,52 @@ const KeyIcon = (props: JSX.IntrinsicElements["svg"]) => {
   );
 };
 
-const UserPlusIcon = (props: JSX.IntrinsicElements["svg"]) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
-      />
-    </svg>
-  );
+const formatDate = (date: Date, locale: string, timezone: string) => {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: timezone,
+  });
+  return formatter.format(date);
 };
 
-const BuoyeIcon = (props: JSX.IntrinsicElements["svg"]) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M16.712 4.33a9.027 9.027 0 0 1 1.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 0 0-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 0 1 0 9.424m-4.138-5.976a3.736 3.736 0 0 0-.88-1.388 3.737 3.737 0 0 0-1.388-.88m2.268 2.268a3.765 3.765 0 0 1 0 2.528m-2.268-4.796a3.765 3.765 0 0 0-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 0 1-1.388.88m2.268-2.268 4.138 3.448m0 0a9.027 9.027 0 0 1-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0-3.448-4.138m3.448 4.138a9.014 9.014 0 0 1-9.424 0m5.976-4.138a3.765 3.765 0 0 1-2.528 0m0 0a3.736 3.736 0 0 1-1.388-.88 3.737 3.737 0 0 1-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 0 1-1.652-1.306 9.027 9.027 0 0 1-1.306-1.652m0 0 4.138-3.448M4.33 16.712a9.014 9.014 0 0 1 0-9.424m4.138 5.976a3.765 3.765 0 0 1 0-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 0 1 1.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 0 0-1.652 1.306A9.025 9.025 0 0 0 4.33 7.288"
-      />
-    </svg>
-  );
+const formatRelativeDate = (date: Date, locale: string) => {
+  const formatter = new Intl.RelativeTimeFormat(locale, {
+    style: "long",
+    numeric: "auto",
+  });
+  const now = new Date();
+  const diffInSeconds = Math.round((date.getTime() - now.getTime()) / 1000);
+
+  const secondsInMinute = 60;
+  const secondsInHour = 3600;
+  const secondsInDay = 86400;
+  const secondsInWeek = 604800;
+  const secondsInMonth = 2629800;
+  const secondsInYear = 31557600;
+
+  const absDiff = Math.abs(diffInSeconds);
+
+  if (absDiff < secondsInMinute) {
+    return formatter.format(diffInSeconds, "second");
+  } else if (absDiff < secondsInHour) {
+    const minutes = Math.round(diffInSeconds / secondsInMinute);
+    return formatter.format(minutes, "minute");
+  } else if (absDiff < secondsInDay) {
+    const hours = Math.round(diffInSeconds / secondsInHour);
+    return formatter.format(hours, "hour");
+  } else if (absDiff < secondsInWeek) {
+    const days = Math.round(diffInSeconds / secondsInDay);
+    return formatter.format(days, "day");
+  } else if (absDiff < secondsInMonth) {
+    const weeks = Math.round(diffInSeconds / secondsInWeek);
+    return formatter.format(weeks, "week");
+  } else if (absDiff < secondsInYear) {
+    const months = Math.round(diffInSeconds / secondsInMonth);
+    return formatter.format(months, "month");
+  } else {
+    const years = Math.round(diffInSeconds / secondsInYear);
+    return formatter.format(years, "year");
+  }
 };

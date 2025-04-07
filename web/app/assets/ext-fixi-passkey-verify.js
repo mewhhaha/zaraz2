@@ -1,16 +1,7 @@
 import { authenticate } from "@packages/passkey";
 
 document.addEventListener("fx:config", async (evt) => {
-  if (!(evt.target instanceof HTMLFormElement)) {
-    return;
-  }
-
-  const element = evt.target.querySelector("[ext-fx-passkey-verify]");
-  if (!element) {
-    return;
-  }
-
-  const challenge = element.getAttribute("ext-fx-passkey-verify");
+  const challenge = evt.target.getAttribute("ext-fx-passkey-verify");
   if (!challenge) {
     return;
   }

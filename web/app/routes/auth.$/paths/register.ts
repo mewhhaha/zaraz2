@@ -35,7 +35,7 @@ export default async function ({
   const user = env.USER.get(env.USER.idFromName(username));
 
   const data = await passkey.register({
-    userId: user.id.toString(),
+    username,
     json,
     challengeId,
     visited,
@@ -67,7 +67,7 @@ export default async function ({
     status: 204,
     headers: {
       "Set-Cookie": await cookie.serialize({
-        userId: user.id.toString(),
+        username,
         passkeyId: passkey.id.toString(),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
       }),

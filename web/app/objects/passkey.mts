@@ -13,7 +13,7 @@ import { store } from "../helpers/store";
 const VISITOR_HISTORY_LENGTH = 10;
 
 type Registration = {
-  userId: string;
+  username: string;
   json: unknown;
   challengeId: string;
   visited: VisitedHeaders;
@@ -28,7 +28,7 @@ type TryAuthenticate = {
 export type Metadata = {
   passkeyId: string;
   credentialId: string;
-  userId: string;
+  username: string;
   createdAt: string;
 };
 
@@ -66,7 +66,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
     this.#authenticator = read("#authenticator");
   }
 
-  async register({ json, visited, userId, challengeId }: Registration) {
+  async register({ json, visited, username, challengeId }: Registration) {
     try {
       await this.#metadata;
       return "passkey_exists" as const;
@@ -81,7 +81,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
         },
       );
       const metadata: Metadata = {
-        userId,
+        username,
         passkeyId: this.ctx.id.toString(),
         credentialId: credential.id,
         createdAt: now(),
@@ -197,3 +197,4 @@ export type VisitedHeaders = {
   postalCode?: string | undefined;
   timezone?: string | undefined;
 };
+

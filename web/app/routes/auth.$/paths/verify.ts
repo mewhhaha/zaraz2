@@ -8,7 +8,7 @@ import type { EnvAuth } from "../env";
 
 export default async function ({
   request,
-  context: [env],
+  context: [env, ctx],
 }: {
   request: Request;
   context: readonly [env: EnvAuth, ctx: ExecutionContext];
@@ -42,13 +42,17 @@ export default async function ({
     throw new Response(data, { status: 401 });
   }
 
+  const user = env.USER.get(env.USER.idFromName(data.metadata.username));
+  
+  ctx.waitUntil(user.used(data.metadata.passkeyId));
+
   const cookie = createUserCookie("user", env.SECRET);
 
   return new Response(null, {
     status: 204,
     headers: {
       "Set-Cookie": await cookie.serialize({
-        userId: data.metadata.userId,
+        username: data.metadata.username,
         passkeyId: data.metadata.passkeyId,
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
       }),
