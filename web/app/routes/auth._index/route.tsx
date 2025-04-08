@@ -207,7 +207,8 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
       <div class={`flex flex-col`}>
         <hgroup class={`mb-4 space-y-3`}>
           <h2 class={`text-xl font-medium text-gray-200`}>
-            Passkeys for {auth.username}
+            Authenticated as{" "}
+            <span class={`text-blue-200`}>{auth.username}</span>
           </h2>
           <hr class={`border-slate-700`} />
           <p>
@@ -284,7 +285,7 @@ const PasskeyList = ({
   return (
     <ul
       id="passkeys-list"
-      class={`max-h-[50vh] overflow-y-auto divide-y divide-slate-900`}
+      class={`max-h-[50vh] divide-y divide-slate-900 overflow-y-auto`}
     >
       {passkeys.map((passkey) => (
         <li
@@ -357,32 +358,60 @@ const PasskeyList = ({
 const SignedOut = () => {
   return (
     <Modal id="passkeys-settings">
-      <div class={`flex flex-col gap-4`}>
-        <form
-          fx-action="/auth/register"
-          fx-method="POST"
-          ext-fx-passkey-register="/auth/challenge"
-          class={`flex flex-col gap-2`}
-        >
-          <input
-            type="text"
-            minlength={3}
-            maxlength={16}
-            name="username"
-            autocomplete="username"
-            class={`rounded-lg border border-slate-900 px-2 py-1 text-white`}
-          />
-          <MenuButton>Register</MenuButton>
-        </form>
+      <div class={`flex flex-col`}>
+        <hgroup class={`mb-4 space-y-3`}>
+          <h2 class={`text-xl font-medium text-gray-200`}>Not authenticated</h2>
+          <hr class={`border-slate-700`} />
+        </hgroup>
 
         <MenuButton
           fx-action="/auth/verify"
           fx-method="POST"
           ext-fx-passkey-verify="/auth/challenge"
           ext-fx-reload
+          class={`
+            override:bg-green-800
+
+            override:hover:bg-green-700
+          `}
         >
           Sign in
         </MenuButton>
+        <div class={`relative my-12 h-1`}>
+          <hr class={`border-slate-700`} />
+          <div
+            class={`
+              absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950 px-2
+              text-gray-400
+            `}
+          >
+            or
+          </div>
+        </div>
+        <form
+          fx-action="/auth/register"
+          fx-method="POST"
+          ext-fx-passkey-register="/auth/challenge"
+          class={`flex flex-col gap-2`}
+        >
+          <div class={`flex flex-col gap-2`}>
+            <label for="register-username" class={`text-sm text-gray-400`}>
+              Username <span class={`text-red-500`}>*</span>
+            </label>
+            <input
+              id="register-username"
+              type="text"
+              required
+              minlength={3}
+              maxlength={16}
+              name="username"
+              autocomplete="username"
+              placeholder="e.g. johndoe"
+              class={`rounded-lg border border-slate-900 px-3 py-2 text-white`}
+            />
+          </div>
+          <MenuButton>Register</MenuButton>
+        </form>
       </div>
     </Modal>
   );
