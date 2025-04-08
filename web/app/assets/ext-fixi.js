@@ -8,3 +8,4 @@ import "./ext-fixi-passkey-verify.js";
 import "./ext-fixi-passkey-register.js";
 import "./ext-fixi-allow-default.js";
 import "./ext-fixi-transition.js";
+import "./ext-fixi-reload.js";

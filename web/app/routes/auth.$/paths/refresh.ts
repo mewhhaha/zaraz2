@@ -1,4 +1,4 @@
-import { createUserCookie } from "../helpers.mjs";
+import { createAuthCookie } from "../helpers.mjs";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -13,7 +13,7 @@ export default async function ({
     throw new Response("missing_cookie", { status: 401 });
   }
 
-  const cookie = createUserCookie("user", env.SECRET);
+  const cookie = createAuthCookie("auth", env.SECRET);
   const user = await cookie.parse(cookieHeader);
   if (!user) {
     throw new Response("invalid_cookie", { status: 401 });

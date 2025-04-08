@@ -1,189 +1,392 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
-import { authenticate } from "../auth.$/helpers.mts";
+import {
+  authenticate,
+  createAuthCookie,
+  extractVisitorHeaders,
+  parseToken,
+  type Auth,
+} from "../auth.$/helpers.mts";
 import t from "./+types.route";
 import { cx } from "../../helpers/style";
+import { Modal } from "./components/Modal";
+import { makePasskeyLink, type Account } from "../../objects/user.mts";
+import { type } from "arktype";
+import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+
+const parseRename = type({
+  id: "string",
+  name: "string",
+});
+
+const parseRegister = type({
+  token: "string",
+});
+
+const getLocale = (request: Request) => {
+  return request.headers.get("accept-language")?.split(",")[0] ?? "en-SV";
+};
+
+const getTimezone = (request: Request) => {
+  return request.headers.get("cf-timezone") ?? "Europe/Stockholm";
+};
+
+export const action = async ({ request, context: [env] }: t.ActionArgs) => {
+  const locale = getLocale(request);
+  const timezone = getTimezone(request);
+
+  const auth = await authenticate(request, env.SECRET_KEY);
+
+  const account = env.OBJECT_USER.get(
+    env.OBJECT_USER.idFromName(auth.username),
+  ).account();
+
+  if (request.method === "DELETE") {
+    const id = new URL(request.url).searchParams.get("id")?.toString();
+    if (!id) {
+      return new Response("id_missing", { status: 400 });
+    }
+
+    const passkey = env.OBJECT_PASSKEY.get(env.OBJECT_PASSKEY.idFromString(id));
+    const result = await passkey.destruct(auth.username);
+    if (typeof result === "string") {
+      return new Response(result, { status: 401 });
+    }
+
+    const { passkeys } = await account.remove(id);
+    const list = (
+      <PasskeyList
+        passkeys={passkeys}
+        auth={auth}
+        locale={locale}
+        timezone={timezone}
+      />
+    );
+    return new Response(list.toString(), {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
+  const formData = Object.fromEntries((await request.formData()).entries());
+
+  if (request.method === "PATCH") {
+    const fd = parseRename(formData);
+    if (fd instanceof type.errors) {
+      return new Response(fd.summary, { status: 400 });
+    }
+
+    const { passkeys } = await account.rename(fd.id, fd.name);
+    const list = (
+      <PasskeyList
+        passkeys={passkeys}
+        auth={auth}
+        locale={locale}
+        timezone={timezone}
+      />
+    );
+    return new Response(list.toString(), {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
+  if (request.method === "POST" && formData["intent"] === "signout") {
+    const cookie = createAuthCookie("auth", env.SECRET_KEY);
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Set-Cookie": cookie.destroy(),
+      },
+    });
+  }
+
+  if (request.method === "POST" && formData["intent"] === "register") {
+    const { username } = await authenticate(request, env.SECRET_KEY);
+
+    const visited = extractVisitorHeaders(request.headers);
+
+    const fd = parseRegister(formData);
+    if (fd instanceof type.errors) {
+      return new Response(fd.summary, { status: 400 });
+    }
+
+    const { json, challengeId } = await parseToken<RegistrationJSON>(
+      fd.token,
+      env.SECRET_KEY,
+    );
+
+    const challenge = await env.OBJECT_CHALLENGE.get(
+      env.OBJECT_CHALLENGE.idFromString(challengeId),
+    ).finish();
+    if (typeof challenge === "string") {
+      throw new Response(challenge, { status: 400 });
+    }
+
+    const credentialName = json.id;
+    const passkey = env.OBJECT_PASSKEY.get(
+      env.OBJECT_PASSKEY.idFromName(credentialName),
+    );
+
+    const data = await passkey.register({
+      username,
+      json,
+      challengeId,
+      visited,
+    });
+
+    if (typeof data === "string") {
+      throw new Response(data, { status: 400 });
+    }
+
+    const passkeyLink = makePasskeyLink({
+      passkeyId: passkey.id,
+      credentialId: credentialName,
+      username,
+    });
+
+    const { passkeys } = await account.link(passkeyLink);
+
+    const list = (
+      <PasskeyList
+        passkeys={passkeys}
+        auth={auth}
+        locale={locale}
+        timezone={timezone}
+      />
+    );
+    return new Response(list.toString(), {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+};
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
-  const locale =
-    request.headers.get("accept-language")?.split(",")[0] ?? "en-SV";
-  const timezone = request.headers.get("cf-timezone") ?? "Europe/Stockholm";
+  const locale = getLocale(request);
+  const timezone = getTimezone(request);
 
   try {
     // Check if the user is authenticated via cookie
-    const user = await authenticate(request, env.SECRET_KEY);
-    const account = env.OBJECT_USER.get(
-      env.OBJECT_USER.idFromName(user.username),
-    );
-    return { user, ...(await account.data()), locale, timezone };
+    const auth = await authenticate(request, env.SECRET_KEY);
+    const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(auth.username));
+    return { auth, account: await user.account().data(), locale, timezone };
   } catch {
     // If authentication fails or cookie is invalid/expired, return undefined user
-    return { user: undefined, account: undefined, locale, timezone };
+    return { auth: undefined, account: undefined, locale, timezone };
   }
 };
 
 // Main component for the authentication route
 export default function Route({
-  loaderData: { user, account, locale, timezone },
+  loaderData: { auth, account, locale, timezone },
 }: t.ComponentProps) {
-  if (user && account) {
-    return (
-      <div
-        id="passkeys-settings"
-        class={`
-        w-128 translate-x-12 translate-y-4 shadow-2xl/100
-        drop-shadow-sm/100 transition-[transform_opacity]
-        view-name-[passkeys-settings]
+  if (!auth || !account) {
+    return <SignedOut />;
+  }
 
-        starting:translate-y-0 starting:opacity-0 relative
-      `}
-      >
-        <div class="rotate-45 absolute right-3 top-0 -translate-1.25 border-t-2 border-l-2 border-white -translate-x-1/2 size-3 bg-slate-950"></div>
+  return (
+    <SignedIn
+      auth={auth}
+      account={account}
+      locale={locale}
+      timezone={timezone}
+    />
+  );
+}
+
+type SignedInProps = {
+  auth: Auth;
+  account: Account;
+  locale: string;
+  timezone: string;
+};
+
+const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
+  return (
+    <Modal id="passkeys-settings">
+      <div class={`flex flex-col`}>
+        <hgroup class={`mb-4 space-y-3`}>
+          <h2 class={`text-xl font-medium text-gray-200`}>
+            Passkeys for {auth.username}
+          </h2>
+          <hr class={`border-slate-700`} />
+          <p>
+            Passkeys are your webauthn credentials that validate your identity
+            using touch, facial recognition, a device password, or a PIN.
+          </p>
+        </hgroup>
         <div
           class={`
-         rounded-lg border-2 bg-slate-950 p-6 
-          text-gray-100
-   
-
-        `}
+            mb-10 divide-y divide-slate-700 overflow-hidden rounded-lg border
+            border-slate-700
+          `}
         >
-          <div class={`flex flex-col`}>
-            <hgroup class={`mb-4 space-y-3`}>
-              <h2 class={`text-xl font-medium text-gray-200`}>
-                Passkeys for {user.username}
-              </h2>
-              <hr class={`border-slate-700`} />
-              <p>
-                Passkeys are your webauthn credentials that validate your
-                identity using touch, facial recognition, a device password, or
-                a PIN.
-              </p>
-            </hgroup>
-            <div
-              class={`
-              mb-10 divide-y divide-slate-700 overflow-hidden rounded-lg border
-              border-slate-700
-            `}
+          <div
+            class={`flex items-center justify-between bg-gray-900 py-4 pr-2 pl-4`}
+          >
+            <h3 class={`text-base font-semibold`}>Your passkeys</h3>
+            <form
+              fx-action="/auth"
+              fx-method="POST"
+              fx-target="#passkeys-list"
+              ext-fx-passkey-register="/auth/challenge"
             >
-              <div
-                class={`flex items-center justify-between bg-gray-900 py-4 pr-2 pl-4`}
-              >
-                <h3 class={`text-base font-semibold`}>Your passkeys</h3>
-                <button
-                  class={`
+              <input type="hidden" name="username" value={auth.username} />
+              <button
+                class={`
                   flex cursor-pointer items-center rounded-lg border border-slate-700
                   bg-gray-900 px-3 py-1.5
 
                   hover:bg-gray-800
                 `}
-                >
-                  Add new passkey
-                </button>
-              </div>
-              <ul class={`divide-y divide-slate-900`}>
-                {account.passkeys.map((passkey) => (
-                  <li
-                    style={`view-transition-name: ${passkey.passkeyId};`}
-                    class={`flex flex-col gap-2 py-4 pr-2 pl-4`}
-                  >
-                    <div class={`flex justify-between`}>
-                      <div class={`flex items-center`}>
-                        <KeyIcon class={`inline-block size-6`} />
-                        <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
-                        <div
-                          hidden={passkey.passkeyId !== user.passkeyId}
-                          class={`rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500`}
-                        >
-                          Current
-                        </div>
-                      </div>
-                      <div class={`flex gap-2`}>
-                        <form fx-action="/auth/passkeys" fx-method="PATCH">
-                          <input
-                            type="hidden"
-                            name="passkey"
-                            value={passkey.passkeyId}
-                          />
-                          <IconButton
-                            aria-label="Rename passkey"
-                            name="name"
-                            ext-fx-prompt="What should we call this passkey?"
-                          >
-                            <PencilIcon class={`inline-block size-5`} />
-                          </IconButton>
-                        </form>
-                        <form
-                          fx-method="DELETE"
-                          fx-action="/auth/passkeys"
-                          ext-fx-confirm="Are you sure you want to delete this passkey?"
-                          // hidden={passkey.passkeyId === user.passkeyId}
-                        >
-                          <input
-                            type="hidden"
-                            name="passkey"
-                            value={passkey.passkeyId}
-                          />
-                          <IconButton
-                            aria-label="Delete passkey"
-                            class={`
-                            override:text-red-400
-
-                            override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
-                          `}
-                          >
-                            <TrashIconSolid class={`inline-block size-5`} />
-                          </IconButton>
-                        </form>
-                      </div>
-                    </div>
-                    <p class={`text-gray-400`}>
-                      Added on{" "}
-                      <time datetime={passkey.createdAt.toISOString()}>
-                        {formatDate(passkey.createdAt, locale, timezone)}
-                      </time>{" "}
-                      | Last used{" "}
-                      <time datetime={passkey.lastUsedAt.toISOString()}>
-                        {formatRelativeDate(passkey.lastUsedAt, locale)}
-                      </time>
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <MenuButton fx-action="/auth/signout">Sign out</MenuButton>
+                name="intent"
+                value="register"
+              >
+                Add new passkey
+              </button>
+            </form>
           </div>
+          <PasskeyList
+            passkeys={account.passkeys}
+            auth={auth}
+            locale={locale}
+            timezone={timezone}
+          />
         </div>
+
+        <MenuButton
+          name="intent"
+          value="signout"
+          fx-action="/auth"
+          fx-method="POST"
+          ext-fx-reload
+        >
+          Sign out
+        </MenuButton>
       </div>
-    );
-  }
-  return (
-    <div id="passkeys-settings" class={`flex flex-col gap-4`}>
-      <form
-        fx-action="/auth/register"
-        fx-method="POST"
-        ext-fx-passkey-register="/auth/challenge"
-        class={`flex flex-col gap-2`}
-      >
-        <input
-          type="text"
-          minlength={3}
-          maxlength={16}
-          name="username"
-          autocomplete="username"
-          class={`rounded-lg border border-slate-900 px-2 py-1 text-white`}
-        />
-        <MenuButton>Register</MenuButton>
-      </form>
-      <MenuButton
-        fx-action="/auth/verify"
-        fx-method="POST"
-        ext-fx-passkey-verify="/auth/challenge"
-      >
-        Sign in
-      </MenuButton>
-    </div>
+    </Modal>
   );
-}
+};
+
+type PasskeyListProps = {
+  passkeys: Account["passkeys"];
+  auth: Auth;
+  locale: string;
+  timezone: string;
+};
+
+const PasskeyList = ({
+  passkeys,
+  auth,
+  locale,
+  timezone,
+}: PasskeyListProps) => {
+  return (
+    <ul
+      id="passkeys-list"
+      class={`max-h-[50vh] overflow-y-auto divide-y divide-slate-900`}
+    >
+      {passkeys.map((passkey) => (
+        <li
+          style={`view-transition-name: ${btoa(passkey.passkeyId).replaceAll(/[=/+]/g, "")};`}
+          class={`flex flex-col gap-2 py-4 pr-2 pl-4`}
+        >
+          <div class={`flex justify-between`}>
+            <div class={`flex items-center`}>
+              <KeyIcon class={`inline-block size-6`} />
+              <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
+              <div
+                hidden={passkey.passkeyId !== auth.passkeyId}
+                class={`rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500`}
+              >
+                Current
+              </div>
+            </div>
+            <div class={`flex gap-2`}>
+              <form
+                fx-action="/auth"
+                fx-target="#passkeys-list"
+                fx-method="PATCH"
+              >
+                <input type="hidden" name="id" value={passkey.passkeyId} />
+                <IconButton
+                  aria-label="Rename passkey"
+                  name="name"
+                  ext-fx-prompt="What should we call this passkey?"
+                >
+                  <PencilIcon class={`inline-block size-5`} />
+                </IconButton>
+              </form>
+              <form
+                fx-method="DELETE"
+                fx-action="/auth"
+                fx-target="#passkeys-list"
+                ext-fx-confirm="Are you sure you want to delete this passkey?"
+                hidden={passkey.passkeyId === auth.passkeyId}
+              >
+                <input type="hidden" name="id" value={passkey.passkeyId} />
+                <IconButton
+                  aria-label="Delete passkey"
+                  class={`
+                    override:text-red-400
+
+                    override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
+                  `}
+                >
+                  <TrashIconSolid class={`inline-block size-5`} />
+                </IconButton>
+              </form>
+            </div>
+          </div>
+          <p class={`text-gray-400`}>
+            Added on{" "}
+            <time datetime={passkey.createdAt.toISOString()}>
+              {formatDate(passkey.createdAt, locale, timezone)}
+            </time>{" "}
+            | Last used{" "}
+            <time datetime={passkey.lastUsedAt.toISOString()}>
+              {formatRelativeDate(passkey.lastUsedAt, locale)}
+            </time>
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+const SignedOut = () => {
+  return (
+    <Modal id="passkeys-settings">
+      <div class={`flex flex-col gap-4`}>
+        <form
+          fx-action="/auth/register"
+          fx-method="POST"
+          ext-fx-passkey-register="/auth/challenge"
+          class={`flex flex-col gap-2`}
+        >
+          <input
+            type="text"
+            minlength={3}
+            maxlength={16}
+            name="username"
+            autocomplete="username"
+            class={`rounded-lg border border-slate-900 px-2 py-1 text-white`}
+          />
+          <MenuButton>Register</MenuButton>
+        </form>
+
+        <MenuButton
+          fx-action="/auth/verify"
+          fx-method="POST"
+          ext-fx-passkey-verify="/auth/challenge"
+          ext-fx-reload
+        >
+          Sign in
+        </MenuButton>
+      </div>
+    </Modal>
+  );
+};
 
 const IconButton = ({
   class: className,
@@ -193,8 +396,8 @@ const IconButton = ({
     <button
       class={cx(
         `
-        text-gray-400
           flex cursor-pointer items-center rounded-lg border border-slate-700 bg-gray-900 p-2
+          text-gray-400
 
           hover:bg-gray-800
         `,

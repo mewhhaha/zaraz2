@@ -45,8 +45,8 @@ export const cookie = {
   },
 };
 
-export const createCookie = <T,>(
-  name: string,
+export const createCookie = <T, N extends string>(
+  name: N,
   secret: string,
   options: CookieSerializeOptions = {
     httpOnly: true,
@@ -78,10 +78,17 @@ export const createCookie = <T,>(
       return pairs.join("; ");
     },
     destroy: () => {
-      const pairs = [
-        `${encodeURIComponent(name)}=${encodeURIComponent("")}`,
-        `Max-Age=0`,
-      ];
+      const pairs = [`${encodeURIComponent(name)}=""`];
+
+      pairs.push(`Max-Age=0`);
+      if (options.domain) pairs.push(`Domain=${options.domain}`);
+      if (options.path) pairs.push(`Path=${options.path}`);
+      if (options.expires)
+        pairs.push(`Expires=${options.expires.toUTCString()}`);
+      if (options.httpOnly) pairs.push("HttpOnly");
+      if (options.secure) pairs.push("Secure");
+      if (options.sameSite) pairs.push(`SameSite=${options.sameSite}`);
+
       return pairs.join("; ");
     },
     parse: async (cookieHeader: string): Promise<T | null> => {
@@ -177,28 +184,28 @@ export type VisitedHeaders = {
   timezone?: string | undefined;
 };
 
-type User = {
+export type Auth = {
   username: string;
   passkeyId: string;
   expires: string;
 };
 
-export const createUserCookie = createCookie<User>;
+export const createAuthCookie = createCookie<Auth, "auth">;
 
 export const authenticate = async (request: Request, secret: string) => {
   const cookie = request.headers.get("Cookie") ?? "";
-  const userCookie = createUserCookie("user", secret);
-  const user = await userCookie.parse(cookie);
+  const authCookie = createAuthCookie("auth", secret);
+  const auth = await authCookie.parse(cookie);
 
-  if (!user) {
-    throw Response.redirect(new URL("/auth", request.url).href);
+  if (!auth) {
+    throw new Error("auth_not_found");
   }
 
-  if (new Date(user.expires) < new Date()) {
-    throw Response.redirect(new URL("/auth", request.url).href);
+  if (new Date(auth.expires) < new Date()) {
+    throw new Error("auth_expired");
   }
 
-  return user;
+  return auth;
 };
 
 export const parseToken = async <T,>(

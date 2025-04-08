@@ -128,7 +128,11 @@ export class DurableObjectPasskey extends DurableObject<Env> {
   }
 
   /** self destruct the passkey, deleting all the data */
-  async destruct() {
+  async destruct(username: string) {
+    if (username !== (await this.#metadata).username) {
+      return "unauthorized" as const;
+    }
+
     void this.ctx.storage.deleteAll();
     void this.ctx.storage.deleteAlarm();
 
@@ -197,4 +201,3 @@ export type VisitedHeaders = {
   postalCode?: string | undefined;
   timezone?: string | undefined;
 };
-

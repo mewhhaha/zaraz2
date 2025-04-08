@@ -1,38 +1,28 @@
 import type { Env } from "@mewhhaha/fx-router";
-import { DurableObject } from "cloudflare:workers";
+import { DurableObject, RpcTarget } from "cloudflare:workers";
 import { store } from "../helpers/store";
 
 type PasskeyLink = {
   name: string;
   credentialId: string;
-  userId: string;
+  username: string;
   passkeyId: string;
   createdAt: Date;
   lastUsedAt: Date;
 };
 
-export type Metadata = {
+export type Account = {
   username: string;
+  passkeys: PasskeyLink[];
 };
 
 const BUCKET_SIZE = 100;
-const ATTEMPT_LIMIT = 3;
-const ATTEMPT_INTERVAL = 1000 * 60 * 5;
 
-type Task = {
+export type Task = {
   id: string;
   text: string;
   created: Date;
   completed: Date | undefined;
-};
-
-type Account = {
-  username: string;
-  passkeys: PasskeyLink[];
-  recovery: {
-    email?: string;
-    attempts: Date[];
-  };
 };
 
 export class DurableObjectUser extends DurableObject<Env> {
@@ -137,50 +127,49 @@ export class DurableObjectUser extends DurableObject<Env> {
     }
   }
 
-  async data() {
-    const account = await this.#account;
-    return {
-      account,
-    } as const;
-  }
+  async account() {
+    const that = this;
+    class AccountRpc extends RpcTarget {
+      async data() {
+        return await that.#account;
+      }
 
-  async link(passkeyLink: PasskeyLink) {
-    const account = await this.#account;
-    account.passkeys.push(passkeyLink);
-    this.#account = Promise.resolve(account);
-  }
+      async link(passkeyLink: PasskeyLink) {
+        const account = await that.#account;
+        account.passkeys.unshift(passkeyLink);
+        that.#account = Promise.resolve(account);
+        return { passkeys: account.passkeys };
+      }
 
-  async used(passkeyId: string) {
-    const account = await this.#account;
-    const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
-    if (passkey) {
-      passkey.lastUsedAt = new Date();
+      async rename(passkeyId: string, name: string) {
+        const account = await that.#account;
+        const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
+        if (passkey) {
+          passkey.name = name;
+        }
+        that.#account = Promise.resolve(account);
+        return { passkeys: account.passkeys };
+      }
+
+      async remove(passkeyId: string) {
+        const account = await that.#account;
+        account.passkeys = account.passkeys.filter(
+          (p) => p.passkeyId !== passkeyId,
+        );
+        that.#account = Promise.resolve(account);
+        return { passkeys: account.passkeys };
+      }
+
+      async used(passkeyId: string) {
+        const account = await that.#account;
+        const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
+        if (passkey) {
+          passkey.lastUsedAt = new Date();
+        }
+        that.#account = Promise.resolve(account);
+      }
     }
-    this.#account = Promise.resolve(account);
-  }
-
-  async email(email: string) {
-    const account = await this.#account;
-    account.recovery.email = email;
-    this.#account = Promise.resolve(account);
-  }
-
-  async recover() {
-    const account = await this.#account;
-    const email = account.recovery.email;
-    if (!email) {
-      return "no_recovery_email" as const;
-    }
-
-    account.recovery.attempts = account.recovery.attempts.filter((attempt) => {
-      const diff = Date.now() - attempt.getTime();
-      return diff < ATTEMPT_INTERVAL;
-    });
-    this.#account = Promise.resolve(account);
-    if (account.recovery.attempts.length >= ATTEMPT_LIMIT) {
-      return "too_many_attempts" as const;
-    }
-    return { email } as const;
+    return new AccountRpc();
   }
 }
 
@@ -192,18 +181,18 @@ const createHistoryKey = (completed: number) => {
 export const makePasskeyLink = ({
   passkeyId,
   credentialId,
-  userId,
+  username,
 }: {
   passkeyId: DurableObjectId | string;
   credentialId: string;
-  userId: DurableObjectId | string;
+  username: string;
 }): PasskeyLink => {
   const passkeyIdString = passkeyId.toString();
   const date = new Date();
   return {
     passkeyId: passkeyIdString,
     credentialId,
-    userId: userId.toString(),
+    username,
     createdAt: date,
     lastUsedAt: date,
     name: `passkey-${passkeyIdString.slice(0, 3) + passkeyIdString.slice(-3)}`,

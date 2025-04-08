@@ -1,6 +1,6 @@
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import {
-  createUserCookie,
+  createAuthCookie,
   extractVisitorHeaders,
   parseToken,
 } from "../helpers.mjs";
@@ -34,6 +34,10 @@ export default async function ({
   const passkey = env.PASSKEY.get(env.PASSKEY.idFromName(credentialName));
   const user = env.USER.get(env.USER.idFromName(username));
 
+  if (await user.exists()) {
+    throw new Response("user_exists", { status: 409 });
+  }
+
   const data = await passkey.register({
     username,
     json,
@@ -48,20 +52,19 @@ export default async function ({
   const passkeyLink = makePasskeyLink({
     passkeyId: passkey.id,
     credentialId: credentialName,
-    userId: user.id,
+    username,
   });
 
   const created = await user.create({
     username,
     passkeys: [passkeyLink],
-    recovery: { attempts: [] },
   });
   if (!created) {
     throw new Response("user_exists", { status: 409 });
   }
   await env.REGISTERED_USERS.put(username, "taken");
 
-  const cookie = createUserCookie("user", env.SECRET);
+  const cookie = createAuthCookie("auth", env.SECRET);
 
   return new Response(null, {
     status: 204,

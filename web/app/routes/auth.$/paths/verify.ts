@@ -1,6 +1,6 @@
 import type { AuthenticationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import {
-  createUserCookie,
+  createAuthCookie,
   extractVisitorHeaders,
   parseToken,
 } from "../helpers.mjs";
@@ -43,10 +43,10 @@ export default async function ({
   }
 
   const user = env.USER.get(env.USER.idFromName(data.metadata.username));
-  
-  ctx.waitUntil(user.used(data.metadata.passkeyId));
+  const account = user.account();
+  ctx.waitUntil(account.used(data.metadata.passkeyId));
 
-  const cookie = createUserCookie("user", env.SECRET);
+  const cookie = createAuthCookie("auth", env.SECRET);
 
   return new Response(null, {
     status: 204,

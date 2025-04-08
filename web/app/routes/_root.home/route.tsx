@@ -79,10 +79,19 @@ export default function Home({ loaderData }: t.ComponentProps) {
             border-gray-400/30 view-name-[background]
           `}
         ></div>
-        <main class={`relative grow`}>
+        <main class={`relative flex grow items-center justify-center`}>
           <div
-            class={`absolute top-1/3 left-1/2 -translate-x-1/2 view-name-[account]`}
+            class={`
+              font-serif text-4xl font-extrabold tracking-wider transition-transform
+              text-shadow-lg/100 text-shadow-amber-300
+
+              starting:skew-x-165
+            `}
           >
+            zaraz2
+          </div>
+
+          <div class={`absolute top-1 right-1 z-10 view-name-[account]`}>
             <Account />
           </div>
         </main>

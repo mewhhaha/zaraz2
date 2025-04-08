@@ -8,7 +8,6 @@ export type EnvAuth = {
   CHALLENGE: DurableObjectNamespace<DurableObjectChallenge>;
   REGISTERED_USERS: KVNamespace;
   SECRET: string;
-  RESEND_API_KEY: string;
 };
 
 declare global {
