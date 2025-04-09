@@ -11,7 +11,7 @@ export const OpenModal = ({
     <div
       class={`
         absolute top-0 -right-6 flex max-h-[80vh] min-h-0 w-128 max-w-[97vw] translate-y-4 flex-col
-        overflow-hidden drop-shadow-sm/100 transition-[transform_opacity]
+        drop-shadow-sm/100 transition-[transform_opacity]
         view-name-[passkeys-settings]
 
         starting:translate-y-0 starting:opacity-0
