@@ -427,6 +427,8 @@ const SignedOut = () => {
             override:bg-green-800
 
             override:hover:bg-green-700
+
+            override:active:bg-white
           `}
         >
           Sign in
