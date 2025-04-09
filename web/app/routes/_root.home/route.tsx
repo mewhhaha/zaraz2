@@ -46,7 +46,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
     const url = new URL(request.url);
     const direction = url.searchParams.get("direction");
     const confetti = url.searchParams.get("confetti");
-    const menuOpen = url.searchParams.has("open");
 
     const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(username));
 
@@ -57,7 +56,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
       direction,
       nonce: env.nonce,
       confetti,
-      menuOpen,
       current,
       completed,
     } as const;
@@ -99,8 +97,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
     );
   }
 
-  const { direction, nonce, confetti, menuOpen, current, completed } =
-    loaderData;
+  const { direction, nonce, confetti, current, completed } = loaderData;
 
   return (
     <div
@@ -224,13 +221,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
 const Account = () => {
   return (
     <div class={`relative`}>
-      <div
-        fx-action="/auth"
-        fx-target="#passkeys-settings"
-        fx-trigger="click"
-        ext-fx-transition="#passkeys-settings"
-        ext-fx-allow-default
-      >
+      <div>
         <button
           aria-label="Passkey menu"
           commandfor="passkeys-menu"
@@ -256,12 +247,18 @@ const Account = () => {
       <dialog
         id="passkeys-menu"
         popover
+        fx-action="/auth"
+        fx-target="#passkeys-settings"
+        fx-trigger="toggle"
+        ext-fx-trigger-value="newState"
+        ext-fx-transition="#passkeys-settings"
+        ext-fx-allow-default
         class={`
-          fixed h-fit w-fit overflow-visible bg-transparent
+          fixed overflow-visible bg-transparent
 
           [position-anchor:--passkeys]
 
-          [position-area:bottom_left]
+          [position-area:bottom_center]
 
           backdrop:bg-black/50 backdrop:transition-colors backdrop:view-name-[backdrop]
 
@@ -273,7 +270,7 @@ const Account = () => {
           commandfor="passkeys-menu"
           command="close"
         />
-        <div id="passkeys-settings" />
+        <div class={`absolute`} id="passkeys-settings" />
       </dialog>
     </div>
   );
@@ -344,49 +341,6 @@ const PasskeyIcon = (props: JSX.IntrinsicElements["svg"]) => {
     >
       <path d="M9.496 2a5.25 5.25 0 0 0-2.519 9.857A9.006 9.006 0 0 0 .5 20.228a.751.751 0 0 0 .728.772h5.257c3.338.001 6.677.002 10.015 0a.5.5 0 0 0 .5-.5v-4.669a.95.95 0 0 0-.171-.551 9.02 9.02 0 0 0-4.814-3.423A5.25 5.25 0 0 0 9.496 2Z" />
       <path d="M23.625 10.313c0 1.31-.672 2.464-1.691 3.134a.398.398 0 0 0-.184.33v.886a.372.372 0 0 1-.11.265l-.534.534a.188.188 0 0 0 0 .265l.534.534c.071.07.11.166.11.265v.347a.374.374 0 0 1-.11.265l-.534.534a.188.188 0 0 0 0 .265l.534.534a.37.37 0 0 1 .11.265v.431a.379.379 0 0 1-.097.253l-1.2 1.319a.781.781 0 0 1-1.156 0l-1.2-1.319a.379.379 0 0 1-.097-.253v-5.39a.398.398 0 0 0-.184-.33 3.75 3.75 0 1 1 5.809-3.134ZM21 9.75a1.125 1.125 0 1 0-2.25 0 1.125 1.125 0 0 0 2.25 0Z" />
-    </svg>
-  );
-};
-
-const SwatchIcon = (props: JSX.IntrinsicElements["svg"]) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z"
-      />
-    </svg>
-  );
-};
-
-const TagIcon = (props: JSX.IntrinsicElements["svg"]) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width="1.5"
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"
-      />
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M6 6h.008v.008H6V6Z"
-      />
     </svg>
   );
 };

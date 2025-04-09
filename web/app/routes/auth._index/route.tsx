@@ -8,7 +8,7 @@ import {
 } from "../auth.$/helpers.mts";
 import t from "./+types.route";
 import { cx } from "../../helpers/style";
-import { Modal } from "./components/Modal";
+import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user.mts";
 import { type } from "arktype";
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
@@ -162,6 +162,15 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 };
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+  const url = new URL(request.url);
+  const newState = url.searchParams.get("newState");
+  if (newState === "closed") {
+    throw new Response((<ClosedModal id="passkeys-settings" />).toString(), {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
   const locale = getLocale(request);
   const timezone = getTimezone(request);
 
@@ -203,15 +212,27 @@ type SignedInProps = {
 
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
   return (
-    <Modal id="passkeys-settings">
+    <OpenModal id="passkeys-settings">
       <div class={`flex flex-col`}>
         <hgroup class={`mb-4 space-y-3`}>
-          <h2 class={`text-xl font-medium text-gray-200`}>
+          <h2
+            class={`
+              text-lg font-medium text-gray-200
+
+              sm:text-xl
+            `}
+          >
             Authenticated as{" "}
             <span class={`text-blue-200`}>{auth.username}</span>
           </h2>
           <hr class={`border-slate-700`} />
-          <p>
+          <p
+            class={`
+              text-sm
+
+              sm:text-base
+            `}
+          >
             Passkeys are your webauthn credentials that validate your identity
             using touch, facial recognition, a device password, or a PIN.
           </p>
@@ -223,9 +244,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
           `}
         >
           <div
-            class={`flex items-center justify-between bg-gray-900 py-4 pr-2 pl-4`}
+            class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
           >
-            <h3 class={`text-base font-semibold`}>Your passkeys</h3>
+            <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
             <form
               fx-action="/auth"
               fx-method="POST"
@@ -265,7 +286,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
           Sign out
         </MenuButton>
       </div>
-    </Modal>
+    </OpenModal>
   );
 };
 
@@ -292,7 +313,7 @@ const PasskeyList = ({
           style={`view-transition-name: ${btoa(passkey.passkeyId).replaceAll(/[=/+]/g, "")};`}
           class={`flex flex-col gap-2 py-4 pr-2 pl-4`}
         >
-          <div class={`flex justify-between`}>
+          <div class={`flex flex-wrap justify-between gap-4`}>
             <div class={`flex items-center`}>
               <KeyIcon class={`inline-block size-6`} />
               <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
@@ -303,61 +324,94 @@ const PasskeyList = ({
                 Current
               </div>
             </div>
-            <div class={`flex gap-2`}>
-              <form
-                fx-action="/auth"
-                fx-target="#passkeys-list"
-                fx-method="PATCH"
-              >
-                <input type="hidden" name="id" value={passkey.passkeyId} />
-                <IconButton
-                  aria-label="Rename passkey"
-                  name="name"
-                  ext-fx-prompt="What should we call this passkey?"
-                >
-                  <PencilIcon class={`inline-block size-5`} />
-                </IconButton>
-              </form>
-              <form
-                fx-method="DELETE"
-                fx-action="/auth"
-                fx-target="#passkeys-list"
-                ext-fx-confirm="Are you sure you want to delete this passkey?"
-                hidden={passkey.passkeyId === auth.passkeyId}
-              >
-                <input type="hidden" name="id" value={passkey.passkeyId} />
-                <IconButton
-                  aria-label="Delete passkey"
-                  class={`
-                    override:text-red-400
+            <div
+              class={`
+                hidden gap-2
 
-                    override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
-                  `}
-                >
-                  <TrashIconSolid class={`inline-block size-5`} />
-                </IconButton>
-              </form>
+                sm:flex
+              `}
+            >
+              <RenameButton passkeyId={passkey.passkeyId} />
+              <DeleteButton passkeyId={passkey.passkeyId} auth={auth} />
             </div>
           </div>
-          <p class={`text-gray-400`}>
+          <p class={`text-balance text-gray-400`}>
             Added on{" "}
             <time datetime={passkey.createdAt.toISOString()}>
               {formatDate(passkey.createdAt, locale, timezone)}
-            </time>{" "}
-            | Last used{" "}
+            </time>
+            &shy; | Last used{" "}
             <time datetime={passkey.lastUsedAt.toISOString()}>
               {formatRelativeDate(passkey.lastUsedAt, locale)}
             </time>
           </p>
+          <div
+            class={`
+              flex gap-2
+
+              sm:hidden
+            `}
+          >
+            <RenameButton passkeyId={passkey.passkeyId} />
+            <DeleteButton passkeyId={passkey.passkeyId} auth={auth} />
+          </div>
         </li>
       ))}
     </ul>
   );
 };
 
+type DeleteButtonProps = {
+  passkeyId: string;
+  auth: Auth;
+};
+
+const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
+  return (
+    <form
+      fx-method="DELETE"
+      fx-action="/auth"
+      fx-target="#passkeys-list"
+      ext-fx-confirm="Are you sure you want to delete this passkey?"
+      hidden={passkeyId === auth.passkeyId}
+    >
+      <input type="hidden" name="id" value={passkeyId} />
+      <IconButton
+        aria-label="Delete passkey"
+        class={`
+          override:text-red-400
+
+          override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
+        `}
+      >
+        <TrashIconSolid class={`inline-block size-5`} />
+      </IconButton>
+    </form>
+  );
+};
+
+type RenameButtonProps = {
+  passkeyId: string;
+};
+
+const RenameButton = ({ passkeyId }: RenameButtonProps) => {
+  return (
+    <form fx-action="/auth" fx-target="#passkeys-list" fx-method="PATCH">
+      <input type="hidden" name="id" value={passkeyId} />
+      <IconButton
+        aria-label="Rename passkey"
+        name="name"
+        ext-fx-prompt="What should we call this passkey?"
+      >
+        <PencilIcon class={`inline-block size-5`} />
+      </IconButton>
+    </form>
+  );
+};
+
 const SignedOut = () => {
   return (
-    <Modal id="passkeys-settings">
+    <OpenModal id="passkeys-settings">
       <div class={`flex flex-col`}>
         <hgroup class={`mb-4 space-y-3`}>
           <h2 class={`text-xl font-medium text-gray-200`}>Not authenticated</h2>
@@ -413,7 +467,7 @@ const SignedOut = () => {
           <MenuButton>Register</MenuButton>
         </form>
       </div>
-    </Modal>
+    </OpenModal>
   );
 };
 

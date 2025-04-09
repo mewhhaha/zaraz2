@@ -2,17 +2,22 @@ import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 
 type ModalProps = JSX.IntrinsicElements["div"];
 
-export const Modal = ({ class: className, children, ...props }: ModalProps) => {
+export const OpenModal = ({
+  class: className,
+  children,
+  ...props
+}: ModalProps) => {
   return (
     <div
       class={`
-        relative w-128 translate-x-12 translate-y-4 drop-shadow-sm/100
+        absolute top-0 -right-6 w-128 max-w-[97vw] translate-y-4 drop-shadow-sm/100
         transition-[transform_opacity] view-name-[passkeys-settings]
 
         starting:translate-y-0 starting:opacity-0
       `}
       {...props}
     >
+      <input type="hidden" name="open" value="true" />
       <div
         class={`
           absolute top-0 right-3 size-3 -translate-1.25 -translate-x-1/2 rotate-45 border-t-2
@@ -20,10 +25,22 @@ export const Modal = ({ class: className, children, ...props }: ModalProps) => {
         `}
       ></div>
       <div
-        class={`rounded-lg border-2 border-gray-700 bg-slate-950 p-6 text-gray-100`}
+        class={`
+          rounded-lg border-2 border-gray-700 bg-slate-950 p-2 text-gray-100
+
+          sm:p-6
+        `}
       >
         {children}
       </div>
     </div>
   );
+};
+
+export const ClosedModal = ({
+  class: className,
+  children,
+  ...props
+}: ModalProps) => {
+  return <div class={`view-name-[passkeys-settings]`} {...props}></div>;
 };

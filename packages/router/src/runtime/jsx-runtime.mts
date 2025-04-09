@@ -6,6 +6,24 @@ export { type JSX } from "./jsx.mts";
 
 export const Fragment = (props: any): any => jsx("", props);
 
+// Void elements are self-closing and shouldn't have a closing tag
+const voidElements = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
+
 export function jsx(
   tag: string | Function,
   { children, ...props }: { children?: unknown } & Record<string, any>,
@@ -68,7 +86,7 @@ export function jsx(
 
     rec(children);
 
-    if (tag) {
+    if (tag && !voidElements.has(tag)) {
       html += `</${tag}>`;
     }
 
