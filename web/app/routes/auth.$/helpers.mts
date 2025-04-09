@@ -208,6 +208,10 @@ export const authenticate = async (request: Request, secret: string) => {
   return auth;
 };
 
+export const expires = () => {
+  return new Date(Date.now() + 1000 * 60 * 10).toISOString();
+};
+
 export const parseToken = async <T,>(
   token: string,
   secret: string,

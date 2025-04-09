@@ -1,4 +1,4 @@
-import { createAuthCookie } from "../helpers.mjs";
+import { createAuthCookie, expires } from "../helpers.mjs";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -19,7 +19,7 @@ export default async function ({
     throw new Response("invalid_cookie", { status: 401 });
   }
 
-  user.expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  user.expires = expires();
 
   return new Response(null, {
     status: 204,

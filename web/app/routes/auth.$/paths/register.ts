@@ -1,6 +1,7 @@
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import {
   createAuthCookie,
+  expires,
   extractVisitorHeaders,
   parseToken,
 } from "../helpers.mjs";
@@ -72,7 +73,7 @@ export default async function ({
       "Set-Cookie": await cookie.serialize({
         username,
         passkeyId: passkey.id.toString(),
-        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+        expires: expires(),
       }),
     },
   });
