@@ -47,14 +47,14 @@ html *:focus-visible {
     opacity: 1;
   }
   to {
-    transform: translateX(100%) translateY(-50%) scale(0.5) skew(180deg);
+    transform: translateX(100%) translateY(-50%) scale(0.5) skew(360deg);
     opacity: 0;
   }
 }
 
 @keyframes slide-in-left {
   from {
-    transform: translateX(-100%) translateY(-50%) scale(0.5) skew(180deg);
+    transform: translateX(-100%) translateY(-50%) scale(0.5) skew(-360deg);
     opacity: 0;
   }
   to {
