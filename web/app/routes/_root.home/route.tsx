@@ -288,7 +288,8 @@ const MenuButton = ({ class: className, ...props }: MenuButtonProps) => {
 
           hover:bg-black/90 hover:transition-[width]
 
-          active:border-gray-500 active:bg-white active:text-slate-950 active:text-shadow-sm/100
+          not-disabled:active:border-gray-500 not-disabled:active:bg-white not-disabled:active:text-slate-950
+          not-disabled:active:text-shadow-sm/100
 
           disabled:cursor-not-allowed disabled:opacity-50
 
