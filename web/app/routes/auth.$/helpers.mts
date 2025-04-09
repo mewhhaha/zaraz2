@@ -209,7 +209,7 @@ export const authenticate = async (request: Request, secret: string) => {
 };
 
 export const expires = () => {
-  return new Date(Date.now() + 1000 * 60 * 10).toISOString();
+  return new Date(Date.now() + 1000 * 60 * 30).toISOString();
 };
 
 export const parseToken = async <T,>(
