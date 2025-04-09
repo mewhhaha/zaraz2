@@ -213,79 +213,77 @@ type SignedInProps = {
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
   return (
     <OpenModal id="passkeys-settings">
-      <div class={`flex flex-col`}>
-        <hgroup class={`mb-4 space-y-3`}>
-          <h2
-            class={`
-              text-lg font-medium text-gray-200
-
-              sm:text-xl
-            `}
-          >
-            Authenticated as{" "}
-            <span class={`text-blue-200`}>{auth.username}</span>
-          </h2>
-          <hr class={`border-slate-700`} />
-          <p
-            class={`
-              text-sm
-
-              sm:text-base
-            `}
-          >
-            Passkeys are your webauthn credentials that validate your identity
-            using touch, facial recognition, a device password, or a PIN.
-          </p>
-        </hgroup>
-        <div
+      <hgroup class={`mb-4 space-y-3`}>
+        <h2
           class={`
-            mb-10 divide-y divide-slate-700 overflow-hidden rounded-lg border
-            border-slate-700
+            text-lg font-medium text-gray-200
+
+            sm:text-xl
           `}
         >
-          <div
-            class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
-          >
-            <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
-            <form
-              fx-action="/auth"
-              fx-method="POST"
-              fx-target="#passkeys-list"
-              ext-fx-passkey-register="/auth/challenge"
-            >
-              <input type="hidden" name="username" value={auth.username} />
-              <button
-                class={`
-                  flex cursor-pointer items-center rounded-lg border border-slate-700
-                  bg-gray-900 px-3 py-1.5
+          Authenticated as <span class={`text-blue-200`}>{auth.username}</span>
+        </h2>
+        <hr class={`border-slate-700`} />
+        <p
+          class={`
+            text-sm
 
-                  hover:bg-gray-800
-                `}
-                name="intent"
-                value="register"
-              >
-                Add new passkey
-              </button>
-            </form>
-          </div>
-          <PasskeyList
-            passkeys={account.passkeys}
-            auth={auth}
-            locale={locale}
-            timezone={timezone}
-          />
-        </div>
-
-        <MenuButton
-          name="intent"
-          value="signout"
-          fx-action="/auth"
-          fx-method="POST"
-          ext-fx-reload
+            sm:text-base
+          `}
         >
-          Sign out
-        </MenuButton>
+          Passkeys are your webauthn credentials that validate your identity
+          using touch, facial recognition, a device password, or a PIN.
+        </p>
+      </hgroup>
+
+      <div
+        class={`
+          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700 overflow-hidden rounded-lg
+          border border-slate-700
+        `}
+      >
+        <div
+          class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
+        >
+          <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
+          <form
+            fx-action="/auth"
+            fx-method="POST"
+            fx-target="#passkeys-list"
+            ext-fx-passkey-register="/auth/challenge"
+          >
+            <input type="hidden" name="username" value={auth.username} />
+            <button
+              class={`
+                flex cursor-pointer items-center rounded-lg border border-slate-700
+                bg-gray-900 px-3 py-1.5
+
+                hover:bg-gray-800
+              `}
+              name="intent"
+              value="register"
+            >
+              Add new passkey
+            </button>
+          </form>
+        </div>
+        <PasskeyList
+          passkeys={account.passkeys}
+          auth={auth}
+          locale={locale}
+          timezone={timezone}
+        />
       </div>
+
+      <MenuButton
+        name="intent"
+        value="signout"
+        fx-action="/auth"
+        fx-method="POST"
+        ext-fx-reload
+      >
+        Sign out
+      </MenuButton>
     </OpenModal>
   );
 };
@@ -306,7 +304,7 @@ const PasskeyList = ({
   return (
     <ul
       id="passkeys-list"
-      class={`max-h-[50vh] divide-y divide-slate-900 overflow-y-auto`}
+      class={`min-h-0 shrink divide-y divide-slate-900 overflow-y-auto`}
     >
       {passkeys.map((passkey) => (
         <li

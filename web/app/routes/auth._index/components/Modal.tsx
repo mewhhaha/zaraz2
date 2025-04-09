@@ -10,8 +10,9 @@ export const OpenModal = ({
   return (
     <div
       class={`
-        absolute top-0 -right-6 w-128 max-w-[97vw] translate-y-4 drop-shadow-sm/100
-        transition-[transform_opacity] view-name-[passkeys-settings]
+        absolute top-0 -right-6 flex max-h-[80vh] min-h-0 w-128 max-w-[97vw] translate-y-4 flex-col
+        overflow-hidden drop-shadow-sm/100 transition-[transform_opacity]
+        view-name-[passkeys-settings]
 
         starting:translate-y-0 starting:opacity-0
       `}
@@ -26,7 +27,8 @@ export const OpenModal = ({
       ></div>
       <div
         class={`
-          rounded-lg border-2 border-gray-700 bg-slate-950 p-2 text-gray-100
+          flex size-full flex-col overflow-hidden rounded-lg border-2 border-gray-700
+          bg-slate-950 p-2 text-gray-100
 
           sm:p-6
         `}

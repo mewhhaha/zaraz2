@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "@mewhhaha/fx-router";
 import { store } from "../helpers/store";
 
-export type Finish<T> = { state: T } | "passkey_not_found";
+export type Finish<T> = { state: T } | "challenge_not_found";
 
 export class DurableObjectChallenge extends DurableObject<Env> {
   @store
@@ -48,7 +48,7 @@ export class DurableObjectChallenge extends DurableObject<Env> {
 
       return { state };
     } catch (e) {
-      return "passkey_not_found" as const;
+      return "challenge_not_found" as const;
     }
   }
 }
