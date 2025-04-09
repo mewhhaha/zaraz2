@@ -12,7 +12,6 @@ declare module "@mewhhaha/fx-router" {
 
     SECRET_KEY: string;
     ORIGIN: string;
-    RESEND_API_KEY: string;
     DEMO: string;
 
     /** This nonce is created by the server on each request in the main.ts file
