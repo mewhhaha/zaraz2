@@ -5,34 +5,37 @@ let busy = false;
 const refresh = async () => {
   busy = true;
 
-  const challengeUri = "/auth/challenge";
+  try {
+    const challengeUri = "/auth/challenge";
 
-  const input = document.querySelector("input[name=expires]");
+    const input = document.querySelector("input[name=expires]");
 
-  if (!(input instanceof HTMLInputElement)) {
-    throw new Error("Missing expires input");
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error("Missing expires input");
+    }
+
+    let response;
+    if (new Date(input.value) > new Date()) {
+      response = await fetch("/auth/refresh", {
+        method: "POST",
+      });
+    } else {
+      const token = await authenticate(challengeUri);
+      const formData = new FormData();
+      formData.set("token", token);
+      response = await fetch("/auth/verify", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
+    if (response.ok) {
+      const { expires }: { expires: string } = await response.json();
+      input.value = expires;
+    }
+  } finally {
+    busy = false;
   }
-
-  let response;
-  if (new Date(input.value) > new Date()) {
-    response = await fetch("/auth/refresh", {
-      method: "POST",
-    });
-  } else {
-    const token = await authenticate(challengeUri);
-    const formData = new FormData();
-    formData.set("token", token);
-    response = await fetch("/auth/verify", {
-      method: "POST",
-      body: formData,
-    });
-  }
-
-  if (response.ok) {
-    const { expires }: { expires: string } = await response.json();
-    input.value = expires;
-  }
-  busy = false;
 };
 
 document.addEventListener("visibilitychange", async () => {

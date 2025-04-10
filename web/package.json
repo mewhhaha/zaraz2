@@ -39,7 +39,6 @@
   "dependencies": {
     "@packages/passkey": "workspace:*",
     "@passwordless-id/webauthn": "^2.3.0",
-    "arktype": "^2.1.19",
     "canvas-confetti": "^1.9.3"
   }
 }

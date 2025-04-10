@@ -10,17 +10,54 @@ import t from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user.mts";
-import { type } from "arktype";
+
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
 
-const parseRename = type({
-  id: "string",
-  name: "string",
-});
+class ParseError extends Error {
+  summary: string;
 
-const parseRegister = type({
-  token: "string",
-});
+  constructor(message: string) {
+    super(message);
+    this.name = "ParseError";
+    this.summary = message;
+  }
+}
+
+const parseRename = (value: unknown) => {
+  if (typeof value !== "object" || value === null) {
+    return new ParseError("Invalid input");
+  }
+
+  if (!("id" in value) || !("name" in value)) {
+    return new ParseError("Invalid input");
+  }
+
+  const { id, name } = value;
+
+  if (typeof id !== "string" || typeof name !== "string") {
+    return new ParseError("Invalid input");
+  }
+
+  return { id, name };
+};
+
+const parseRegister = (value: unknown) => {
+  if (typeof value !== "object" || value === null) {
+    return new ParseError("Invalid input");
+  }
+
+  if (!("token" in value)) {
+    return new ParseError("Invalid input");
+  }
+
+  const { token } = value;
+
+  if (typeof token !== "string") {
+    return new ParseError("Invalid input");
+  }
+
+  return { token };
+};
 
 const getLocale = (request: Request) => {
   return request.headers.get("accept-language")?.split(",")[0] ?? "en-SV";
@@ -71,7 +108,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
   if (request.method === "PATCH") {
     const fd = parseRename(formData);
-    if (fd instanceof type.errors) {
+    if (fd instanceof ParseError) {
       return new Response(fd.summary, { status: 400 });
     }
 
@@ -106,7 +143,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     const visited = extractVisitorHeaders(request.headers);
 
     const fd = parseRegister(formData);
-    if (fd instanceof type.errors) {
+    if (fd instanceof ParseError) {
       return new Response(fd.summary, { status: 400 });
     }
 
@@ -213,34 +250,21 @@ type SignedInProps = {
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
   return (
     <OpenModal id="passkeys-settings">
-      <hgroup class={`mb-4 space-y-3`}>
-        <h2
-          class={`
-            text-lg font-medium text-gray-200
+      <h2
+        class={`
+              text-lg mb-4 font-medium text-gray-200
 
-            sm:text-xl
-          `}
-        >
-          Authenticated as <span class={`text-blue-200`}>{auth.username}</span>
-        </h2>
-        <hr class={`border-slate-700`} />
-        <p
-          class={`
-            text-sm
-
-            sm:text-base
-          `}
-        >
-          Passkeys are your webauthn credentials that validate your identity
-          using touch, facial recognition, a device password, or a PIN.
-        </p>
-      </hgroup>
+              sm:text-xl
+            `}
+      >
+        You are <span class={`text-blue-200`}>{auth.username}</span>
+      </h2>
 
       <div
         class={`
-          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700 overflow-hidden rounded-lg
-          border border-slate-700
-        `}
+            mb-10 flex flex-col divide-y divide-slate-700 grow
+            min-h-0 rounded-lg border border-slate-700 overflow-hidden
+          `}
       >
         <div
           class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
@@ -255,11 +279,11 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
             <input type="hidden" name="username" value={auth.username} />
             <button
               class={`
-                flex cursor-pointer items-center rounded-lg border border-slate-700
-                bg-gray-900 px-3 py-1.5
+                  flex cursor-pointer items-center rounded-lg border border-slate-700
+                  bg-gray-900 px-3 py-1.5
 
-                hover:bg-gray-800
-              `}
+                  hover:bg-gray-800
+                `}
               name="intent"
               value="register"
             >
@@ -304,7 +328,7 @@ const PasskeyList = ({
   return (
     <ul
       id="passkeys-list"
-      class={`min-h-0 shrink divide-y divide-slate-900 overflow-y-auto`}
+      class={`min-h-0 divide-y divide-slate-900 overflow-y-auto shrink`}
     >
       {passkeys.map((passkey) => (
         <li
@@ -411,10 +435,9 @@ const SignedOut = () => {
   return (
     <OpenModal id="passkeys-settings">
       <div class={`flex flex-col`}>
-        <hgroup class={`mb-4 space-y-3`}>
-          <h2 class={`text-xl font-medium text-gray-200`}>Not authenticated</h2>
-          <hr class={`border-slate-700`} />
-        </hgroup>
+        <h2 class={`text-xl font-medium mb-4 text-gray-200`}>
+          Already have an account?
+        </h2>
 
         <MenuButton
           fx-action="/auth/verify"
@@ -427,21 +450,15 @@ const SignedOut = () => {
             override:hover:bg-green-700
 
             override:active:bg-white
+            mb-10
           `}
         >
           Sign in
         </MenuButton>
-        <div class={`relative my-12 h-1`}>
-          <hr class={`border-slate-700`} />
-          <div
-            class={`
-              absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-950 px-2
-              text-gray-400
-            `}
-          >
-            or
-          </div>
-        </div>
+
+        <h2 class={`text-xl mb-4 font-medium text-gray-200`}>
+          Register a new account
+        </h2>
         <form
           fx-action="/auth/register"
           fx-method="POST"

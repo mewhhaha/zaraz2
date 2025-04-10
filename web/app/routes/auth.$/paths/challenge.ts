@@ -8,7 +8,7 @@ export default async function ({
 }) {
   const challenge = env.CHALLENGE.get(env.CHALLENGE.newUniqueId());
 
-  const token = `${challenge.id}.${btoa(await hmac(env.SECRET, challenge.id.toString()))}`;
+  const token = `${challenge.id.toString()}.${btoa(await hmac(env.SECRET, challenge.id.toString()))}`;
 
   ctx.waitUntil(challenge.save({}));
 

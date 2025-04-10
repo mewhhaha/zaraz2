@@ -65,7 +65,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 };
 
 const bgUrl = new URL("./../../assets/happy.jpg", import.meta.url);
-const client = new URL("./route.client.mts", import.meta.url);
 
 export default function Home({ loaderData }: t.ComponentProps) {
   if (!loaderData.authenticated) {
@@ -97,14 +96,13 @@ export default function Home({ loaderData }: t.ComponentProps) {
     );
   }
 
-  const { direction, nonce, confetti, current, completed } = loaderData;
+  const { direction, confetti, current, completed } = loaderData;
 
   return (
     <div
       data-empty={current === undefined || undefined}
       class={`relative mx-auto flex size-full max-w-screen-lg flex-col`}
     >
-      <script nonce={nonce} type="module" src={client.pathname}></script>
       <div
         class={`
           absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden rounded-lg border-2
@@ -311,7 +309,7 @@ const Task = ({ children, class: className, ...props }: TaskProps) => {
       class={cx(
         `
           z-10 h-fit w-fit self-center justify-self-center rounded-full bg-blue-800 px-10 py-2
-          text-center font-serif text-4xl text-gray-100 drop-shadow-sm/100
+          text-center text-4xl text-gray-100 drop-shadow-sm/100
           transition-[opacity_transform] duration-300 text-shadow-lg/100
           view-name-[task]
 
