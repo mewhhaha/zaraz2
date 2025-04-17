@@ -53,7 +53,7 @@ export const createCookie = <T, N extends string>(
     secure: true,
     path: "/",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 400,
   },
 ) => {
   return {

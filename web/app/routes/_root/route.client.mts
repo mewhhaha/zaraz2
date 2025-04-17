@@ -34,7 +34,9 @@ const refresh = async () => {
       input.value = expires;
     }
   } finally {
-    busy = false;
+    setTimeout(() => {
+      busy = false;
+    }, 200);
   }
 };
 
