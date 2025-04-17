@@ -2,7 +2,10 @@ import { client } from "@passwordless-id/webauthn";
 
 let controller: AbortController;
 
-export const authenticate = async (challengeUri: string): Promise<string> => {
+export const authenticate = async (
+  challengeUri: string,
+  allowCredentials?: string[],
+): Promise<string> => {
   controller?.abort();
   controller = new AbortController();
 
@@ -25,6 +28,7 @@ export const authenticate = async (challengeUri: string): Promise<string> => {
   const authentication = await client.authenticate({
     challenge,
     userVerification: "required",
+    allowCredentials,
   });
 
   const signinToken = `${token}.${btoa(JSON.stringify(authentication))}`;
