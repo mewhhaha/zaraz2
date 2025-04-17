@@ -45,6 +45,8 @@ export const cookie = {
   },
 };
 
+const encoder = new TextEncoder();
+
 export const createCookie = <T, N extends string>(
   name: N,
   secret: string,
@@ -109,7 +111,13 @@ export const createCookie = <T, N extends string>(
         return null;
       }
 
-      if (signature !== encode(await hmac(secret, encodedValue))) {
+      const expectedSignature = encode(await hmac(secret, encodedValue));
+      if (
+        !crypto.subtle.timingSafeEqual(
+          encoder.encode(signature),
+          encoder.encode(expectedSignature),
+        )
+      ) {
         return null;
       }
 
@@ -120,8 +128,6 @@ export const createCookie = <T, N extends string>(
 
 const encode = (value: string) => btoa(value);
 const decode = (value: string) => atob(value);
-
-const encoder = new TextEncoder();
 
 export const hmac = async (
   secretKey: string,
