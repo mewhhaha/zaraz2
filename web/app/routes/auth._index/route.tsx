@@ -252,19 +252,19 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
     <OpenModal id="passkeys-settings">
       <h2
         class={`
-              text-lg mb-4 font-medium text-gray-200
+          mb-4 text-lg font-medium text-gray-200
 
-              sm:text-xl
-            `}
+          sm:text-xl
+        `}
       >
         You are <span class={`text-blue-200`}>{auth.username}</span>
       </h2>
 
       <div
         class={`
-            mb-10 flex flex-col divide-y divide-slate-700 grow
-            min-h-0 rounded-lg border border-slate-700 overflow-hidden
-          `}
+          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700 overflow-hidden rounded-lg
+          border border-slate-700
+        `}
       >
         <div
           class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
@@ -279,11 +279,11 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
             <input type="hidden" name="username" value={auth.username} />
             <button
               class={`
-                  flex cursor-pointer items-center rounded-lg border border-slate-700
-                  bg-gray-900 px-3 py-1.5
+                flex cursor-pointer items-center rounded-lg border border-slate-700
+                bg-gray-900 px-3 py-1.5
 
-                  hover:bg-gray-800
-                `}
+                hover:bg-gray-800
+              `}
               name="intent"
               value="register"
             >
@@ -328,7 +328,7 @@ const PasskeyList = ({
   return (
     <ul
       id="passkeys-list"
-      class={`min-h-0 divide-y divide-slate-900 overflow-y-auto shrink`}
+      class={`min-h-0 shrink divide-y divide-slate-900 overflow-y-auto`}
     >
       {passkeys.map((passkey) => (
         <li
@@ -435,7 +435,7 @@ const SignedOut = () => {
   return (
     <OpenModal id="passkeys-settings">
       <div class={`flex flex-col`}>
-        <h2 class={`text-xl font-medium mb-4 text-gray-200`}>
+        <h2 class={`mb-4 text-xl font-medium text-gray-200`}>
           Already have an account?
         </h2>
 
@@ -445,18 +445,19 @@ const SignedOut = () => {
           ext-fx-passkey-verify="/auth/challenge"
           ext-fx-reload
           class={`
+            mb-10
+
             override:bg-green-800
 
             override:hover:bg-green-700
 
             override:active:bg-white
-            mb-10
           `}
         >
           Sign in
         </MenuButton>
 
-        <h2 class={`text-xl mb-4 font-medium text-gray-200`}>
+        <h2 class={`mb-4 text-xl font-medium text-gray-200`}>
           Register a new account
         </h2>
         <form

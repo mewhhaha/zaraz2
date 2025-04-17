@@ -55,6 +55,7 @@ export default async function ({
       "Set-Cookie": await cookie.serialize({
         username: data.metadata.username,
         passkeyId: data.metadata.passkeyId,
+        credentialId: data.metadata.credentialId,
         expires: expires(),
       }),
     },

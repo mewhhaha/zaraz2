@@ -26,6 +26,9 @@ export default function Root({
   return (
     <>
       {user && <input type="hidden" name="expires" value={user.expires} />}
+      {user && (
+        <input type="hidden" name="credential-id" value={user.credentialId} />
+      )}
       {user && <script nonce={nonce} type="module" src={client.pathname} />}
       {children}
     </>

@@ -73,6 +73,7 @@ export default async function ({
       "Set-Cookie": await cookie.serialize({
         username,
         passkeyId: passkey.id.toString(),
+        credentialId: credentialName,
         expires: expires(),
       }),
     },

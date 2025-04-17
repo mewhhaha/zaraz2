@@ -187,6 +187,7 @@ export type VisitedHeaders = {
 export type Auth = {
   username: string;
   passkeyId: string;
+  credentialId: string;
   expires: string;
 };
 

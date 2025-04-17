@@ -8,19 +8,24 @@ const refresh = async () => {
   try {
     const challengeUri = "/auth/challenge";
 
-    const input = document.querySelector("input[name=expires]");
+    const expiresInput = document.querySelector("input[name=expires]");
+    const credentialIdInput = document.querySelector("input[name=expires]");
 
-    if (!(input instanceof HTMLInputElement)) {
+    if (!(expiresInput instanceof HTMLInputElement)) {
       throw new Error("Missing expires input");
     }
 
+    if (!(credentialIdInput instanceof HTMLInputElement)) {
+      throw new Error("Missing credentialId input");
+    }
+
     let response;
-    if (new Date(input.value) > new Date()) {
+    if (new Date(expiresInput.value) > new Date()) {
       response = await fetch("/auth/refresh", {
         method: "POST",
       });
     } else {
-      const token = await authenticate(challengeUri);
+      const token = await authenticate(challengeUri, [credentialIdInput.value]);
       const formData = new FormData();
       formData.set("token", token);
       response = await fetch("/auth/verify", {
@@ -31,7 +36,7 @@ const refresh = async () => {
 
     if (response.ok) {
       const { expires }: { expires: string } = await response.json();
-      input.value = expires;
+      expiresInput.value = expires;
     }
   } finally {
     setTimeout(() => {
