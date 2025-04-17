@@ -16,78 +16,42 @@ const pathlessRegex = /^_.*/;
  * Generate a regex literal for a route path using named capture groups
  * Supports optional segments marked with parentheses: (segment) or ($param)
  */
-const generateRegexPattern = (routePath: string): string => {
+const generatePatternString = (routePath: string): string => {
   const segments = routePath
     .split(unescapedDotRegex)
     .filter((value) => !value.startsWith("_"));
 
-  // Special case: empty path (root route)
   if (segments.length === 0) {
-    return `/^\\/$/`;
+    return "/";
   }
 
-  // Special case: wildcard route
   if (segments.length === 1 && segments[0] === "$") {
-    return `/^(?<wildcard>.*)$/`;
+    return "/*";
   }
 
-  // Process segments and build regex parts
-  let regexStr = "^";
-
+  let pattern = "";
   for (const segment of segments) {
     const isOptional = segment.startsWith("(") && segment.endsWith(")");
     const actualSegment = isOptional ? segment.slice(1, -1) : segment;
 
-    regexStr += "\\/";
+    pattern += "/";
     if (actualSegment === "$") {
-      // Wildcard segment
-      regexStr += "(?<wildcard>.*)";
+      pattern += "*";
       break;
     } else if (actualSegment.startsWith("$")) {
-      // Parameter segment
       const paramName = actualSegment.slice(1);
-      const paramPattern = `(?<${paramName}>[^/]+)`;
-
-      if (isOptional) {
-        // For optional parameters, make the whole segment optional
-        // including the preceding slash (except for first segment)
-        if (regexStr.endsWith("\\/")) {
-          // Remove the last slash and make the whole segment optional
-          regexStr = regexStr.slice(0, -2) + `(?:\\/${paramPattern})?`;
-        } else {
-          // First segment is optional
-          regexStr += `(?:${paramPattern})?`;
-        }
-      } else {
-        // Regular parameter
-        regexStr += paramPattern;
-      }
+      pattern += `:${paramName}`;
+      if (isOptional) pattern += "?";
     } else {
-      // Static segment
-      const escapedSegment = actualSegment.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&",
-      );
-
       if (isOptional) {
-        // For optional static segments, make the whole segment optional
-        // including the preceding slash (except for first segment)
-        if (regexStr.endsWith("\\/")) {
-          // Remove the last slash and make the whole segment optional
-          regexStr = regexStr.slice(0, -2) + `(?:\\/${escapedSegment})?`;
-        } else {
-          // First segment is optional
-          regexStr += `(?:${escapedSegment})?`;
-        }
+        pattern += `(${actualSegment})?`;
       } else {
-        // Regular static segment
-        regexStr += escapedSegment;
+        pattern += actualSegment;
       }
     }
   }
 
-  regexStr += "\\/?$";
-  return `/${regexStr}/`;
+  return pattern;
 };
 
 export const generateRouter = async (appFolder: string): Promise<void> => {
@@ -114,7 +78,7 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
     .map((file) => file.replace(tsRegex, ""))
     .sort(bySpecificity)
     .map((file) => {
-      return [file, varName(file), generateRegexPattern(file)] as const;
+      return [file, varName(file), generatePatternString(file)] as const;
     });
 
   const routeVars = routes
@@ -152,19 +116,19 @@ export const generateRouter = async (appFolder: string): Promise<void> => {
         return !suffix.startsWith(`${file}.`);
       });
     })
-    .map(([file, name, regex]) => {
+    .map(([file, name, pattern]) => {
       const fragments = [
         "$document",
         ...routes
           .filter(([prefix]) => file.startsWith(`${prefix}.`))
-          .map(([, name]) => {
-            return `$${name}`;
-          })
+          .map(([, name]) => `$${name}`)
           .reverse(),
         `$${name}`,
       ];
 
-      return `[${regex}, [${fragments.join(",")}]]`;
+      return `[new URLPattern({ pathname: ${JSON.stringify(
+        pattern,
+      )} }), [${fragments.join(",")}]]`;
     })
     .join(",\n");
 

@@ -38,7 +38,7 @@ export type mod = {
 export type fragment = { id: string; mod: mod; params?: string[] };
 
 // Route is now just [path, regex, fragments]
-export type route = [regex: RegExp, fragments: fragment[]];
+export type route = [pattern: URLPattern, fragments: fragment[]];
 
 export type router = {
   handle: (request: Request, ...args: ctx["context"]) => Promise<Response>;
@@ -49,29 +49,25 @@ export const Router = (routes: route[]): router => {
     request: Request,
     ...args: ctx["context"]
   ): Promise<Response> => {
-    const url = new URL(request.url);
-    let r = findRoute(routes, url.pathname);
-
-    if (!r) {
+    const urlStr = request.url;
+    const entry = routes.find(([pattern]) => pattern.test(urlStr));
+    if (!entry) {
       return new Response(null, { status: 404 });
     }
-
+    let [pattern, fragments] = entry;
     if (request.headers.has("fx-request")) {
-      // Remove the document properties if it's not an entirely new page
-      r.fragments = r.fragments.slice(1);
+      fragments = fragments.slice(1);
     }
-
-    const ctx = {
-      request,
-      params: r.params ?? {},
-      context: args,
-    };
+    const match = pattern.exec(urlStr)!;
+    const params: Record<string, string> = { ...match.pathname.groups };
+    if (params.wildcard) params["*"] = params.wildcard;
+    const ctx = { request, params, context: args };
 
     try {
-      const leaf = r.fragments.at(-1)?.mod;
+      const leaf = fragments.at(-1)?.mod;
 
       if (request.method === "GET" && leaf?.default) {
-        return await routeResponse(r.fragments, ctx);
+        return await routeResponse(fragments, ctx);
       }
 
       if (request.method === "GET" && leaf?.loader) {
@@ -99,26 +95,6 @@ export const Router = (routes: route[]): router => {
   return {
     handle,
   };
-};
-
-const findRoute = (routes: route[], pathname: string) => {
-  for (const [regex, fragments] of routes) {
-    const match = regex.exec(pathname);
-    if (match) {
-      const params: Record<string, string> = match?.groups ?? {};
-
-      // Special case for handling the wildcard segment
-      // skipping removing the wildcard key from params
-      // and hope nobody fucks up
-      if (params.wildcard) {
-        params["*"] = params.wildcard;
-      }
-
-      return { fragments, params };
-    }
-  }
-
-  return undefined;
 };
 
 const dataResponse = async (f: action | loader, ctx: ctx) => {

@@ -13,7 +13,7 @@ const $$_index = { id: "_index", mod: $_index };
 const $$_root = { id: "_root", mod: $_root };
 const $document = { id: "", mod: document };
 
-export const routes: route[] = [[/^\/auth\/?$/, [$document,$$auth__index]],
-[/^\/home\/?$/, [$document,$$_root,$$_root_home]],
-[/^\/auth\/(?<wildcard>.*)\/?$/, [$document,$$auth__]],
-[/^\/$/, [$document,$$_index]]];
+export const routes: route[] = [[new URLPattern({ pathname: "/auth" }), [$document,$$auth__index]],
+[new URLPattern({ pathname: "/home" }), [$document,$$_root,$$_root_home]],
+[new URLPattern({ pathname: "/auth/*" }), [$document,$$auth__]],
+[new URLPattern({ pathname: "/" }), [$document,$$_index]]];
