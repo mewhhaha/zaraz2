@@ -50,16 +50,24 @@ export const Router = (routes: route[]): router => {
     ...args: ctx["context"]
   ): Promise<Response> => {
     const urlStr = request.url;
-    const entry = routes.find(([pattern]) => pattern.test(urlStr));
-    if (!entry) {
+    let fragments: fragment[] | undefined;
+    let params: Record<string, string> | undefined;
+    for (const route of routes) {
+      const match = route[0].exec(urlStr);
+      if (match) {
+        fragments = route[1];
+        params = match.pathname.groups;
+        break;
+      }
+    }
+    if (!fragments || !params) {
       return new Response(null, { status: 404 });
     }
-    let [pattern, fragments] = entry;
+
     if (request.headers.has("fx-request")) {
       fragments = fragments.slice(1);
     }
-    const match = pattern.exec(urlStr)!;
-    const params: Record<string, string> = { ...match.pathname.groups };
+
     const ctx = { request, params, context: args };
 
     try {
