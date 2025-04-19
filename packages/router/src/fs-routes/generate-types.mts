@@ -134,6 +134,7 @@ function extractParamsFromRoute(routeName: string): {
 } {
   const paramNames = new Set<string>();
   const optionalParams = new Set<string>();
+  let wildcard = 0;
 
   routeName.split(unescapedDotRegex).forEach((segment) => {
     // Check if this is an optional segment
@@ -141,8 +142,12 @@ function extractParamsFromRoute(routeName: string): {
     const actualSegment = isOptional ? segment.slice(1, -1) : segment;
 
     // Check if it's a parameter
-    if (actualSegment === "$") {
-      return; // Skip wildcard params
+    if (actualSegment === "$" && isOptional) {
+      optionalParams.add(wildcard.toString());
+      wildcard++;
+    } else if (actualSegment === "$") {
+      paramNames.add(wildcard.toString());
+      wildcard++;
     } else if (actualSegment.startsWith("$")) {
       const paramName = actualSegment.slice(1);
       paramNames.add(paramName);
@@ -151,8 +156,6 @@ function extractParamsFromRoute(routeName: string): {
       if (isOptional) {
         optionalParams.add(paramName);
       }
-    } else if (actualSegment === "*") {
-      paramNames.add("*");
     }
   });
 

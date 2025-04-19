@@ -60,7 +60,6 @@ export const Router = (routes: route[]): router => {
     }
     const match = pattern.exec(urlStr)!;
     const params: Record<string, string> = { ...match.pathname.groups };
-    if (params.wildcard) params["*"] = params.wildcard;
     const ctx = { request, params, context: args };
 
     try {

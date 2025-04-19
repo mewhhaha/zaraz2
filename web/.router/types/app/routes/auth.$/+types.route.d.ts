@@ -6,7 +6,7 @@ import type {
 } from "@mewhhaha/fx-router/types";
 import * as r from "./route.js";
 
-export type RouteParams = Record<never, never>;
+export type RouteParams = { 0: string; };
 
 export type ComponentProps = InferComponentProps<typeof r>;
 export type LoaderArgs = InferLoaderArgs<RouteParams>;

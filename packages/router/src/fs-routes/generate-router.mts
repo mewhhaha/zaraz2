@@ -6,12 +6,6 @@ const unescapedDotRegex = /(?<!\[)\.(?![^[]*\])/g;
 
 const tsRegex = /\.ts(x)?$/;
 
-const paramRegex = /^\$/g;
-
-const splatRegex = /\$$/g;
-
-const pathlessRegex = /^_.*/;
-
 /**
  * Generate a regex literal for a route path using named capture groups
  * Supports optional segments marked with parentheses: (segment) or ($param)
