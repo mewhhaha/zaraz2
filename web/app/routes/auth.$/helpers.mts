@@ -197,6 +197,15 @@ export type Auth = {
   expires: string;
 };
 
+export class AuthExpiredError extends Error {
+  auth: Auth;
+
+  constructor(auth: Auth) {
+    super("auth_expired");
+    this.auth = auth;
+  }
+}
+
 export const createAuthCookie = createCookie<Auth, "auth">;
 
 export const authenticate = async (request: Request, secret: string) => {
@@ -209,7 +218,7 @@ export const authenticate = async (request: Request, secret: string) => {
   }
 
   if (new Date(auth.expires) < new Date()) {
-    throw new Error("auth_expired");
+    throw new AuthExpiredError(auth);
   }
 
   return auth;

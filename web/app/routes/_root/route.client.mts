@@ -9,7 +9,9 @@ const refresh = async () => {
     const challengeUri = "/auth/challenge";
 
     const expiresInput = document.querySelector("input[name=expires]");
-    const credentialIdInput = document.querySelector("input[name=expires]");
+    const credentialIdInput = document.querySelector(
+      "input[name=credential-id]",
+    );
 
     if (!(expiresInput instanceof HTMLInputElement)) {
       throw new Error("Missing expires input");

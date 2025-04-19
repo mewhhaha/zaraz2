@@ -1,6 +1,7 @@
 import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
 import {
   authenticate,
+  AuthExpiredError,
   createAuthCookie,
   extractVisitorHeaders,
   parseToken,
@@ -216,18 +217,38 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
     const auth = await authenticate(request, env.SECRET_KEY);
     const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(auth.username));
     return { auth, account: await user.account().data(), locale, timezone };
-  } catch {
+  } catch (error) {
+    if (error instanceof AuthExpiredError) {
+      return { auth: error.auth, account: undefined, locale, timezone };
+    }
+
     // If authentication fails or cookie is invalid/expired, return undefined user
     return { auth: undefined, account: undefined, locale, timezone };
   }
 };
 
+const client = new URL("./route.client.mts", import.meta.url);
+
 // Main component for the authentication route
 export default function Route({
   loaderData: { auth, account, locale, timezone },
 }: t.ComponentProps) {
-  if (!auth || !account) {
-    return <SignedOut />;
+  if (!account) {
+    return (
+      <>
+        {auth && (
+          <form>
+            <input
+              type="hidden"
+              name="credential-id"
+              value={auth.credentialId}
+            />
+            <script src={client.pathname} />
+          </form>
+        )}
+        <SignedOut />
+      </>
+    );
   }
 
   return (
