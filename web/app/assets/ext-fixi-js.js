@@ -3,7 +3,7 @@ document.addEventListener("fx:config", (evt) => {
   if (typeof cfg.action === "string" && /\.(m?js)$/.test(cfg.action)) {
     cfg.fetch = async (action, options) => {
       const mod = await import(action);
-      return await mod.default(action, options);
+      return await mod.default(options);
     };
   }
 });

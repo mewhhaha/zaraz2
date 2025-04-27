@@ -227,8 +227,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   }
 };
 
-const client = new URL("./route.client.mts", import.meta.url);
-
 // Main component for the authentication route
 export default function Route({
   loaderData: { auth, account, locale, timezone },
@@ -237,14 +235,11 @@ export default function Route({
     return (
       <>
         {auth && (
-          <form>
-            <input
-              type="hidden"
-              name="credential-id"
-              value={auth.credentialId}
-            />
-            <script src={client.pathname} />
-          </form>
+          <input
+            type="hidden"
+            fx-init={new URL("./auto.client.mts", import.meta.url)}
+            value={auth.credentialId}
+          />
         )}
         <SignedOut />
       </>
@@ -292,10 +287,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action="/auth"
+            fx-action={new URL("./register.client.ts", import.meta.url).href}
             fx-method="POST"
             fx-target="#passkeys-list"
-            ext-fx-passkey-register="/auth/challenge"
           >
             <input type="hidden" name="username" value={auth.username} />
             <button

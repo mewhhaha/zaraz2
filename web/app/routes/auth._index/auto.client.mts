@@ -1,11 +1,6 @@
 import { authenticate } from "@packages/passkey";
 
-const autoAuthenticate = async () => {
-  const input = document.querySelector("input[name='credential-id']");
-  if (!(input instanceof HTMLInputElement)) {
-    return;
-  }
-
+export default async (input: HTMLInputElement) => {
   const token = await authenticate("/auth/challenge", [input.value]);
   if (token) {
     const formData = new FormData();
@@ -20,5 +15,3 @@ const autoAuthenticate = async () => {
     }
   }
 };
-
-autoAuthenticate();
