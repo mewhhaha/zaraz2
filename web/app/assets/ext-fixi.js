@@ -10,3 +10,4 @@ import "./ext-fixi-allow-default.js";
 import "./ext-fixi-transition.js";
 import "./ext-fixi-reload.js";
 import "./ext-fixi-trigger-value.js";
+import "./ext-fixi-js.js";
