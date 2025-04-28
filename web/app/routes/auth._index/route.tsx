@@ -287,7 +287,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action={new URL("./register.client.ts", import.meta.url).href}
+            fx-action={new URL("./register.client.mts", import.meta.url).href}
             fx-method="POST"
             fx-target="#passkeys-list"
           >
@@ -455,10 +455,7 @@ const SignedOut = () => {
         </h2>
 
         <MenuButton
-          fx-action="/auth/verify"
-          fx-method="POST"
-          ext-fx-passkey-verify="/auth/challenge"
-          ext-fx-reload
+          fx-action={new URL("./verify.client.mts", import.meta.url).href}
           class={`
             mb-10
 
@@ -476,9 +473,7 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action="/auth/register"
-          fx-method="POST"
-          ext-fx-passkey-register="/auth/challenge"
+          fx-action={new URL("./register.client.mts", import.meta.url).href}
           class={`flex flex-col gap-2`}
         >
           <div class={`flex flex-col gap-2`}>
