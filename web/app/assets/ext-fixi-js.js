@@ -10,7 +10,7 @@ document.addEventListener("fx:config", (evt) => {
 
 document.addEventListener("fx:init", async (evt) => {
   const elt = evt.target;
-  const init = elt.getAttribute("fx-init");
+  const init = elt.getAttribute("ext-fx-init");
   if (typeof init === "string" && /\.(m?js)$/.test(init)) {
     const mod = await import(init);
     mod.default(elt);

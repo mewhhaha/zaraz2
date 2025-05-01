@@ -238,7 +238,7 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            fx-init={new URL("./auto.client.mts", import.meta.url)}
+            ext-fx-init={new URL("./auto.client.mts", import.meta.url)}
             value={auth.credentialId}
           />
         )}
@@ -470,6 +470,7 @@ const SignedOut = () => {
         <MenuButton
           fx-action={new URL("./verify.client.mts", import.meta.url).pathname}
           fx-target="body"
+          fx-method="POST"
           fx-swap="innerHTML"
           class={`
             mb-10
@@ -490,6 +491,7 @@ const SignedOut = () => {
         <form
           fx-action={new URL("./register.client.mts", import.meta.url).pathname}
           fx-target="body"
+          fx-method="POST"
           fx-swap="innerHTML"
           class={`flex flex-col gap-2`}
         >
