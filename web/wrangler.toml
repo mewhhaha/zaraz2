@@ -2,6 +2,7 @@
 name = "zaraz2"
 main = "./dist/main.js"
 build.watch_dir = "dist"
+compatibility_flags = ["nodejs_compat"]
 
 
 compatibility_date = "2025-03-08"

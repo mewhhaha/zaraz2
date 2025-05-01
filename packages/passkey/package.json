@@ -18,8 +18,8 @@
   "sideEffects": false,
   "devDependencies": {
     "@passwordless-id/webauthn": "^2.1.2",
-    "esbuild": "^0.25.2",
+    "esbuild": "^0.25.3",
     "typescript": "^5.8.3",
-    "wrangler": "4.9.1"
+    "wrangler": "4.13.2"
   }
 }
