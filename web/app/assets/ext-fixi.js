@@ -1,13 +1,6 @@
 import "./ext-fixi-history.js";
-import "./ext-fixi-prompt.js";
-import "./ext-fixi-confirm.js";
-import "./ext-fixi-confetti.js";
 import "./ext-fixi-trusted-types.js";
 import "./ext-fixi-indicator.js";
-import "./ext-fixi-passkey-verify.js";
-import "./ext-fixi-passkey-register.js";
-import "./ext-fixi-allow-default.js";
-import "./ext-fixi-transition.js";
-import "./ext-fixi-reload.js";
-import "./ext-fixi-trigger-value.js";
 import "./ext-fixi-js.js";
+import "./ext-fixi-prompt.js";
+import "./ext-fixi-confirm.js";

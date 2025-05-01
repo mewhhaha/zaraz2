@@ -120,7 +120,7 @@ const routeResponse = async (fragments: fragment[], ctx: ctx) => {
   const init = new Headers({
     "Content-Type": "text/html",
   });
-  const headers = await appendAllHeaders(init, ctx, fragments, loaders);
+  const headers = await mergeFragmentHeaders(init, ctx, fragments, loaders);
 
   const write = async () => {
     let html = "<!doctype html>";
@@ -145,32 +145,19 @@ const routeResponse = async (fragments: fragment[], ctx: ctx) => {
   });
 };
 
-const appendAllHeaders = async (
+const mergeFragmentHeaders = async (
   headers: Headers,
   ctx: ctx,
   fragments: fragment[],
   loaders: (Promise<unknown> | undefined)[],
 ) => {
   for (let i = 0; i < fragments.length; i++) {
-    const fragment = fragments[i];
-    const loaderData = loaders[i];
-
-    if (!fragment.mod.headers) {
-      continue;
-    }
-
-    const h = await fragment.mod.headers?.({
-      ...ctx,
-      loaderData,
-    });
-
-    const entries = h instanceof Headers ? h.entries() : Object.entries(h);
-
-    for (const [key, value] of entries) {
-      if (value === undefined || value === null) {
-        continue;
-      }
-      headers.append(key, value);
+    const { mod } = fragments[i];
+    if (!mod.headers) continue;
+    const h = await mod.headers({ ...ctx, loaderData: loaders[i] });
+    if (!h) continue;
+    for (const [k, v] of h instanceof Headers ? h : Object.entries(h)) {
+      if (v != null) headers.append(k, v);
     }
   }
   return headers;

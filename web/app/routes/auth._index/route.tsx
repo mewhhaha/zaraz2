@@ -131,8 +131,9 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   if (request.method === "POST" && formData["intent"] === "signout") {
     const cookie = createAuthCookie("auth", env.SECRET_KEY);
     return new Response(null, {
-      status: 204,
+      status: 303,
       headers: {
+        Location: "/",
         "Set-Cookie": cookie.destroy(),
       },
     });
@@ -287,7 +288,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action={new URL("./register.client.mts", import.meta.url).href}
+            fx-action={
+              new URL("./add-passkey.client.mts", import.meta.url).pathname
+            }
             fx-method="POST"
             fx-target="#passkeys-list"
           >
@@ -319,7 +322,8 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         value="signout"
         fx-action="/auth"
         fx-method="POST"
-        ext-fx-reload
+        fx-target="body"
+        fx-swap="innerHTML"
       >
         Sign out
       </MenuButton>
@@ -368,7 +372,10 @@ const PasskeyList = ({
                 sm:flex
               `}
             >
-              <RenameButton passkeyId={passkey.passkeyId} />
+              <RenameButton
+                passkeyId={passkey.passkeyId}
+                currentName={passkey.name}
+              />
               <DeleteButton passkeyId={passkey.passkeyId} auth={auth} />
             </div>
           </div>
@@ -389,7 +396,10 @@ const PasskeyList = ({
               sm:hidden
             `}
           >
-            <RenameButton passkeyId={passkey.passkeyId} />
+            <RenameButton
+              passkeyId={passkey.passkeyId}
+              currentName={passkey.name}
+            />
             <DeleteButton passkeyId={passkey.passkeyId} auth={auth} />
           </div>
         </li>
@@ -429,17 +439,20 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
 
 type RenameButtonProps = {
   passkeyId: string;
+  currentName: string;
 };
 
-const RenameButton = ({ passkeyId }: RenameButtonProps) => {
+const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
     <form fx-action="/auth" fx-target="#passkeys-list" fx-method="PATCH">
       <input type="hidden" name="id" value={passkeyId} />
-      <IconButton
-        aria-label="Rename passkey"
+      <input
+        type="hidden"
         name="name"
+        value={currentName}
         ext-fx-prompt="What should we call this passkey?"
-      >
+      />
+      <IconButton aria-label="Rename passkey">
         <PencilIcon class={`inline-block size-5`} />
       </IconButton>
     </form>
@@ -455,7 +468,9 @@ const SignedOut = () => {
         </h2>
 
         <MenuButton
-          fx-action={new URL("./verify.client.mts", import.meta.url).href}
+          fx-action={new URL("./verify.client.mts", import.meta.url).pathname}
+          fx-target="body"
+          fx-swap="innerHTML"
           class={`
             mb-10
 
@@ -473,7 +488,9 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action={new URL("./register.client.mts", import.meta.url).href}
+          fx-action={new URL("./register.client.mts", import.meta.url).pathname}
+          fx-target="body"
+          fx-swap="innerHTML"
           class={`flex flex-col gap-2`}
         >
           <div class={`flex flex-col gap-2`}>

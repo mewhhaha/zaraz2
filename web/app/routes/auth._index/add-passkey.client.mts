@@ -1,7 +1,7 @@
 import { register } from "@packages/passkey";
 import type { FxAction, FxActionOptions } from "../../ext-fixi";
 
-const registerHandler: FxAction = async (options: FxActionOptions) => {
+const addPasskeyHandler: FxAction = async (options: FxActionOptions) => {
   const form = options.body;
   const username = form.get("username");
   if (!username) {
@@ -14,7 +14,7 @@ const registerHandler: FxAction = async (options: FxActionOptions) => {
   }
 
   form.set("token", token);
-  return fetch("/auth/register", {
+  return fetch("/auth", {
     method: "POST",
     headers: {
       "fx-request": "true",
@@ -23,4 +23,4 @@ const registerHandler: FxAction = async (options: FxActionOptions) => {
   });
 };
 
-export default registerHandler;
+export default addPasskeyHandler;

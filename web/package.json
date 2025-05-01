@@ -18,9 +18,11 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250409.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.15",
+    "@mewhhaha/eslint-plugin-url-exists": "workspace:*",
     "@mewhhaha/fx-router": "workspace:^",
     "@tailwindcss/node": "^4.1.3",
     "@tailwindcss/oxide": "^4.1.3",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
     "eslint": "^9.24.0",
     "eslint-plugin-oxlint": "^0.16.5",

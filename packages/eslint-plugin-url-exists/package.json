@@ -1,0 +1,35 @@
+{
+  "name": "@mewhhaha/eslint-plugin-url-exists",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "",
+  "scripts": {
+    "build": "tsc -b && publint --strict",
+    "lint": "oxlint"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/plugin.d.mts",
+        "default": "./dist/plugin.mjs"
+      }
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.0",
+    "@typescript-eslint/utils": "^8.29.1",
+    "eslint": "^9.24.0",
+    "oxlint": "^0.16.5",
+    "prettier": "^3.5.3",
+    "publint": "^0.3.10",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.1"
+  }
+}

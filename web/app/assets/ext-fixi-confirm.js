@@ -1,9 +1,11 @@
-// fixi confirmation extension
-document.addEventListener("fx:config", (evt) => {
-  if (evt.target.getAttribute("ext-fx-confirm")) {
-    const confirmationMessage = evt.target.getAttribute("ext-fx-confirm");
-    if (confirmationMessage) {
-      evt.detail.cfg.confirm = () => confirm(confirmationMessage);
-    }
+document.addEventListener("fx:config", (event) => {
+  const { cfg } = event.detail;
+  const elt = event.target;
+
+  const confirmMsg = elt.getAttribute("ext-fx-confirm");
+  if (confirmMsg) {
+    cfg.confirm = async () => {
+      return window.confirm(confirmMsg);
+    };
   }
 });

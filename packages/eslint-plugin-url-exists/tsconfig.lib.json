@@ -1,0 +1,24 @@
+{
+    "include": ["src"],
+    "compilerOptions": {
+      "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo.lib.json",
+      "composite": true,
+      "lib": ["ESNext"],
+      "isolatedModules": true,
+      "esModuleInterop": true,
+      "module": "NodeNext",
+      "moduleResolution": "nodenext",
+      "resolveJsonModule": true,
+      "target": "ESNext",
+      "strict": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "allowSyntheticDefaultImports": true,
+      "noEmit": false,
+      "declaration": true,
+      "outDir": "./dist",
+      "rootDir": "src",
+      "verbatimModuleSyntax": true,
+      "erasableSyntaxOnly": true
+    }
+  }

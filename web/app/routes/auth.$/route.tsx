@@ -30,19 +30,19 @@ export const action = async ({
   const url = new URL(request.url);
   const pathname = url.pathname.slice("/auth".length);
 
-  if (pathname.match(/^\/refresh\/?$/)) {
+  if (new URLPattern({ pathname: "/refresh{/}?" }).test({ pathname })) {
     return await refresh(args);
   }
 
-  if (pathname.match(/^\/challenge\/?$/)) {
+  if (new URLPattern({ pathname: "/challenge{/}?" }).test({ pathname })) {
     return await challenge(args);
   }
 
-  if (pathname.match(/^\/verify\/?$/)) {
+  if (new URLPattern({ pathname: "/verify{/}?" }).test({ pathname })) {
     return await verify(args);
   }
 
-  if (pathname.match(/^\/register\/?$/)) {
+  if (new URLPattern({ pathname: "/register{/}?" }).test({ pathname })) {
     return await register(args);
   }
 

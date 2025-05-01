@@ -14,11 +14,13 @@ const refresh = async () => {
     );
 
     if (!(expiresInput instanceof HTMLInputElement)) {
-      throw new Error("Missing expires input");
+      console.log("Missing expires input");
+      return;
     }
 
     if (!(credentialIdInput instanceof HTMLInputElement)) {
-      throw new Error("Missing credentialId input");
+      console.log("Missing credentialId input");
+      return;
     }
 
     let response;
@@ -33,6 +35,7 @@ const refresh = async () => {
       response = await fetch("/auth/verify", {
         method: "POST",
         body: formData,
+        redirect: "manual",
       });
     }
 

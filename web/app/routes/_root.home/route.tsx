@@ -165,13 +165,17 @@ export default function Home({ loaderData }: t.ComponentProps) {
               <Task
                 data-last={current === undefined}
                 data-direction={direction}
-                ext-fx-confetti={confetti}
+                data-view-transition={direction !== null}
+                class={`
+                  view-name-[task]
+
+                  data-last:invisible
+                `}
               >
                 {current?.text}
               </Task>
               {!current && (
                 <div
-                  ext-fx-confetti={confetti}
                   class={`z-10 flex items-center text-xl font-bold text-black`}
                 >
                   You did it. You're a real human 🫘.
@@ -183,7 +187,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
         <header class={`relative flex w-full justify-end`}>
           <form
             id="menu-form"
-            fx-action={"/home"}
+            fx-action={new URL("./menu.client.mts", import.meta.url).pathname}
             fx-method="POST"
             fx-target="body"
             fx-swap="innerHTML"
@@ -305,24 +309,19 @@ type TaskProps = JSX.IntrinsicElements["p"];
 const Task = ({ children, class: className, ...props }: TaskProps) => {
   return (
     <div
-      style=""
+      id="task"
       class={cx(
         `
           z-10 h-fit w-fit self-center justify-self-center rounded-full bg-blue-800 px-10 py-2
           text-center font-serif text-4xl text-gray-100 drop-shadow-sm/100
           transition-[opacity_transform] duration-300 text-shadow-lg/100
-          view-name-[task]
 
           data-indicator:opacity-70
-
-          data-last:invisible
 
           starting:scale-150 starting:opacity-0
         `,
         className,
       )}
-      id="task"
-      data-view-transition
       {...props}
     >
       {children}

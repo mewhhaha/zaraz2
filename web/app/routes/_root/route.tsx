@@ -29,7 +29,7 @@ export default function Root({
       {user && (
         <input type="hidden" name="credential-id" value={user.credentialId} />
       )}
-      {user && <script nonce={nonce} type="module" src={client.pathname} />}
+      <script nonce={nonce} type="module" src={client.pathname} />
       {children}
     </>
   );

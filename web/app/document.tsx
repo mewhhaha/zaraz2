@@ -56,7 +56,15 @@ export default function Document({
         <script nonce={nonce} src={fixiExtUrl.pathname} defer></script>
         <script nonce={nonce} src={cmdUrl.pathname} defer></script>
       </head>
-      <body class={`bg-slate-950 text-amber-50`}>{children}</body>
+      <body
+        class={`
+          bg-slate-950 text-amber-50 transition-[filter] duration-300
+
+          inert:grayscale-100
+        `}
+      >
+        {children}
+      </body>
     </html>
   );
 }

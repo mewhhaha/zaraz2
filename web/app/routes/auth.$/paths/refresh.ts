@@ -21,8 +21,8 @@ export default async function ({
 
   user.expires = expires();
 
-  return new Response(null, {
-    status: 204,
+  return new Response(JSON.stringify({ expires: user.expires }), {
+    status: 200,
     headers: {
       "Set-Cookie": await cookie.serialize(user),
     },
