@@ -12,16 +12,14 @@
     "format": "prettier --write .",
     "routes": "fs-routes ./app",
     "build": "node gen-routes.ts && vite build",
-    "watch": "vite build --watch",
-    "wrangler-dev": "wrangler dev --live-reload",
-    "dev": "run-p wrangler-dev watch"
+    "dev": "wrangler dev --live-reload"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.13.14",
     "@cloudflare/workers-types": "^4.20251014.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.15",
     "@mewhhaha/eslint-plugin-url-exists": "workspace:*",
-    "@mewhhaha/ruwuter": "jsr:^0.1.20",
+    "@mewhhaha/ruwuter": "jsr:^0.1.21",
     "@prettier/plugin-oxc": "^0.0.4",
     "@tailwindcss/node": "^4.1.15",
     "@tailwindcss/oxide": "^4.1.15",

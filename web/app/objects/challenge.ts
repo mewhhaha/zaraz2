@@ -17,7 +17,11 @@ export class DurableObjectChallenge extends DurableObject<Env> {
   }
 
   async save(state: unknown) {
-    if (await this.store.has("#data")) {
+    const exists = await this.store.get("#data").then(
+      () => true,
+      () => false,
+    );
+    if (exists) {
       return "challenge_exists" as const;
     }
 

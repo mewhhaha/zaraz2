@@ -103,11 +103,18 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async exists() {
-    return this.store.has("#account");
+    return this.store.get("#account").then(
+      () => true,
+      () => false,
+    );
   }
 
   async create(account: Account) {
-    if (await this.store.has("#account")) {
+    const exists = await this.store.get("#account").then(
+      () => true,
+      () => false,
+    );
+    if (exists) {
       return "user_exists" as const;
     }
 

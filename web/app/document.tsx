@@ -52,11 +52,11 @@ export default function Document({
           crossorigin=""
         />
         <link rel="stylesheet" href={stylesUrl} />
-        <script nonce={nonce} src={fixiUrl} defer></script>
-        <script nonce={nonce} src={fixiExtUrl} defer></script>
-        <script nonce={nonce} src={cmdUrl} defer></script>
-        <script nonce={nonce} src={clientUrl} defer></script>
-        <script nonce={nonce} src={resolveUrl} defer></script>
+        <script nonce={nonce} src={fixiUrl} async></script>
+        <script nonce={nonce} src={fixiExtUrl} async></script>
+        <script nonce={nonce} src={cmdUrl} async></script>
+        <script type="module" nonce={nonce} src={clientUrl} async></script>
+        <script type="module" nonce={nonce} src={resolveUrl} async></script>
       </head>
       <body
         class={`
