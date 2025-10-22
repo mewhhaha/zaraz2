@@ -1,6 +1,6 @@
 import type { Env } from "@mewhhaha/ruwuter";
 import { DurableObject, RpcTarget } from "cloudflare:workers";
-import { store } from "../helpers/store";
+import { createStore, DurableStore } from "../helpers/store";
 
 type PasskeyLink = {
   name: string;
@@ -25,34 +25,29 @@ export type Task = {
   completed: Date | undefined;
 };
 
+type UserStore = {
+  "#account": Account;
+  "#tasks": Map<string, Task>;
+  "#completed": number;
+};
+
 export class DurableObjectUser extends DurableObject<Env> {
-  @store
-  accessor #account: Promise<Account>;
-
-  @store
-  accessor #tasks: Promise<Map<string, Task>>;
-
-  @store
-  accessor #completed: Promise<number>;
+  private readonly store: DurableStore<UserStore>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    const read = async <T,>(key: string): Promise<T> => {
-      const v = await state.storage.get<T>(key);
-      if (v === undefined) {
-        return Promise.reject("Missing " + key);
-      }
-      return v;
-    };
-
-    this.#account = read("#account");
-    this.#tasks = read("#tasks");
-    this.#completed = read("#completed");
+    this.store = createStore(state.storage, {
+      "#account": () => state.storage.get<Account>("#account"),
+      "#tasks": async () =>
+        (await state.storage.get<Map<string, Task>>("#tasks")) ?? new Map(),
+      "#completed": async () =>
+        (await state.storage.get<number>("#completed")) ?? 0,
+    });
   }
 
   async listTasks() {
-    const tasks = await this.#tasks;
-    const completed = await this.#completed;
+    const tasks = await this.store.get("#tasks");
+    const completed = await this.store.get("#completed");
 
     return {
       current: [...tasks.values()].at(-1),
@@ -61,7 +56,7 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async addTask(text: string) {
-    const tasks = await this.#tasks;
+    const tasks = await this.store.get("#tasks");
     const id = crypto.randomUUID();
     tasks.set(id, {
       id,
@@ -69,104 +64,99 @@ export class DurableObjectUser extends DurableObject<Env> {
       created: new Date(),
       completed: undefined,
     });
-    this.#tasks = Promise.resolve(tasks);
+    this.store.set("#tasks", tasks);
 
     return { next: [...tasks].at(-1) } as const;
   }
 
   async completeTask(id: string) {
-    const tasks = await this.#tasks;
+    const tasks = await this.store.get("#tasks");
     const task = tasks.get(id);
     if (task === undefined) {
       return { error: true, message: "missing_task" } as const;
     }
     task.completed = new Date();
     tasks.delete(id);
-    this.#tasks = Promise.resolve(tasks);
+    this.store.set("#tasks", tasks);
 
-    const completed = await this.#completed;
+    const completed = await this.store.get("#completed");
     const historyKey = createHistoryKey(completed);
     let next = await this.ctx.storage.get<Task[]>(historyKey);
     next ??= [];
     next.push(task);
     this.ctx.storage.put(historyKey, next);
 
-    this.#completed = Promise.resolve(completed + 1);
+    this.store.set("#completed", completed + 1);
     return { error: false, next: [...tasks].at(-1) } as const;
   }
 
   async cycleTasks() {
-    const tasks = [...(await this.#tasks)];
+    const tasks = [...(await this.store.get("#tasks"))];
     const first = tasks.pop();
     if (first) {
       tasks.unshift(first);
     }
 
-    this.#tasks = Promise.resolve(new Map(tasks));
+    const next = new Map(tasks);
+    this.store.set("#tasks", next);
     return { error: false, next: tasks.at(-1) } as const;
   }
 
   async exists() {
-    try {
-      await this.#account;
-      return true;
-    } catch {
-      return false;
-    }
+    return this.store.has("#account");
   }
 
   async create(account: Account) {
-    try {
-      await this.#account;
+    if (await this.store.has("#account")) {
       return "user_exists" as const;
-    } catch {
-      this.#account = Promise.resolve(account);
-      this.#completed = Promise.resolve(0);
-      this.#tasks = Promise.resolve(new Map());
-      return account;
     }
+
+    this.store.set("#account", account);
+    this.store.set("#completed", 0);
+    this.store.set("#tasks", new Map());
+    return account;
   }
 
   async account() {
     const that = this;
     class AccountRpc extends RpcTarget {
       async data() {
-        return await that.#account;
+        return that.store.get("#account");
       }
 
       async link(passkeyLink: PasskeyLink) {
-        const account = await that.#account;
+        const account = await that.store.get("#account");
         account.passkeys.unshift(passkeyLink);
-        that.#account = Promise.resolve(account);
+        that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
       async rename(passkeyId: string, name: string) {
-        const account = await that.#account;
+        const account = await that.store.get("#account");
         const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
         if (passkey) {
           passkey.name = name;
         }
-        that.#account = Promise.resolve(account);
+        that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
       async remove(passkeyId: string) {
-        const account = await that.#account;
+        const account = await that.store.get("#account");
         account.passkeys = account.passkeys.filter(
           (p) => p.passkeyId !== passkeyId,
         );
-        that.#account = Promise.resolve(account);
+        that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
       async used(passkeyId: string) {
-        const account = await that.#account;
+        const account = await that.store.get("#account");
         const passkey = account.passkeys.find((p) => p.passkeyId === passkeyId);
         if (passkey) {
           passkey.lastUsedAt = new Date();
         }
-        that.#account = Promise.resolve(account);
+        that.store.set("#account", account);
       }
     }
     return new AccountRpc();

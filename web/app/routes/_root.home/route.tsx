@@ -1,6 +1,6 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import type { Route as t } from "./+types.route";
-import { authenticate } from "../auth.$/helpers.mts";
+import { authenticate } from "../auth.$/helpers.ts";
 import { cx } from "../../helpers/style";
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
@@ -187,7 +187,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
         <header class={`relative flex w-full justify-end`}>
           <form
             id="menu-form"
-            fx-action={new URL("./menu.client.mts", import.meta.url).pathname}
+          fx-action={new URL("./menu.client.ts", import.meta.url).pathname}
             fx-method="POST"
             fx-target="body"
             fx-swap="innerHTML"

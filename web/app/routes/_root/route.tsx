@@ -1,5 +1,5 @@
 import type { Route as t } from "./+types.route";
-import { authenticate } from "../auth.$/helpers.mts";
+import { authenticate } from "../auth.$/helpers.ts";
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {
@@ -17,7 +17,7 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   }
 };
 
-const client = new URL("./route.client.mts", import.meta.url);
+const client = new URL("./route.client.ts", import.meta.url);
 
 export default function Root({
   children,

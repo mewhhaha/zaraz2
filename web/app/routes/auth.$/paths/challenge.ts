@@ -1,4 +1,4 @@
-import { hmac } from "../helpers.mts";
+import { hmac } from "../helpers.ts";
 import type { EnvAuth } from "../env";
 
 export default async function ({

@@ -8,7 +8,7 @@ import type {
   RegistrationJSON,
 } from "@passwordless-id/webauthn/dist/esm/types.js";
 import type { Env } from "@mewhhaha/ruwuter";
-import { store } from "../helpers/store";
+import { createStore, DurableStore } from "../helpers/store";
 
 const VISITOR_HISTORY_LENGTH = 10;
 
@@ -37,40 +37,32 @@ export type Passkey = {
   metadata: Metadata;
 };
 
+type PasskeyStore = {
+  "#metadata": Metadata;
+  "#credential": CredentialInfo;
+  "#visitors": Visitor[];
+  "#authenticator": AuthenticatorInfo;
+};
+
 export class DurableObjectPasskey extends DurableObject<Env> {
-  @store
-  accessor #metadata: Promise<Metadata>;
-
-  @store
-  accessor #credential: Promise<CredentialInfo>;
-
-  @store
-  accessor #visitors: Promise<Visitor[]>;
-
-  @store
-  accessor #authenticator: Promise<AuthenticatorInfo>;
+  private readonly store: DurableStore<PasskeyStore>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    const read = async <T,>(key: string): Promise<T> => {
-      const v = await state.storage.get<T>(key);
-      if (v === undefined) {
-        return Promise.reject("Missing " + key);
-      }
-      return v;
-    };
-
-    this.#metadata = read("#metadata");
-    this.#credential = read("#credential");
-    this.#visitors = read("#visitors");
-    this.#authenticator = read("#authenticator");
+    this.store = createStore(state.storage, {
+      "#metadata": () => state.storage.get<Metadata>("#metadata"),
+      "#credential": () => state.storage.get<CredentialInfo>("#credential"),
+      "#visitors": async () =>
+        (await state.storage.get<Visitor[]>("#visitors")) ?? [],
+      "#authenticator": () =>
+        state.storage.get<AuthenticatorInfo>("#authenticator"),
+    });
   }
 
   async register({ json, visited, username, challengeId }: Registration) {
-    try {
-      await this.#metadata;
+    if (await this.store.has("#metadata")) {
       return "passkey_exists" as const;
-    } catch {}
+    }
 
     try {
       const { authenticator, credential } = await server.verifyRegistration(
@@ -88,10 +80,10 @@ export class DurableObjectPasskey extends DurableObject<Env> {
       };
       const visitors = [makeVisitor(visited)];
 
-      this.#visitors = Promise.resolve(visitors);
-      this.#credential = Promise.resolve(credential);
-      this.#metadata = Promise.resolve(metadata);
-      this.#authenticator = Promise.resolve(authenticator);
+      this.store.set("#visitors", visitors);
+      this.store.set("#credential", credential);
+      this.store.set("#metadata", metadata);
+      this.store.set("#authenticator", authenticator);
 
       return { metadata };
     } catch (e) {
@@ -101,9 +93,9 @@ export class DurableObjectPasskey extends DurableObject<Env> {
   }
 
   async authenticate({ json, challengeId, visited }: TryAuthenticate) {
-    const metadata = await this.#metadata;
-    const credential = await this.#credential;
-    const visitors = await this.#visitors;
+    const metadata = await this.store.get("#metadata");
+    const credential = await this.store.get("#credential");
+    const visitors = await this.store.get("#visitors");
 
     try {
       const authenticationInfo = await server.verifyAuthentication(
@@ -118,7 +110,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
       const visitor = makeVisitor(visited, authenticationInfo);
       const next = [visitor, ...visitors].slice(0, VISITOR_HISTORY_LENGTH);
-      this.#visitors = Promise.resolve(next);
+      this.store.set("#visitors", next);
 
       return { metadata };
     } catch (e) {
@@ -129,18 +121,18 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
   /** self destruct the passkey, deleting all the data */
   async destruct(username: string) {
-    if (username !== (await this.#metadata).username) {
+    const metadata = await this.store.maybe("#metadata");
+    if (!metadata || username !== metadata.username) {
       return "unauthorized" as const;
     }
 
     void this.ctx.storage.deleteAll();
     void this.ctx.storage.deleteAlarm();
 
-    // get the metadata before clearing the field so we can return it
-    const metadata = await this.#metadata;
-    this.#metadata = Promise.reject();
-    this.#credential = Promise.reject();
-    this.#visitors = Promise.reject();
+    this.store.delete("#metadata");
+    this.store.delete("#credential");
+    this.store.delete("#visitors");
+    this.store.delete("#authenticator");
 
     return { metadata };
   }

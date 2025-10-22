@@ -1,6 +1,6 @@
-import type { DurableObjectChallenge } from "../../objects/challenge.mts";
-import type { DurableObjectPasskey } from "../../objects/passkey.mts";
-import type { DurableObjectUser } from "../../objects/user.mts";
+import type { DurableObjectChallenge } from "../../objects/challenge.ts";
+import type { DurableObjectPasskey } from "../../objects/passkey.ts";
+import type { DurableObjectUser } from "../../objects/user.ts";
 
 export type EnvAuth = {
   USER: DurableObjectNamespace<DurableObjectUser>;

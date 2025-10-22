@@ -1,4 +1,4 @@
-import { createAuthCookie, expires } from "../helpers.mjs";
+import { createAuthCookie, expires } from "../helpers.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({

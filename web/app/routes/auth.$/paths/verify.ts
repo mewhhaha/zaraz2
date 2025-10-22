@@ -4,7 +4,7 @@ import {
   expires,
   extractVisitorHeaders,
   parseToken,
-} from "../helpers.mjs";
+} from "../helpers.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({

@@ -1,9 +1,9 @@
 import { routes } from "../app/routes.mjs";
 import { Router, type Env } from "@mewhhaha/ruwuter";
 
-export { DurableObjectUser } from "../app/objects/user.mjs";
-export { DurableObjectPasskey } from "../app/objects/passkey.mjs";
-export { DurableObjectChallenge } from "../app/objects/challenge.mjs";
+export { DurableObjectUser } from "../app/objects/user.js";
+export { DurableObjectPasskey } from "../app/objects/passkey.js";
+export { DurableObjectChallenge } from "../app/objects/challenge.js";
 
 const router = Router(routes);
 

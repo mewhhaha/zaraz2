@@ -1,9 +1,9 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "zaraz2"
 main = "./worker/main.ts"
-build.watch_dir = "dist"
+build.watch_dir = "./app"
+build.command = "pnpm build"
 compatibility_flags = ["nodejs_als"]
-
 
 compatibility_date = "2025-06-15"
 assets = { directory = "./dist/", binding = "ASSETS" }
@@ -30,7 +30,6 @@ enabled = true
 
 [vars]
 ORIGIN = "https://zaraz2.app"
-
 
 [[migrations]]
 tag = "v1"

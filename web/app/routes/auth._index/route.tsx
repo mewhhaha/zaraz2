@@ -6,11 +6,11 @@ import {
   extractVisitorHeaders,
   parseToken,
   type Auth,
-} from "../auth.$/helpers.mts";
+} from "../auth.$/helpers.ts";
 import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
-import { makePasskeyLink, type Account } from "../../objects/user.mts";
+import { makePasskeyLink, type Account } from "../../objects/user";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
 
@@ -238,7 +238,7 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            ext-fx-init={new URL("./auto.client.mts", import.meta.url)}
+            ext-fx-init={new URL("./auto.client.ts", import.meta.url)}
             value={auth.credentialId}
           />
         )}
@@ -289,7 +289,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
             fx-action={
-              new URL("./add-passkey.client.mts", import.meta.url).pathname
+              new URL("./add-passkey.client.ts", import.meta.url).pathname
             }
             fx-method="POST"
             fx-target="#passkeys-list"
@@ -468,7 +468,7 @@ const SignedOut = () => {
         </h2>
 
         <MenuButton
-          fx-action={new URL("./verify.client.mts", import.meta.url).pathname}
+          fx-action={new URL("./verify.client.ts", import.meta.url).pathname}
           fx-target="body"
           fx-method="POST"
           fx-swap="innerHTML"
@@ -489,7 +489,7 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action={new URL("./register.client.mts", import.meta.url).pathname}
+          fx-action={new URL("./register.client.ts", import.meta.url).pathname}
           fx-target="body"
           fx-method="POST"
           fx-swap="innerHTML"
