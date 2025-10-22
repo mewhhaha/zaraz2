@@ -1,11 +1,17 @@
-import { routes } from "./app/routes.mjs";
-import { Router, type Env } from "@mewhhaha/fx-router";
+import { routes } from "../app/routes.mjs";
+import { Router, type Env } from "@mewhhaha/ruwuter";
 
-export { DurableObjectUser } from "./app/objects/user.mjs";
-export { DurableObjectPasskey } from "./app/objects/passkey.mjs";
-export { DurableObjectChallenge } from "./app/objects/challenge.mjs";
+export { DurableObjectUser } from "../app/objects/user.mjs";
+export { DurableObjectPasskey } from "../app/objects/passkey.mjs";
+export { DurableObjectChallenge } from "../app/objects/challenge.mjs";
 
 const router = Router(routes);
+
+declare module "@mewhhaha/ruwuter" {
+  interface Env extends Cloudflare.Env {
+    nonce?: string;
+  }
+}
 
 const handler: ExportedHandler<Env> = {
   fetch: (request, env, ctx) => {

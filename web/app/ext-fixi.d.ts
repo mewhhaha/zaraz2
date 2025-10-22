@@ -1,6 +1,7 @@
-import "@mewhhaha/fx-router";
+/// <reference types="vite/client" />
+import "@mewhhaha/ruwuter";
 
-declare module "@mewhhaha/fx-router" {
+declare module "@mewhhaha/ruwuter" {
   interface FxAttributes {
     "ext-fx-confirm"?: string;
     "ext-fx-push"?: true;

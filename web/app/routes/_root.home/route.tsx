@@ -1,5 +1,5 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
-import * as t from "./+types.route";
+import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
+import type { Route as t } from "./+types.route";
 import { authenticate } from "../auth.$/helpers.mts";
 import { cx } from "../../helpers/style";
 

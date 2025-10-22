@@ -1,4 +1,4 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
+import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 
 type SecondaryButtonProps = JSX.IntrinsicElements["button"];
 

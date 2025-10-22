@@ -1,4 +1,4 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
+import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import { cx } from "../../../helpers/style";
 
 type ModalProps = JSX.IntrinsicElements["div"];

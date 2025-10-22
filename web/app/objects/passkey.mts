@@ -7,7 +7,7 @@ import type {
   CredentialInfo,
   RegistrationJSON,
 } from "@passwordless-id/webauthn/dist/esm/types.js";
-import type { Env } from "@mewhhaha/fx-router";
+import type { Env } from "@mewhhaha/ruwuter";
 import { store } from "../helpers/store";
 
 const VISITOR_HISTORY_LENGTH = 10;

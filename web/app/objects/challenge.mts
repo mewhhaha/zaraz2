@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Env } from "@mewhhaha/fx-router";
+import type { Env } from "@mewhhaha/ruwuter";
 import { store } from "../helpers/store";
 
 export type Finish<T> = { state: T } | "challenge_not_found";

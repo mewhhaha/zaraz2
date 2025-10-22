@@ -1,4 +1,4 @@
-import type { Env } from "@mewhhaha/fx-router";
+import type { Env } from "@mewhhaha/ruwuter";
 import { DurableObject, RpcTarget } from "cloudflare:workers";
 import { store } from "../helpers/store";
 

@@ -1,4 +1,4 @@
-import * as t from "./+types.route";
+import type { Route as t } from "./+types.route";
 import { authenticate } from "../auth.$/helpers.mts";
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {

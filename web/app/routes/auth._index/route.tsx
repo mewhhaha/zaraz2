@@ -1,4 +1,4 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
+import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import {
   authenticate,
   AuthExpiredError,
@@ -7,7 +7,7 @@ import {
   parseToken,
   type Auth,
 } from "../auth.$/helpers.mts";
-import t from "./+types.route";
+import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user.mts";

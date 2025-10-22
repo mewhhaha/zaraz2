@@ -1,11 +1,11 @@
-import type * as t from "./+types.document";
-
-const fixiUrl = new URL("./assets/fixi.js", import.meta.url);
-const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url);
-
-const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
-const iconUrl = new URL("./assets/favicon.ico", import.meta.url);
-const cmdUrl = new URL("./assets/cmd.js", import.meta.url);
+import type { Route as t } from "./+types.document";
+import clientUrl from "@mewhhaha/ruwuter/client.js?url&no-inline";
+import resolveUrl from "@mewhhaha/ruwuter/resolve.js?url&no-inline";
+import fixiUrl from "./assets/fixi.js?url&no-inline";
+import fixiExtUrl from "./assets/ext-fixi.js?url&no-inline";
+import stylesUrl from "./assets/tailwind.css?url&no-inline";
+import iconUrl from "./assets/favicon.ico?url&no-inline";
+import cmdUrl from "./assets/cmd.js?url&no-inline";
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
@@ -40,7 +40,7 @@ export default function Document({
       <head>
         <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
-        <link rel="icon" type="image/svg" href={iconUrl.pathname}></link>
+        <link rel="icon" type="image/svg" href={iconUrl}></link>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
@@ -51,10 +51,12 @@ export default function Document({
           href="https://fonts.gstatic.com"
           crossorigin=""
         />
-        <link rel="stylesheet" href={stylesUrl.pathname} />
-        <script nonce={nonce} src={fixiUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiExtUrl.pathname} defer></script>
-        <script nonce={nonce} src={cmdUrl.pathname} defer></script>
+        <link rel="stylesheet" href={stylesUrl} />
+        <script nonce={nonce} src={fixiUrl} defer></script>
+        <script nonce={nonce} src={fixiExtUrl} defer></script>
+        <script nonce={nonce} src={cmdUrl} defer></script>
+        <script nonce={nonce} src={clientUrl} defer></script>
+        <script nonce={nonce} src={resolveUrl} defer></script>
       </head>
       <body
         class={`

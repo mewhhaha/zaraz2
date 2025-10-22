@@ -3,12 +3,14 @@ import type {
   InferComponentProps,
   InferHeadersFunction,
   InferLoaderArgs,
-} from "@mewhhaha/fx-router/types";
+} from "@mewhhaha/ruwuter/types";
 import * as r from "./_index.js";
 
 export type RouteParams = Record<never, never>;
 
-export type ComponentProps = InferComponentProps<typeof r>;
-export type LoaderArgs = InferLoaderArgs<RouteParams>;
-export type ActionArgs = InferActionArgs<RouteParams>;
-export type HeadersFunction = InferHeadersFunction<RouteParams, typeof r>;
+export namespace Route {
+  export type ComponentProps = InferComponentProps<typeof r>;
+  export type LoaderArgs = InferLoaderArgs<RouteParams>;
+  export type ActionArgs = InferActionArgs<RouteParams>;
+  export type HeadersFunction = InferHeadersFunction<RouteParams, typeof r>;
+}
