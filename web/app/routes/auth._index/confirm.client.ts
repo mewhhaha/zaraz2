@@ -1,15 +1,20 @@
-import type { FxAction } from "../../ext-fixi";
-
-const confirmAction: FxAction = async (options) => {
-  const message = options.message as string;
-  if (!message) {
-    return new Response("Missing confirmation message", { status: 400 });
-  }
-  const confirmed = window.confirm(message);
-  if (confirmed) {
-    return new Response("Confirmed", { status: 200 });
-  }
-  return new Response("Not confirmed", { status: 400 });
+type ConfirmEvent = Event & {
+  stopImmediatePropagation?: () => void;
 };
 
-export default confirmAction;
+export default function confirmHandler(ev: ConfirmEvent) {
+  const target = ev.currentTarget;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  const message = target.getAttribute("data-confirm");
+  if (!message) {
+    return;
+  }
+
+  if (!window.confirm(message)) {
+    ev.preventDefault();
+    ev.stopImmediatePropagation?.();
+  }
+}

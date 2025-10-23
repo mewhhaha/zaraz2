@@ -1,5 +1,6 @@
 import type { Route as t } from "./+types.route";
 import { authenticate } from "../auth.$/helpers.ts";
+import clientUrl from "./route.client.ts?url&no-inline";
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {
@@ -17,8 +18,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   }
 };
 
-const client = new URL("./route.client.ts", import.meta.url);
-
 export default function Root({
   children,
   loaderData: { user, nonce },
@@ -29,7 +28,7 @@ export default function Root({
       {user && (
         <input type="hidden" name="credential-id" value={user.credentialId} />
       )}
-      <script nonce={nonce} type="module" src={client.pathname} />
+      <script nonce={nonce} type="module" src={clientUrl} />
       {children}
     </>
   );

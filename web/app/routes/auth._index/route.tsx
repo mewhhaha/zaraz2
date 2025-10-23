@@ -1,4 +1,11 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
+import { events } from "@mewhhaha/ruwuter/events";
+import addPasskeyHref from "./add-passkey.client.ts?url&no-inline";
+import autoHref from "./auto.client.ts?url&no-inline";
+import confirmHref from "./confirm.client.ts?url&no-inline";
+import promptHref from "./prompt.client.ts?url&no-inline";
+import verifyHref from "./verify.client.ts?url&no-inline";
+import registerHref from "./register.client.ts?url&no-inline";
 import {
   authenticate,
   AuthExpiredError,
@@ -238,7 +245,7 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            ext-fx-init={new URL("./auto.client.ts", import.meta.url)}
+            on={events.mount(autoHref)}
             value={auth.credentialId}
           />
         )}
@@ -288,9 +295,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action={
-              new URL("./add-passkey.client.ts", import.meta.url).pathname
-            }
+            fx-action={addPasskeyHref}
             fx-method="POST"
             fx-target="#passkeys-list"
           >
@@ -419,7 +424,6 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
       fx-method="DELETE"
       fx-action="/auth"
       fx-target="#passkeys-list"
-      ext-fx-confirm="Are you sure you want to delete this passkey?"
       hidden={passkeyId === auth.passkeyId}
     >
       <input type="hidden" name="id" value={passkeyId} />
@@ -430,6 +434,8 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
 
           override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
         `}
+        data-confirm="Are you sure you want to delete this passkey?"
+        on={events.click(confirmHref)}
       >
         <TrashIconSolid class={`inline-block size-5`} />
       </IconButton>
@@ -446,13 +452,14 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
     <form fx-action="/auth" fx-target="#passkeys-list" fx-method="PATCH">
       <input type="hidden" name="id" value={passkeyId} />
-      <input
-        type="hidden"
-        name="name"
-        value={currentName}
-        ext-fx-prompt="What should we call this passkey?"
-      />
-      <IconButton aria-label="Rename passkey">
+      <input type="hidden" name="name" value={currentName} />
+      <IconButton
+        aria-label="Rename passkey"
+        data-prompt="What should we call this passkey?"
+        data-prompt-target='input[name="name"]'
+        data-prompt-default={currentName}
+        on={events.click(promptHref)}
+      >
         <PencilIcon class={`inline-block size-5`} />
       </IconButton>
     </form>
@@ -468,10 +475,8 @@ const SignedOut = () => {
         </h2>
 
         <MenuButton
-          fx-action={new URL("./verify.client.ts", import.meta.url).pathname}
-          fx-target="body"
-          fx-method="POST"
-          fx-swap="innerHTML"
+          type="button"
+          on={events.click(verifyHref)}
           class={`
             mb-10
 
@@ -489,7 +494,7 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action={new URL("./register.client.ts", import.meta.url).pathname}
+          fx-action={registerHref}
           fx-target="body"
           fx-method="POST"
           fx-swap="innerHTML"

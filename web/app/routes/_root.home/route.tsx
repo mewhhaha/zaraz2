@@ -1,5 +1,9 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import type { Route as t } from "./+types.route";
+import { events } from "@mewhhaha/ruwuter/events";
+import menuHref from "./menu.client.ts?url&no-inline";
+import promptHref from "../auth._index/prompt.client.ts?url&no-inline";
+import bgSrc from "../../assets/happy.jpg?url&no-inline";
 import { authenticate } from "../auth.$/helpers.ts";
 import { cx } from "../../helpers/style";
 
@@ -64,12 +68,10 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   }
 };
 
-const bgUrl = new URL("./../../assets/happy.jpg", import.meta.url);
-
 export default function Home({ loaderData }: t.ComponentProps) {
   if (!loaderData.authenticated) {
     return (
-      <div class={`relative mx-auto flex size-full max-w-screen-lg flex-col`}>
+      <div class={`relative mx-auto flex size-full max-w-5xl flex-col`}>
         <div
           class={`
             absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden rounded-lg border-2
@@ -101,7 +103,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
   return (
     <div
       data-empty={current === undefined || undefined}
-      class={`relative mx-auto flex size-full max-w-screen-lg flex-col`}
+      class={`relative mx-auto flex size-full max-w-5xl flex-col`}
     >
       <div
         class={`
@@ -110,7 +112,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
         `}
       >
         <img
-          src={bgUrl.pathname}
+          src={bgSrc}
           alt=""
           class={`
             grow object-cover object-center blur-2xl transition-[filter] duration-500
@@ -187,7 +189,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
         <header class={`relative flex w-full justify-end`}>
           <form
             id="menu-form"
-          fx-action={new URL("./menu.client.ts", import.meta.url).pathname}
+            fx-action={menuHref}
             fx-method="POST"
             fx-target="body"
             fx-swap="innerHTML"
@@ -195,7 +197,11 @@ export default function Home({ loaderData }: t.ComponentProps) {
             class={`absolute right-2 bottom-10 flex flex-none grow flex-col items-end gap-2`}
           >
             {current && <input type="hidden" name="id" value={current.id} />}
-            <MenuButton name="another" ext-fx-prompt="What's next?">
+            <MenuButton
+              name="another"
+              data-prompt="What's next?"
+              on={events.click(promptHref)}
+            >
               ➕ Another?
             </MenuButton>
             <MenuButton

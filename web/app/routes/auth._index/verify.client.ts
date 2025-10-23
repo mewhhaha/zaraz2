@@ -1,23 +1,64 @@
 import { authenticate } from "@packages/passkey";
-import type { FxAction } from "../../ext-fixi";
 
-const verify: FxAction = async () => {
-  // Step 2: Authenticate with the challenge
-  const token = await authenticate("/auth/challenge");
-  if (!token) {
-    return new Response("Authentication failed", { status: 401 });
+export default async function verify(
+  this: Element,
+  _event: Event,
+  signal: AbortSignal,
+) {
+  if (!(this instanceof HTMLButtonElement) || signal.aborted) {
+    return;
   }
 
-  // Step 3: POST the token to /auth/verify
-  const form = new FormData();
-  form.set("token", token);
-  return await fetch("/auth/verify", {
-    method: "POST",
-    headers: {
-      "fx-request": "true",
-    },
-    body: form,
-  });
-};
+  const button = this;
+  if (button.disabled) {
+    return;
+  }
+  button.disabled = true;
 
-export default verify;
+  try {
+    const token = await authenticate("/auth/challenge");
+    if (!token || signal.aborted) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("token", token);
+
+    const response = await fetch("/auth/verify", {
+      method: "POST",
+      headers: {
+        "fx-request": "true",
+      },
+      body: formData,
+      redirect: "manual",
+      signal,
+    });
+
+    if (signal.aborted) {
+      return;
+    }
+
+    if (response.status >= 200 && response.status < 300) {
+      window.location.href = "/";
+      return;
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("Location");
+      window.location.href = location ?? "/";
+      return;
+    }
+
+    throw new Error(await response.text());
+  } catch (error) {
+    if (signal.aborted) {
+      return;
+    }
+    console.error(error);
+    window.alert?.("Something went wrong signing you in. Please try again.");
+  } finally {
+    if (!signal.aborted) {
+      button.disabled = false;
+    }
+  }
+}

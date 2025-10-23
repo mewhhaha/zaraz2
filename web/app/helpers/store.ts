@@ -1,3 +1,5 @@
+import type { DurableObjectState } from "cloudflare:workers";
+
 const MISS = Symbol("durable-store-miss");
 
 type Loaders<Schema extends Record<string, unknown>> = {
