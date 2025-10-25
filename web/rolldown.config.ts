@@ -1,12 +1,40 @@
 import { defineConfig } from "rolldown";
 
 import { generate } from "@mewhhaha/ruwuter/fs-routes";
+import tailwindcss from "./plugins/tailwindcss-rolldown";
+import assets from "./plugins/bundle-assets-rolldown";
+import { readFile, writeFile } from "node:fs/promises";
 
-await generate("app");
+const {
+  router: [routes],
+  types,
+} = await generate("app");
+
+const existing = await readFile(routes.path, "utf8");
+if (existing !== routes.contents) {
+  console.log("Routes have changed... updating");
+  await writeFile(routes.path, routes.contents);
+}
+
+for (const file of types) {
+  await writeFile(file.path, file.contents);
+}
 
 export default defineConfig({
+  tsconfig: "tsconfig.server.json",
   input: "worker/main.ts",
-  tsconfig: "./tsconfig.server.json",
+  output: {
+    dir: "dist",
+    cleanDir: true,
+    intro: 'import.meta.url = "file://"',
+    assetFileNames: (chunk) => {
+      if (chunk.names.some((name) => name.includes(".client"))) {
+        return "assets/[name]-[hash].js";
+      }
+      return "assets/[name]-[hash].[ext]";
+    },
+  },
+  plugins: [tailwindcss(), assets()],
 
   experimental: {
     resolveNewUrlToAsset: true,
@@ -15,23 +43,9 @@ export default defineConfig({
   resolve: {
     conditionNames: ["import"],
   },
-  output: {
-    dir: "dist",
 
-    cleanDir: true,
-    assetFileNames: (chunk) => {
-      if (chunk.names.some((name) => name.includes(".client"))) {
-        return "assets/[name]-[hash].mjs";
-      }
-      return "assets/[name]-[hash].[ext]";
-    },
-  },
-  external: ["cloudflare:workers", "node:async_hooks"],
-  transform: {
-    define: {
-      "import.meta.env.url": "file://",
-    },
-  },
+  external: ["cloudflare:workers", "crypto", "node:async_hooks"],
+
   moduleTypes: {
     ".jpg": "dataurl",
     ".jpeg": "dataurl",

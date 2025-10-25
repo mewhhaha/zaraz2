@@ -1,15 +1,11 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import { compile, optimize, toSourceMap } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import type { Plugin } from "rolldown";
 
-const TAILWIND_MARK = "?tailwind-css";
 const hasTailwindDirective = (code: string) =>
   code.includes('@import "tailwindcss"') ||
   code.includes("@import 'tailwindcss'");
-
-const normalizePath = (value: string) => value.replace(/\\/g, "/");
 
 type TailwindPluginOptions = {
   root?: string;
@@ -17,38 +13,37 @@ type TailwindPluginOptions = {
   optimize?: boolean;
 };
 
-export function tailwindcssPlugin(options: TailwindPluginOptions = {}): Plugin {
+export default function tailwindcss(
+  options: TailwindPluginOptions = {},
+): Plugin {
   const rootDir = options.root ?? process.cwd();
   const shouldOptimize = options.optimize ?? true;
   const shouldMinify = options.minify ?? true;
 
   return {
     name: "tailwindcss:rolldown",
-    resolveId(source, importer) {
-      if (!source.endsWith(".css") || source.includes(TAILWIND_MARK)) {
+    async transform(code, id) {
+      if (
+        (!id.endsWith(".css") && !id.includes(".css?")) ||
+        id.startsWith("\0")
+      ) {
         return null;
       }
-      const importerDir =
-        importer && !importer.startsWith("\0")
-          ? path.dirname(importer)
-          : rootDir;
-      const absPath = path.isAbsolute(source)
-        ? source
-        : path.resolve(importerDir, source);
-      return `${normalizePath(absPath)}${TAILWIND_MARK}`;
-    },
-    async load(id) {
-      if (!id.endsWith(TAILWIND_MARK)) {
-        return null;
-      }
-      const absPath = id.slice(0, -TAILWIND_MARK.length);
-      const original = await fs.readFile(absPath, "utf8");
 
-      let css = original;
+      const [rawPath] = id.split("?", 2);
+      if (!rawPath || !rawPath.endsWith(".css")) {
+        return null;
+      }
+
+      const absPath = path.isAbsolute(rawPath)
+        ? rawPath
+        : path.resolve(rootDir, rawPath);
+
+      let css = code;
       let map: string | undefined;
 
-      if (hasTailwindDirective(original)) {
-        const compiler = await compile(original, {
+      if (hasTailwindDirective(code)) {
+        const compiler = await compile(code, {
           from: absPath,
           base: path.dirname(absPath),
           shouldRewriteUrls: true,
@@ -90,15 +85,9 @@ export function tailwindcssPlugin(options: TailwindPluginOptions = {}): Plugin {
         map = optimized.map;
       }
 
-      const assetId = this.emitFile({
-        type: "asset",
-        name: path.basename(absPath),
-        source: css,
-      });
-
       return {
-        code: `const __tailwind_url = import.meta.ROLLUP_FILE_URL_${assetId};\nexport default __tailwind_url;`,
-        map: null,
+        code: css,
+        map: map ?? null,
       };
     },
   };

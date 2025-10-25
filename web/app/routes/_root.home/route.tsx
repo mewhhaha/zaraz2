@@ -4,10 +4,10 @@ import { events } from "@mewhhaha/ruwuter/events";
 import { authenticate } from "../auth.$/helpers.ts";
 import { cx } from "../../helpers/style";
 
-const menuHref = new URL("./menu.client.ts", import.meta.url).href;
+const menuHref = new URL("./menu.client.ts", import.meta.url).pathname;
 const promptHref = new URL("../auth._index/prompt.client.ts", import.meta.url)
-  .href;
-const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).href;
+  .pathname;
+const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const user = await authenticate(request, env.SECRET_KEY);
@@ -233,6 +233,7 @@ const Account = () => {
     <div class={`relative`}>
       <div>
         <button
+          type="button"
           aria-label="Passkey menu"
           commandfor="passkeys-menu"
           command="show-modal"
@@ -276,6 +277,8 @@ const Account = () => {
         `}
       >
         <button
+          type="button"
+          aria-label="Close"
           class={`fixed inset-0 -z-10 bg-transparent`}
           commandfor="passkeys-menu"
           command="close"

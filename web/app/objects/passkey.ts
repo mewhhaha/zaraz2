@@ -97,11 +97,11 @@ export class DurableObjectPasskey extends DurableObject<Env> {
   }
 
   async authenticate({ json, challengeId, visited }: TryAuthenticate) {
-    const metadata = await this.store.get("#metadata");
-    const credential = await this.store.get("#credential");
-    const visitors = await this.store.get("#visitors");
-
     try {
+      const metadata = await this.store.get("#metadata");
+      const credential = await this.store.get("#credential");
+      const visitors = await this.store.get("#visitors");
+
       const authenticationInfo = await server.verifyAuthentication(
         json as AuthenticationJSON,
         credential,
@@ -117,8 +117,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
       this.store.set("#visitors", next);
 
       return { metadata };
-    } catch (e) {
-      if (e instanceof Error) console.error(e);
+    } catch {
       return "authentication_failed" as const;
     }
   }

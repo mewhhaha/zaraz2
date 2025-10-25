@@ -15,12 +15,13 @@ import { makePasskeyLink, type Account } from "../../objects/user";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
 
-const addPasskeyHref = new URL("./add-passkey.client.ts", import.meta.url).href;
-const autoHref = new URL("./auto.client.ts", import.meta.url).href;
-const confirmHref = new URL("./confirm.client.ts", import.meta.url).href;
-const promptHref = new URL("./prompt.client.ts", import.meta.url).href;
-const verifyHref = new URL("./verify.client.ts", import.meta.url).href;
-const registerHref = new URL("./register.client.ts", import.meta.url).href;
+const addPasskeyHref = new URL("./add-passkey.client.ts", import.meta.url)
+  .pathname;
+const autoHref = new URL("./auto.client.ts", import.meta.url).pathname;
+const confirmHref = new URL("./confirm.client.ts", import.meta.url).pathname;
+const promptHref = new URL("./prompt.client.ts", import.meta.url).pathname;
+const verifyHref = new URL("./verify.client.ts", import.meta.url).pathname;
+const registerHref = new URL("./register.client.ts", import.meta.url).pathname;
 
 class ParseError extends Error {
   summary: string;
@@ -107,7 +108,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -130,7 +131,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -201,7 +202,8 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -455,13 +457,16 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
       <input type="hidden" name="id" value={passkeyId} />
       <input type="hidden" name="name" value={currentName} />
       <IconButton
+        type="button"
+        bind={{
+          title: "What should we call this passkey?",
+          target: "input[name='name']",
+          name: currentName,
+        }}
         aria-label="Rename passkey"
-        data-prompt="What should we call this passkey?"
-        data-prompt-target='input[name="name"]'
-        data-prompt-default={currentName}
-        on={events.click(promptHref)}
+        on={events.click(promptHref, { preventDefault: true })}
       >
-        <PencilIcon class={`inline-block size-5`} />
+        <PencilIcon class={`inline-block size-5 pointer-events-none`} />
       </IconButton>
     </form>
   );

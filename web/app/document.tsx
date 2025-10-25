@@ -1,13 +1,14 @@
 import type { Route as t } from "./+types.document";
 
-const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url).href;
+const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url)
+  .pathname;
 const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
-  .href;
-const fixiUrl = new URL("./assets/fixi.js", import.meta.url).href;
-const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url).href;
-const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).href;
-const iconUrl = new URL("./assets/favicon.ico", import.meta.url).href;
-const cmdUrl = new URL("./assets/cmd.js", import.meta.url).href;
+  .pathname;
+const fixiUrl = new URL("./assets/fixi.js", import.meta.url).pathname;
+const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url).pathname;
+const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
+const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
+const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };

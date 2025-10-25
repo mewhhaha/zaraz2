@@ -44,7 +44,10 @@ export default async function verify(
       return;
     }
 
-    if (response.status >= 300 && response.status < 400) {
+    if (
+      response.status === 0 ||
+      (response.status >= 300 && response.status < 400)
+    ) {
       const location = response.headers.get("Location");
       window.location.href = location ?? "/";
       return;
