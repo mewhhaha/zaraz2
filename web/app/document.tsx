@@ -1,11 +1,13 @@
 import type { Route as t } from "./+types.document";
-import clientUrl from "@mewhhaha/ruwuter/client.js?url&no-inline";
-import resolveUrl from "@mewhhaha/ruwuter/resolve.js?url&no-inline";
-import fixiUrl from "./assets/fixi.js?url&no-inline";
-import fixiExtUrl from "./assets/ext-fixi.js?url&no-inline";
-import stylesUrl from "./assets/tailwind.css?url&no-inline";
-import iconUrl from "./assets/favicon.ico?url&no-inline";
-import cmdUrl from "./assets/cmd.js?url&no-inline";
+
+const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url).href;
+const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
+  .href;
+const fixiUrl = new URL("./assets/fixi.js", import.meta.url).href;
+const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url).href;
+const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).href;
+const iconUrl = new URL("./assets/favicon.ico", import.meta.url).href;
+const cmdUrl = new URL("./assets/cmd.js", import.meta.url).href;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };

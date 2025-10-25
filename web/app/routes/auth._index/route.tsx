@@ -1,11 +1,5 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import { events } from "@mewhhaha/ruwuter/events";
-import addPasskeyHref from "./add-passkey.client.ts?url&no-inline";
-import autoHref from "./auto.client.ts?url&no-inline";
-import confirmHref from "./confirm.client.ts?url&no-inline";
-import promptHref from "./prompt.client.ts?url&no-inline";
-import verifyHref from "./verify.client.ts?url&no-inline";
-import registerHref from "./register.client.ts?url&no-inline";
 import {
   authenticate,
   AuthExpiredError,
@@ -20,6 +14,13 @@ import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+
+const addPasskeyHref = new URL("./add-passkey.client.ts", import.meta.url).href;
+const autoHref = new URL("./auto.client.ts", import.meta.url).href;
+const confirmHref = new URL("./confirm.client.ts", import.meta.url).href;
+const promptHref = new URL("./prompt.client.ts", import.meta.url).href;
+const verifyHref = new URL("./verify.client.ts", import.meta.url).href;
+const registerHref = new URL("./register.client.ts", import.meta.url).href;
 
 class ParseError extends Error {
   summary: string;

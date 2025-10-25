@@ -113,7 +113,7 @@ export const createCookie = <T, N extends string>(
 
       const expectedSignature = encode(await hmac(secret, encodedValue));
       if (
-        !crypto.subtle.timingSafeEqual(
+        !timingSafeEqual(
           encoder.encode(signature),
           encoder.encode(expectedSignature),
         )
@@ -228,7 +228,7 @@ export const expires = () => {
   return new Date(Date.now() + 1000 * 60 * 30).toISOString();
 };
 
-export const parseToken = async <T,>(
+export const parseToken = async <T>(
   token: string,
   secret: string,
 ): Promise<{ json: T; challengeId: string }> => {
@@ -253,4 +253,12 @@ export const parseToken = async <T,>(
   const json = JSON.parse(registrationRaw) as T;
 
   return { json, challengeId };
+};
+const timingSafeEqual = (a: Uint8Array, b: Uint8Array) => {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    diff |= a[index] ^ b[index];
+  }
+  return diff === 0;
 };

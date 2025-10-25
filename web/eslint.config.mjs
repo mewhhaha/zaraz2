@@ -1,5 +1,5 @@
 import ts from "typescript-eslint";
-import betterTailwindcss from "@mewhhaha/eslint-plugin-better-tailwindcss";
+import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 import oxlint from "eslint-plugin-oxlint";
 import urlExists from "@mewhhaha/eslint-plugin-url-exists";
 import { defineConfig } from "eslint";
@@ -10,10 +10,10 @@ const tailwindcss = {
   },
   rules: {
     ...betterTailwindcss.configs["recommended-warn"].rules,
+    "better-tailwindcss/no-deprecated-classes": "error",
+    "better-tailwindcss/no-restricted-classes": "warn",
   },
 };
-
-const tw = await loadTailwind(import.meta.dirname + "/app/assets/tailwind.css");
 
 export default defineConfig(
   ts.configs.recommended,

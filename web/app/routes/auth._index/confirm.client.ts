@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 type ConfirmEvent = Event & {
   stopImmediatePropagation?: () => void;
 };

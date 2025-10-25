@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import type { FxAction } from "../../ext-fixi";
 import confetti from "canvas-confetti";
 

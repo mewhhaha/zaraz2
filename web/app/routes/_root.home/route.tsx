@@ -1,11 +1,13 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import type { Route as t } from "./+types.route";
 import { events } from "@mewhhaha/ruwuter/events";
-import menuHref from "./menu.client.ts?url&no-inline";
-import promptHref from "../auth._index/prompt.client.ts?url&no-inline";
-import bgSrc from "../../assets/happy.jpg?url&no-inline";
 import { authenticate } from "../auth.$/helpers.ts";
 import { cx } from "../../helpers/style";
+
+const menuHref = new URL("./menu.client.ts", import.meta.url).href;
+const promptHref = new URL("../auth._index/prompt.client.ts", import.meta.url)
+  .href;
+const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).href;
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const user = await authenticate(request, env.SECRET_KEY);
@@ -254,7 +256,7 @@ const Account = () => {
 
       <dialog
         id="passkeys-menu"
-        popover
+        popover="auto"
         fx-action="/auth"
         fx-target="#passkeys-settings"
         fx-trigger="toggle"

@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { authenticate } from "@packages/passkey";
 
 export default async function autoSignIn(

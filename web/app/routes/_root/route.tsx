@@ -1,6 +1,7 @@
 import type { Route as t } from "./+types.route";
 import { authenticate } from "../auth.$/helpers.ts";
-import clientUrl from "./route.client.ts?url&no-inline";
+
+const clientUrl = new URL("./route.client.ts", import.meta.url).href;
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {

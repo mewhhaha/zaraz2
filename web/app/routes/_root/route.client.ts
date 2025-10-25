@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import { authenticate } from "@packages/passkey";
 
 let busy = false;

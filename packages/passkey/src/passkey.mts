@@ -28,7 +28,7 @@ export const authenticate = async (
   const authentication = await client.authenticate({
     challenge,
     userVerification: "required",
-    allowCredentials,
+    ...(allowCredentials ? { allowCredentials } : {}),
   });
 
   const signinToken = `${token}.${btoa(JSON.stringify(authentication))}`;

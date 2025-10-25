@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 type PromptEvent = Event & {
   stopImmediatePropagation?: () => void;
 };

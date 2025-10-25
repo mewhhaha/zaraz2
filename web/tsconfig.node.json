@@ -1,9 +1,8 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.server.json",
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.node.json",
     "composite": true,
     "target": "ESNext",
-    "lib": ["ESNext", "DOM.Iterable", "DOM.AsyncIterable"],
     "jsx": "react-jsx",
     "jsxImportSource": "@mewhhaha/ruwuter",
     "allowImportingTsExtensions": true,
@@ -23,15 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
 
-    "skipLibCheck": true,
-    "rootDirs": ["./.router/types", "."]
+    "skipLibCheck": true
   },
-  "exclude": ["test", "dist", "app/**/*.client.ts", "app/assets/**/*"],
-  "include": [
-    "app",
-    "worker/main.ts",
-    ".router/types",
-    "worker-configuration.d.ts",
-    "types"
-  ]
+  "include": ["rolldown.config.ts", "plugins"]
 }

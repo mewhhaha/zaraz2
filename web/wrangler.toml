@@ -1,12 +1,12 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "zaraz2"
-main = "./worker/main.ts"
+main = "./dist/worker.js"
 build.watch_dir = "./app"
 build.command = "pnpm build"
 compatibility_flags = ["nodejs_als"]
 
 compatibility_date = "2025-06-15"
-assets = { directory = "./dist/", binding = "ASSETS" }
+assets = { directory = "./dist/assets", binding = "ASSETS" }
 
 
 [[kv_namespaces]]
