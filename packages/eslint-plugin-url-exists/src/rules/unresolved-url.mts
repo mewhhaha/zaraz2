@@ -32,7 +32,6 @@ const rule: RuleModule<keyof typeof messages, []> = {
 
     return {
       NewExpression: function (newExpression) {
-        console.log(newExpression);
         if (
           newExpression.callee.type !== "Identifier" ||
           newExpression.callee.name !== "URL"
@@ -45,10 +44,6 @@ const rule: RuleModule<keyof typeof messages, []> = {
           return;
         }
 
-        console.log(secondArg);
-
-        //@ts-expect-error asd
-        console.log(secondArg.object);
         // Check if secondArg is import.meta.url (actual AST structure)
         if (
           secondArg.type === "MemberExpression" &&
