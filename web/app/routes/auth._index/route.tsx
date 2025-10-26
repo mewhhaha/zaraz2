@@ -1,5 +1,5 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
-import { events } from "@mewhhaha/ruwuter/events";
+import { events, event } from "@mewhhaha/ruwuter/events";
 import {
   authenticate,
   AuthExpiredError,
@@ -14,14 +14,14 @@ import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
-
-const addPasskeyHref = new URL("./add-passkey.client.ts", import.meta.url)
-  .pathname;
-const autoHref = new URL("./auto.client.ts", import.meta.url).pathname;
-const confirmHref = new URL("./confirm.client.ts", import.meta.url).pathname;
-const promptHref = new URL("./prompt.client.ts", import.meta.url).pathname;
-const verifyHref = new URL("./verify.client.ts", import.meta.url).pathname;
-const registerHref = new URL("./register.client.ts", import.meta.url).pathname;
+import {
+  addPasskeyHref,
+  autoSignInHandler,
+  confirmHandler,
+  promptHandler,
+  registerHref,
+  verifyHandler,
+} from "./assets.ts";
 
 class ParseError extends Error {
   summary: string;
@@ -248,7 +248,7 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            on={events.mount(autoHref)}
+            on={event.mount(autoSignInHandler)}
             value={auth.credentialId}
           />
         )}
@@ -438,7 +438,7 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
           override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
         `}
         data-confirm="Are you sure you want to delete this passkey?"
-        on={events.click(confirmHref)}
+        on={event.click(confirmHandler)}
       >
         <TrashIconSolid class={`inline-block size-5`} />
       </IconButton>
@@ -458,13 +458,15 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
       <input type="hidden" name="name" value={currentName} />
       <IconButton
         type="button"
-        bind={{
-          title: "What should we call this passkey?",
-          target: "input[name='name']",
-          name: currentName,
-        }}
         aria-label="Rename passkey"
-        on={events.click(promptHref, { preventDefault: true })}
+        on={events(
+          {
+            title: "What should we call this passkey?",
+            target: "input[name='name']",
+            name: currentName,
+          },
+          event.click(promptHandler, { preventDefault: true }),
+        )}
       >
         <PencilIcon class={`inline-block size-5 pointer-events-none`} />
       </IconButton>
@@ -482,7 +484,7 @@ const SignedOut = () => {
 
         <MenuButton
           type="button"
-          on={events.click(verifyHref)}
+          on={event.click(verifyHandler)}
           class={`
             mb-10
 

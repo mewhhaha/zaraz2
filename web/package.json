@@ -18,7 +18,7 @@
     "@cloudflare/workers-types": "^4.20251014.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.15",
     "@mewhhaha/eslint-plugin-url-exists": "workspace:*",
-    "@mewhhaha/ruwuter": "jsr:^0.1.28",
+    "@mewhhaha/ruwuter": "jsr:^0.1.32",
     "@prettier/plugin-oxc": "^0.0.4",
     "@tailwindcss/node": "^4.1.16",
     "@tailwindcss/oxide": "^4.1.16",

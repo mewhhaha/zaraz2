@@ -81,8 +81,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/eslint-plugin-url-exists
       '@mewhhaha/ruwuter':
-        specifier: jsr:^0.1.28
-        version: '@jsr/mewhhaha__ruwuter@0.1.28'
+        specifier: jsr:^0.1.32
+        version: '@jsr/mewhhaha__ruwuter@0.1.32'
       '@prettier/plugin-oxc':
         specifier: ^0.0.4
         version: 0.0.4
@@ -687,8 +687,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@jsr/mewhhaha__ruwuter@0.1.28':
-    resolution: {integrity: sha512-iYHt66d7zqo5UBFDqOgnxFROE/9xZ9SevVKYm6U1UTIlU9qUNUzhGQVwVeoZScGsi/cI6O4ZBAFMZV+j5V683A==, tarball: https://npm.jsr.io/~/11/@jsr/mewhhaha__ruwuter/0.1.28.tgz}
+  '@jsr/mewhhaha__ruwuter@0.1.32':
+    resolution: {integrity: sha512-RTSZY2R80022RuyQCp33GH904X0nhLnzEP1885I3if/0m8BEmcUJnH5h6g11K7/61/iwitzoNEx843v1pe5kfQ==, tarball: https://npm.jsr.io/~/11/@jsr/mewhhaha__ruwuter/0.1.32.tgz}
 
   '@mewhhaha/eslint-plugin-simple-tailwind@0.0.15':
     resolution: {integrity: sha512-rUzyWJUkJz9CSI2H/CLWhpgv9suMovMWAnn+MJRZr+qHVpHKiABenrTEYaT2S/dh3oHNfFt3iqwTh8iRMx2few==}
@@ -3061,7 +3061,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@jsr/mewhhaha__ruwuter@0.1.28':
+  '@jsr/mewhhaha__ruwuter@0.1.32':
     dependencies:
       '@cloudflare/workers-types': 4.20251014.0
 

@@ -3,7 +3,7 @@
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.server.json",
     "composite": true,
     "target": "ESNext",
-    "lib": ["ESNext", "DOM.Iterable", "DOM.AsyncIterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "jsx": "react-jsx",
     "jsxImportSource": "@mewhhaha/ruwuter",
     "allowImportingTsExtensions": true,
@@ -26,7 +26,7 @@
     "skipLibCheck": true,
     "rootDirs": ["./.router/types", "."]
   },
-  "exclude": ["test", "dist", "app/**/*.client.ts", "app/assets/**/*"],
+  "exclude": ["test", "dist", "app/assets/**/*"],
   "include": [
     "app",
     "worker/main.ts",

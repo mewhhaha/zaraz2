@@ -1,6 +1,6 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import type { Route as t } from "./+types.route";
-import { events } from "@mewhhaha/ruwuter/events";
+import { events, event } from "@mewhhaha/ruwuter/events";
 import { authenticate } from "../auth.$/helpers.ts";
 import { cx } from "../../helpers/style";
 
@@ -199,10 +199,17 @@ export default function Home({ loaderData }: t.ComponentProps) {
             class={`absolute right-2 bottom-10 flex flex-none grow flex-col items-end gap-2`}
           >
             {current && <input type="hidden" name="id" value={current.id} />}
+            <input type="hidden" name="another" value="" />
             <MenuButton
-              name="another"
-              data-prompt="What's next?"
-              on={events.click(promptHref)}
+              type="button"
+              on={events(
+                {
+                  title: "What's next?",
+                  target: "input[name='another']",
+                  name: "",
+                },
+                event.click(promptHref, { preventDefault: true }),
+              )}
             >
               ➕ Another?
             </MenuButton>
