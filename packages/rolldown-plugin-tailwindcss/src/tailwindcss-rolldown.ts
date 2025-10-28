@@ -7,7 +7,7 @@ const hasTailwindDirective = (code: string) =>
   code.includes('@import "tailwindcss"') ||
   code.includes("@import 'tailwindcss'");
 
-type TailwindPluginOptions = {
+export type TailwindPluginOptions = {
   root?: string;
   minify?: boolean;
   optimize?: boolean;

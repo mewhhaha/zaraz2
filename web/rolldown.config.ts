@@ -1,15 +1,20 @@
 import { defineConfig } from "rolldown";
 
 import { generate } from "@mewhhaha/ruwuter/fs-routes";
-import tailwindcss from "./plugins/tailwindcss-rolldown";
-import assets from "./plugins/bundle-assets-rolldown";
+import tailwindcss from "@mewhhaha/rolldown-plugin-tailwindcss";
+import useClient from "@mewhhaha/rolldown-plugin-use-client";
 import { readFile, writeFile } from "node:fs/promises";
-import inlineClientHandlers from "./plugins/inline-client-rolldown";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const {
   router: [routes],
   types,
 } = await generate("app");
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+const appRoot = path.join(projectRoot, "app");
+const isProduction = process.env.NODE_ENV === "production";
 
 const existing = await readFile(routes.path, "utf8");
 if (existing !== routes.contents) {
@@ -35,7 +40,18 @@ export default defineConfig({
       return "assets/[name]-[hash].[ext]";
     },
   },
-  plugins: [inlineClientHandlers(), tailwindcss(), assets()],
+  plugins: [
+    useClient({
+      root: appRoot,
+      filePattern: /\.[cm]?[jt]sx?$/,
+      assetPattern: /\.client\.[cm]?[jt]sx?$/,
+    }),
+    tailwindcss({
+      root: projectRoot,
+      optimize: true,
+      minify: isProduction,
+    }),
+  ],
 
   experimental: {
     resolveNewUrlToAsset: true,

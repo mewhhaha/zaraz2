@@ -9,7 +9,7 @@ import {
   deleteInlineClientModule,
   getInlineClientModule,
   setInlineClientModule,
-} from "./inline-client-registry";
+} from "./inline-client-registry.js";
 
 const SCRIPT_KIND_BY_EXT: Record<string, ts.ScriptKind> = {
   ".js": ts.ScriptKind.JS,
@@ -31,7 +31,40 @@ const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 const specifierToId = new Map<string, string>();
 const fileSpecifiers = new Map<string, Set<string>>();
 
-export default function inlineClientHandlers(): Plugin {
+export type InlineClientPluginOptions = {
+  /**
+   * Absolute or relative directory that contains files to transform.
+   * Defaults to the current working directory.
+   */
+  root?: string;
+  /**
+   * Additional include predicate. Receives the normalized absolute path.
+   */
+  include?: (id: string) => boolean;
+  /**
+   * File pattern to consider for inline extraction.
+   */
+  filePattern?: RegExp;
+};
+
+export default function inlineClientHandlers(
+  options: InlineClientPluginOptions = {},
+): Plugin {
+  const rootDir = options.root ? path.resolve(options.root) : process.cwd();
+  const normalizedRoot = rootDir.replace(/\\/g, "/");
+  const filePattern = options.filePattern ?? /\.[cm]?[jt]sx?$/;
+  const include =
+    options.include ??
+    ((normalizedPath: string) => {
+      if (normalizedPath.includes("/node_modules/")) {
+        return false;
+      }
+      return (
+        normalizedPath === normalizedRoot ||
+        normalizedPath.startsWith(`${normalizedRoot}/`)
+      );
+    });
+
   return {
     name: "inline-client-handlers",
 
@@ -40,19 +73,26 @@ export default function inlineClientHandlers(): Plugin {
       specifierToId.clear();
       fileSpecifiers.clear();
     },
-
     async transform(code, id) {
-      if (!id.startsWith(process.cwd())) return;
-      const normalizedId = id.replace(/\\/g, "/");
-      if (!normalizedId.includes("/app/")) return;
-      if (!/\.[cm]?[jt]sx?$/.test(id)) return;
+      if (id.startsWith("\0")) return;
 
-      const ext = path.extname(id);
+      const absoluteId = path.isAbsolute(id) ? id : path.resolve(id);
+      const normalizedId = absoluteId.replace(/\\/g, "/");
+
+      if (!filePattern.test(absoluteId)) {
+        return;
+      }
+
+      if (!include(normalizedId)) {
+        return;
+      }
+
+      const ext = path.extname(absoluteId);
       const scriptKind = SCRIPT_KIND_BY_EXT[ext];
       if (!scriptKind) return;
 
       const sourceFile = ts.createSourceFile(
-        id,
+        absoluteId,
         code,
         ts.ScriptTarget.Latest,
         true,
@@ -108,14 +148,14 @@ export default function inlineClientHandlers(): Plugin {
             );
 
             const hash = createHash("sha1")
-              .update(id)
+              .update(absoluteId)
               .update(String(node.getStart(sourceFile)))
               .update(handlerText)
               .digest("hex")
               .slice(0, 12);
 
             const baseName = path
-              .basename(id)
+              .basename(absoluteId)
               .replace(/\.[^.]+$/, "")
               .replace(/[^a-zA-Z0-9_-]+/g, "_");
 
@@ -145,7 +185,7 @@ export default function inlineClientHandlers(): Plugin {
 
       visit(sourceFile);
 
-      const previousSpecs = fileSpecifiers.get(id);
+      const previousSpecs = fileSpecifiers.get(absoluteId);
       if (previousSpecs) {
         for (const spec of previousSpecs) {
           if (!newSpecifiers.has(spec)) {
@@ -158,9 +198,9 @@ export default function inlineClientHandlers(): Plugin {
         }
       }
       if (newSpecifiers.size > 0) {
-        fileSpecifiers.set(id, newSpecifiers);
+        fileSpecifiers.set(absoluteId, newSpecifiers);
       } else if (previousSpecs) {
-        fileSpecifiers.delete(id);
+        fileSpecifiers.delete(absoluteId);
       }
 
       if (replacements.length === 0) {

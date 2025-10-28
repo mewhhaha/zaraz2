@@ -3,7 +3,7 @@ import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 import oxlint from "eslint-plugin-oxlint";
 import urlExists from "@mewhhaha/eslint-plugin-url-exists";
 import { defineConfig } from "eslint/config";
-import useClientPlugin from "./eslint/use-client-plugin.js";
+import useClientPlugin from "@mewhhaha/rolldown-plugin-use-client/eslint/use-client";
 
 const tailwindcss = {
   plugins: {

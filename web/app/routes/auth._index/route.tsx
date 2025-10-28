@@ -12,6 +12,10 @@ import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user";
+import {
+  authenticate as authenticateClient,
+  register as registerClient,
+} from "@packages/passkey";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
 class ParseError extends Error {
@@ -250,8 +254,7 @@ export default function Route({
                 return;
               }
               try {
-                const { authenticate } = await import("@packages/passkey");
-                const token = await authenticate("/auth/challenge", [
+                const token = await authenticateClient("/auth/challenge", [
                   input.value,
                 ]);
                 if (!token || signal.aborted) {
@@ -352,8 +355,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
                 return;
               }
               try {
-                const { register } = await import("@packages/passkey");
-                const token = await register(
+                const token = await registerClient(
                   "/auth/challenge",
                   username.toString(),
                 );
@@ -721,8 +723,7 @@ const SignedOut = () => {
             }
             button.disabled = true;
             try {
-              const { authenticate } = await import("@packages/passkey");
-              const token = await authenticate("/auth/challenge");
+              const token = await authenticateClient("/auth/challenge");
               if (!token || signal.aborted) {
                 return;
               }
@@ -808,8 +809,7 @@ const SignedOut = () => {
               return;
             }
             try {
-              const { register } = await import("@packages/passkey");
-              const token = await register(
+              const token = await registerClient(
                 "/auth/challenge",
                 username.toString(),
               );

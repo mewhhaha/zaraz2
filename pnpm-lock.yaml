@@ -56,6 +56,53 @@ importers:
         specifier: 4.45.1
         version: 4.45.1(@cloudflare/workers-types@4.20251014.0)
 
+  packages/rolldown-plugin-tailwindcss:
+    dependencies:
+      '@tailwindcss/node':
+        specifier: ^4.1.16
+        version: 4.1.16
+      '@tailwindcss/oxide':
+        specifier: ^4.1.16
+        version: 4.1.16
+      rolldown:
+        specifier: ^1.0.0-beta.45
+        version: 1.0.0-beta.45
+    devDependencies:
+      '@types/node':
+        specifier: ^24.9.1
+        version: 24.9.1
+      oxlint:
+        specifier: ^1.24.0
+        version: 1.24.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  packages/rolldown-plugin-use-client:
+    dependencies:
+      eslint:
+        specifier: ^9.0.0
+        version: 9.38.0(jiti@2.6.1)
+      rolldown:
+        specifier: ^1.0.0-beta.45
+        version: 1.0.0-beta.45
+    devDependencies:
+      '@types/node':
+        specifier: ^24.9.1
+        version: 24.9.1
+      oxlint:
+        specifier: ^1.24.0
+        version: 1.24.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   web:
     dependencies:
       '@packages/passkey':
@@ -80,6 +127,12 @@ importers:
       '@mewhhaha/eslint-plugin-url-exists':
         specifier: workspace:*
         version: link:../packages/eslint-plugin-url-exists
+      '@mewhhaha/rolldown-plugin-tailwindcss':
+        specifier: workspace:*
+        version: link:../packages/rolldown-plugin-tailwindcss
+      '@mewhhaha/rolldown-plugin-use-client':
+        specifier: workspace:*
+        version: link:../packages/rolldown-plugin-use-client
       '@mewhhaha/ruwuter':
         specifier: jsr:^0.1.33
         version: '@jsr/mewhhaha__ruwuter@0.1.33'
