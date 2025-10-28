@@ -8,6 +8,7 @@ import {
 type BundledAsset = {
   code: string;
   map: any;
+  modules: string[];
   assets: Array<{
     fileName: string;
     source: string | Uint8Array;
@@ -79,6 +80,7 @@ async function bundleAsset(
   return {
     code: entryChunk.code,
     map: entryChunk.map ?? null,
+    modules: Object.keys(entryChunk.modules ?? {}),
     assets,
   };
 }
@@ -100,6 +102,14 @@ export default function assets(
 
   return {
     name: "bundle-assets",
+    buildStart() {
+      bundleCache.clear();
+      emittedAssets.clear();
+    },
+    watchChange(id) {
+      bundleCache.delete(id);
+      emittedAssets.clear();
+    },
     async transform(this: TransformPluginContext, _code, id, s) {
       if (s.moduleType !== "asset" || !assetPattern.test(id)) {
         return;
@@ -145,6 +155,9 @@ export default function assets(
       }
 
       for (const asset of bundle.assets) {
+        if (asset.fileName.includes(".client")) {
+          continue;
+        }
         const fileName = normalizeAssetFileName(asset.fileName);
         if (!emittedAssets.has(fileName)) {
           const refId = this.emitFile({
@@ -153,6 +166,12 @@ export default function assets(
             source: asset.source,
           });
           emittedAssets.set(fileName, refId);
+        }
+      }
+
+      for (const moduleId of bundle.modules) {
+        if (!moduleId.startsWith("\0")) {
+          this.addWatchFile?.(moduleId);
         }
       }
 
