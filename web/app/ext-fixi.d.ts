@@ -17,3 +17,44 @@ export interface FxActionOptions {
 }
 
 export type FxAction = (options: FxActionOptions) => Promise<Response>;
+
+export type SwapTarget =
+  | Element
+  | string
+  | {
+      current: Element | null | undefined;
+    };
+
+export type SwapMode =
+  | string
+  | ((context: { target: Element; text: string }) => void);
+
+export interface SwapOptions {
+  target: SwapTarget;
+  swap?: SwapMode;
+  text?: string;
+  init?: RequestInit;
+}
+
+export interface SwapResult {
+  target: Element;
+  swap: SwapMode;
+  text: string;
+  response: Response | null;
+}
+
+export type SwapInput =
+  | RequestInfo
+  | URL
+  | Response
+  | {
+      text(): string | Promise<string>;
+    };
+
+declare global {
+  interface Window {
+    swap: (input: SwapInput, options?: SwapOptions) => Promise<SwapResult>;
+  }
+
+  var swap: Window["swap"];
+}

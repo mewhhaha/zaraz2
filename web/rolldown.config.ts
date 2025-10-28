@@ -4,6 +4,7 @@ import { generate } from "@mewhhaha/ruwuter/fs-routes";
 import tailwindcss from "./plugins/tailwindcss-rolldown";
 import assets from "./plugins/bundle-assets-rolldown";
 import { readFile, writeFile } from "node:fs/promises";
+import inlineClientHandlers from "./plugins/inline-client-rolldown";
 
 const {
   router: [routes],
@@ -34,7 +35,7 @@ export default defineConfig({
       return "assets/[name]-[hash].[ext]";
     },
   },
-  plugins: [tailwindcss(), assets()],
+  plugins: [inlineClientHandlers(), tailwindcss(), assets()],
 
   experimental: {
     resolveNewUrlToAsset: true,

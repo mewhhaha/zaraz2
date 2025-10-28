@@ -58,7 +58,8 @@ const rule: RuleModule<keyof typeof messages, []> = {
           // import.meta.url detected, precious!
           if (
             firstArg.type === "Literal" &&
-            typeof firstArg.value === "string"
+            typeof firstArg.value === "string" &&
+            firstArg.value.match(/^\.\/|^\.\.\/|^\//)
           ) {
             const dirname = path.dirname(context.filename);
             if (dirname) {

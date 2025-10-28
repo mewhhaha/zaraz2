@@ -14,11 +14,11 @@
     "dev": "wrangler dev --live-reload"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.13.15",
+    "@cloudflare/vite-plugin": "^1.13.16",
     "@cloudflare/workers-types": "^4.20251014.0",
     "@mewhhaha/eslint-plugin-simple-tailwind": "^0.0.15",
     "@mewhhaha/eslint-plugin-url-exists": "workspace:*",
-    "@mewhhaha/ruwuter": "jsr:^0.1.32",
+    "@mewhhaha/ruwuter": "jsr:^0.1.33",
     "@prettier/plugin-oxc": "^0.0.4",
     "@tailwindcss/node": "^4.1.16",
     "@tailwindcss/oxide": "^4.1.16",
@@ -30,11 +30,11 @@
     "npm-run-all": "^4.1.5",
     "oxlint": "^1.24.0",
     "prettier": "4.0.0-alpha.12",
-    "rolldown": "1.0.0-beta.44",
+    "rolldown": "1.0.0-beta.45",
     "tailwindcss": "^4.1.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
-    "wrangler": "^4.45.0"
+    "wrangler": "^4.45.1"
   },
   "dependencies": {
     "@packages/passkey": "workspace:*",

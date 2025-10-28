@@ -64,7 +64,6 @@ export default function Document({
       <body
         class={`
           bg-slate-950 text-amber-50 transition-[filter] duration-300
-
           inert:grayscale-100
         `}
       >

@@ -1,12 +1,10 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import type { Route as t } from "./+types.route";
+import { cx } from "../../helpers/style";
 import { events, event } from "@mewhhaha/ruwuter/events";
 import { authenticate } from "../auth.$/helpers.ts";
-import { cx } from "../../helpers/style";
 
 const menuHref = new URL("./menu.client.ts", import.meta.url).pathname;
-const promptHref = new URL("../auth._index/prompt.client.ts", import.meta.url)
-  .pathname;
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
@@ -76,16 +74,15 @@ export default function Home({ loaderData }: t.ComponentProps) {
       <div class={`relative mx-auto flex size-full max-w-5xl flex-col`}>
         <div
           class={`
-            absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden rounded-lg border-2
-            border-gray-400/30 view-name-[background]
+            absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden
+            rounded-lg border-2 border-gray-400/30 view-name-[background]
           `}
         ></div>
         <main class={`relative flex grow items-center justify-center`}>
           <div
             class={`
-              font-serif text-4xl font-extrabold tracking-wider transition-transform
-              text-shadow-lg/100 text-shadow-amber-300
-
+              font-serif text-4xl font-extrabold tracking-wider
+              transition-transform text-shadow-lg/100 text-shadow-amber-300
               starting:skew-x-165
             `}
           >
@@ -109,25 +106,26 @@ export default function Home({ loaderData }: t.ComponentProps) {
     >
       <div
         class={`
-          absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden rounded-lg border-2
-          border-gray-400/30 view-name-[background]
+          absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden
+          rounded-lg border-2 border-gray-400/30 view-name-[background]
         `}
       >
         <img
           src={bgSrc}
           alt=""
           class={`
-            grow object-cover object-center blur-2xl transition-[filter] duration-500
-            ease-in-out
-
+            grow object-cover object-center blur-2xl transition-[filter]
+            duration-500 ease-in-out
             in-data-empty:blur-md
-
             starting:blur-sm
           `}
         />
       </div>
       <div
-        class={`relative flex size-full flex-col items-center overflow-hidden view-name-[home]`}
+        class={`
+          relative flex size-full flex-col items-center overflow-hidden
+          view-name-[home]
+        `}
       >
         <main class={`flex size-full`}>
           <div class={`absolute top-1 right-1 z-10 view-name-[account]`}>
@@ -136,18 +134,18 @@ export default function Home({ loaderData }: t.ComponentProps) {
           <div class={`absolute inset-x-0 top-2 flex justify-center`}>
             <div
               class={`
-                rounded-b-2xl border-2 border-t-0 border-gray-400/50 bg-slate-950 px-4 text-gray-300
-                shadow-lg
+                rounded-b-2xl border-2 border-t-0 border-gray-400/50
+                bg-slate-950 px-4 text-gray-300 shadow-lg
               `}
             >
               You've completed{" "}
               <span
                 data-updated={confetti !== null}
                 class={`
-                  text-white transition-[color_transform_font-size] delay-300 duration-1000
-                  view-name-[task-count]
-
-                  data-updated:starting:text-xl data-updated:starting:text-green-300
+                  text-white transition-[color_transform_font-size] delay-300
+                  duration-1000 view-name-[task-count]
+                  data-updated:starting:text-xl
+                  data-updated:starting:text-green-300
                 `}
                 id="task-count"
               >
@@ -161,7 +159,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
             <div
               class={`
                 grid place-content-center px-4
-
                 *:[grid-area:1/1]
               `}
             >
@@ -172,7 +169,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
                 data-view-transition={direction !== null}
                 class={`
                   view-name-[task]
-
                   data-last:invisible
                 `}
               >
@@ -196,7 +192,10 @@ export default function Home({ loaderData }: t.ComponentProps) {
             fx-target="body"
             fx-swap="innerHTML"
             ext-fx-indicator="#task"
-            class={`absolute right-2 bottom-10 flex flex-none grow flex-col items-end gap-2`}
+            class={`
+              absolute right-2 bottom-10 flex flex-none grow flex-col items-end
+              gap-2
+            `}
           >
             {current && <input type="hidden" name="id" value={current.id} />}
             <input type="hidden" name="another" value="" />
@@ -208,7 +207,33 @@ export default function Home({ loaderData }: t.ComponentProps) {
                   target: "input[name='another']",
                   name: "",
                 },
-                event.click(promptHref, { preventDefault: true }),
+                event.click(
+                  function (
+                    this: { title: string; target: string },
+                    ev: Event,
+                  ) {
+                    "use client";
+                    const trigger = ev.currentTarget;
+                    if (!(trigger instanceof HTMLElement)) {
+                      return;
+                    }
+                    const form = trigger.closest("form");
+                    if (!(form instanceof HTMLFormElement)) {
+                      return;
+                    }
+                    const input = form.querySelector(this.target);
+                    if (!(input instanceof HTMLInputElement)) {
+                      return;
+                    }
+                    const value = window.prompt(this.title);
+                    if (!value) {
+                      return;
+                    }
+                    input.value = value;
+                    form.requestSubmit();
+                  },
+                  { preventDefault: true },
+                ),
               )}
             >
               ➕ Another?
@@ -245,17 +270,12 @@ const Account = () => {
           commandfor="passkeys-menu"
           command="show-modal"
           class={`
-            mb-1 flex size-12 cursor-pointer items-center justify-center rounded-full
-            border-2 border-blue-600 bg-slate-950 p-1 text-white drop-shadow-sm/100
-            transition-[border-color_background]
-
+            peer mb-1 flex size-12 cursor-pointer items-center justify-center
+            rounded-full border-2 border-blue-600 bg-slate-950 p-1 text-white
+            drop-shadow-sm/100 transition-[border-color_background]
             [anchor-name:--passkeys]
-
             hover:border-white hover:bg-black
-
             active:bg-white active:text-black active:text-shadow-sm/100
-
-            peer
           `}
         >
           <PasskeyIcon class={`size-6`} />
@@ -273,13 +293,10 @@ const Account = () => {
         ext-fx-allow-default
         class={`
           fixed overflow-visible bg-transparent
-
           [position-anchor:--passkeys]
-
           [position-area:bottom_center]
-
-          backdrop:bg-black/50 backdrop:transition-colors backdrop:view-name-[backdrop]
-
+          backdrop:bg-black/50 backdrop:transition-colors
+          backdrop:view-name-[backdrop]
           starting:backdrop:bg-black/0
         `}
       >
@@ -303,16 +320,13 @@ const MenuButton = ({ class: className, ...props }: MenuButtonProps) => {
     <button
       class={cx(
         `
-          w-40 cursor-pointer rounded-l-full border-y-2 border-l-2 border-gray-600
-          bg-slate-950 px-6 py-4 text-left drop-shadow-sm/100
-
+          w-40 cursor-pointer rounded-l-full border-y-2 border-l-2
+          border-gray-600 bg-slate-950 px-6 py-4 text-left drop-shadow-sm/100
           hover:bg-black/90 hover:transition-[width]
-
-          not-disabled:active:border-gray-500 not-disabled:active:bg-white not-disabled:active:text-slate-950
+          not-disabled:active:border-gray-500 not-disabled:active:bg-white
+          not-disabled:active:text-slate-950
           not-disabled:active:text-shadow-sm/100
-
           disabled:cursor-not-allowed disabled:opacity-50
-
           pointer-fine:not-disabled:hover:w-50
         `,
         className,
@@ -330,12 +344,11 @@ const Task = ({ children, class: className, ...props }: TaskProps) => {
       id="task"
       class={cx(
         `
-          z-10 h-fit w-fit self-center justify-self-center rounded-full bg-blue-800 px-10 py-2
-          text-center font-serif text-4xl text-gray-100 drop-shadow-sm/100
-          transition-[opacity_transform] duration-300 text-shadow-lg/100
-
+          z-10 h-fit w-fit self-center justify-self-center rounded-full
+          bg-blue-800 px-10 py-2 text-center font-serif text-4xl text-gray-100
+          drop-shadow-sm/100 transition-[opacity_transform] duration-300
+          text-shadow-lg/100
           data-indicator:opacity-70
-
           starting:scale-150 starting:opacity-0
         `,
         className,

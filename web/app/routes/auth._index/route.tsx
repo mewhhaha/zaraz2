@@ -1,5 +1,5 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
-import { events, event } from "@mewhhaha/ruwuter/events";
+import { event } from "@mewhhaha/ruwuter/events";
 import {
   authenticate,
   AuthExpiredError,
@@ -14,15 +14,6 @@ import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user";
 
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
-import {
-  addPasskeyHref,
-  autoSignInHandler,
-  confirmHandler,
-  promptHandler,
-  registerHref,
-  verifyHandler,
-} from "./assets.ts";
-
 class ParseError extends Error {
   summary: string;
 
@@ -248,8 +239,40 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            on={event.mount(autoSignInHandler)}
             value={auth.credentialId}
+            on={event.mount(async function (event: Event, signal: AbortSignal) {
+              "use client";
+              if (!(event.currentTarget instanceof HTMLInputElement)) {
+                return;
+              }
+              const input = event.currentTarget;
+              if (!input.value || signal.aborted) {
+                return;
+              }
+              try {
+                const { authenticate } = await import("@packages/passkey");
+                const token = await authenticate("/auth/challenge", [
+                  input.value,
+                ]);
+                if (!token || signal.aborted) {
+                  return;
+                }
+                const formData = new FormData();
+                formData.set("token", token);
+                const response = await fetch("/auth/verify", {
+                  method: "POST",
+                  body: formData,
+                  signal,
+                });
+                if (!signal.aborted && response.ok) {
+                  window.location.href = "/home";
+                }
+              } catch (error) {
+                if (!signal.aborted) {
+                  console.error(error);
+                }
+              }
+            })}
           />
         )}
         <SignedOut />
@@ -280,7 +303,6 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
       <h2
         class={`
           mb-4 text-lg font-medium text-gray-200
-
           sm:text-xl
         `}
       >
@@ -289,25 +311,83 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
 
       <div
         class={`
-          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700 overflow-hidden rounded-lg
-          border border-slate-700
+          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700
+          overflow-hidden rounded-lg border border-slate-700
         `}
       >
         <div
-          class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
+          class={`
+            flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2
+            py-4
+          `}
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action={addPasskeyHref}
-            fx-method="POST"
-            fx-target="#passkeys-list"
+            data-swap-target="#passkeys-list"
+            on={event.submit(async function (
+              event: SubmitEvent,
+              signal: AbortSignal,
+            ) {
+              "use client";
+              event.preventDefault();
+              if (
+                !(event.currentTarget instanceof HTMLFormElement) ||
+                signal.aborted
+              ) {
+                return;
+              }
+              const form = event.currentTarget;
+              const formData = new FormData(form);
+              const submitter = event.submitter;
+              if (
+                submitter instanceof HTMLButtonElement &&
+                submitter.name &&
+                !formData.has(submitter.name)
+              ) {
+                formData.append(submitter.name, submitter.value);
+              }
+              const username = formData.get("username");
+              if (!username) {
+                window.alert?.("Username is required.");
+                return;
+              }
+              try {
+                const { register } = await import("@packages/passkey");
+                const token = await register(
+                  "/auth/challenge",
+                  username.toString(),
+                );
+                if (!token || signal.aborted) {
+                  return;
+                }
+                formData.set("token", token);
+                const response = await fetch("/auth", {
+                  method: "POST",
+                  headers: { "fx-request": "true" },
+                  body: formData,
+                  signal,
+                });
+                if (signal.aborted) {
+                  return;
+                }
+                await swap(response, {
+                  target: form.dataset.swapTarget ?? "#passkeys-list",
+                });
+              } catch (error) {
+                if (!signal.aborted) {
+                  console.error(error);
+                  window.alert?.(
+                    "Something went wrong adding your passkey. Please try again.",
+                  );
+                }
+              }
+            })}
           >
             <input type="hidden" name="username" value={auth.username} />
             <button
               class={`
-                flex cursor-pointer items-center rounded-lg border border-slate-700
-                bg-gray-900 px-3 py-1.5
-
+                flex cursor-pointer items-center rounded-lg border
+                border-slate-700 bg-gray-900 px-3 py-1.5
                 hover:bg-gray-800
               `}
               name="intent"
@@ -326,12 +406,54 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
       </div>
 
       <MenuButton
-        name="intent"
-        value="signout"
-        fx-action="/auth"
-        fx-method="POST"
-        fx-target="body"
-        fx-swap="innerHTML"
+        type="button"
+        on={event.click(async function (ev: Event, signal: AbortSignal) {
+          "use client";
+          if (
+            !(ev.currentTarget instanceof HTMLButtonElement) ||
+            signal.aborted
+          ) {
+            return;
+          }
+          const button = ev.currentTarget;
+          if (button.disabled) {
+            return;
+          }
+          button.disabled = true;
+          const formData = new FormData();
+          formData.set("intent", "signout");
+          try {
+            const response = await fetch("/auth", {
+              method: "POST",
+              headers: { "fx-request": "true" },
+              body: formData,
+              signal,
+              redirect: "manual",
+            });
+            if (signal.aborted) {
+              return;
+            }
+            if (
+              response.ok ||
+              response.type === "opaqueredirect" ||
+              (response.status >= 300 && response.status < 400)
+            ) {
+              const location = response.headers.get("Location") ?? "/";
+              window.location.href = location;
+              return;
+            }
+            await swap(response, { target: "body", swap: "innerHTML" });
+          } catch (error) {
+            if (!signal.aborted) {
+              console.error(error);
+              window.alert?.("Could not sign you out. Please try again.");
+            }
+          } finally {
+            if (!signal.aborted) {
+              button.disabled = false;
+            }
+          }
+        })}
       >
         Sign out
       </MenuButton>
@@ -368,7 +490,10 @@ const PasskeyList = ({
               <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
               <div
                 hidden={passkey.passkeyId !== auth.passkeyId}
-                class={`rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500`}
+                class={`
+                  rounded-full border border-blue-500 px-2 py-0.5 text-xs
+                  text-blue-500
+                `}
               >
                 Current
               </div>
@@ -376,7 +501,6 @@ const PasskeyList = ({
             <div
               class={`
                 hidden gap-2
-
                 sm:flex
               `}
             >
@@ -400,7 +524,6 @@ const PasskeyList = ({
           <div
             class={`
               flex gap-2
-
               sm:hidden
             `}
           >
@@ -424,21 +547,66 @@ type DeleteButtonProps = {
 const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
   return (
     <form
-      fx-method="DELETE"
-      fx-action="/auth"
-      fx-target="#passkeys-list"
       hidden={passkeyId === auth.passkeyId}
+      data-swap-target="#passkeys-list"
+      data-confirm="Are you sure you want to delete this passkey?"
+      on={event.submit(async function (
+        event: SubmitEvent,
+        signal: AbortSignal,
+      ) {
+        "use client";
+        event.preventDefault();
+        if (
+          !(event.currentTarget instanceof HTMLFormElement) ||
+          signal.aborted
+        ) {
+          return;
+        }
+        const form = event.currentTarget;
+        const message = form.getAttribute("data-confirm");
+        if (message && !window.confirm(message)) {
+          return;
+        }
+        const formData = new FormData(form);
+        const submitter = event.submitter;
+        if (
+          submitter instanceof HTMLButtonElement &&
+          submitter.name &&
+          !formData.has(submitter.name)
+        ) {
+          formData.append(submitter.name, submitter.value);
+        }
+        try {
+          const response = await fetch("/auth", {
+            method: "DELETE",
+            headers: { "fx-request": "true" },
+            body: formData,
+            signal,
+          });
+          if (signal.aborted) {
+            return;
+          }
+          await swap(response, {
+            target: form.dataset.swapTarget ?? "#passkeys-list",
+          });
+        } catch (error) {
+          if (!signal.aborted) {
+            console.error(error);
+            window.alert?.(
+              "Failed to delete the passkey. Please try again in a moment.",
+            );
+          }
+        }
+      })}
     >
       <input type="hidden" name="id" value={passkeyId} />
       <IconButton
+        type="submit"
         aria-label="Delete passkey"
         class={`
-          override:text-red-400
-
-          override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
+          override:text-red-400 override:hover:border-red-700
+          override:hover:bg-red-700 override:hover:text-white
         `}
-        data-confirm="Are you sure you want to delete this passkey?"
-        on={event.click(confirmHandler)}
       >
         <TrashIconSolid class={`inline-block size-5`} />
       </IconButton>
@@ -453,22 +621,83 @@ type RenameButtonProps = {
 
 const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
-    <form fx-action="/auth" fx-target="#passkeys-list" fx-method="PATCH">
+    <form
+      data-swap-target="#passkeys-list"
+      data-prompt-title="What should we call this passkey?"
+      on={event.submit(async function (
+        event: SubmitEvent,
+        signal: AbortSignal,
+      ) {
+        "use client";
+        event.preventDefault();
+        if (
+          !(event.currentTarget instanceof HTMLFormElement) ||
+          signal.aborted
+        ) {
+          return;
+        }
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+        const submitter = event.submitter;
+        if (
+          submitter instanceof HTMLButtonElement &&
+          submitter.name &&
+          !formData.has(submitter.name)
+        ) {
+          formData.append(submitter.name, submitter.value);
+        }
+        try {
+          const response = await fetch("/auth", {
+            method: "PATCH",
+            headers: { "fx-request": "true" },
+            body: formData,
+            signal,
+          });
+          if (signal.aborted) {
+            return;
+          }
+          await swap(response, {
+            target: form.dataset.swapTarget ?? "#passkeys-list",
+          });
+        } catch (error) {
+          if (!signal.aborted) {
+            console.error(error);
+            window.alert?.("Could not rename this passkey. Please try again.");
+          }
+        }
+      })}
+    >
       <input type="hidden" name="id" value={passkeyId} />
       <input type="hidden" name="name" value={currentName} />
       <IconButton
         type="button"
         aria-label="Rename passkey"
-        on={events(
-          {
-            title: "What should we call this passkey?",
-            target: "input[name='name']",
-            name: currentName,
-          },
-          event.click(promptHandler, { preventDefault: true }),
-        )}
+        on={event.click(function (ev: Event) {
+          "use client";
+          ev.preventDefault();
+          if (!(ev.currentTarget instanceof HTMLElement)) {
+            return;
+          }
+          const button = ev.currentTarget;
+          const form = button.closest("form");
+          const input = form?.querySelector("input[name='name']");
+          if (
+            !(form instanceof HTMLFormElement) ||
+            !(input instanceof HTMLInputElement)
+          ) {
+            return;
+          }
+          const title =
+            form.getAttribute("data-prompt-title") ?? "Rename passkey";
+          const next = window.prompt(title, input.value);
+          if (!next) {
+            return;
+          }
+          input.value = next;
+          form.requestSubmit(button as HTMLButtonElement);
+        })}
       >
-        <PencilIcon class={`inline-block size-5 pointer-events-none`} />
+        <PencilIcon class={`pointer-events-none inline-block size-5`} />
       </IconButton>
     </form>
   );
@@ -484,14 +713,60 @@ const SignedOut = () => {
 
         <MenuButton
           type="button"
-          on={event.click(verifyHandler)}
+          on={event.click<HTMLButtonElement>(async function (ev, signal) {
+            "use client";
+            const button = ev.currentTarget;
+            if (button.disabled || signal.aborted) {
+              return;
+            }
+            button.disabled = true;
+            try {
+              const { authenticate } = await import("@packages/passkey");
+              const token = await authenticate("/auth/challenge");
+              if (!token || signal.aborted) {
+                return;
+              }
+              const formData = new FormData();
+              formData.set("token", token);
+              const response = await fetch("/auth/verify", {
+                method: "POST",
+                headers: { "fx-request": "true" },
+                body: formData,
+                redirect: "manual",
+                signal,
+              });
+              if (signal.aborted) {
+                return;
+              }
+              if (response.ok) {
+                window.location.href = "/";
+                return;
+              }
+              if (
+                response.type === "opaqueredirect" ||
+                (response.status >= 300 && response.status < 400)
+              ) {
+                const location = response.headers.get("Location");
+                window.location.href = location ?? "/";
+                return;
+              }
+              throw new Error(await response.text());
+            } catch (error) {
+              if (!signal.aborted) {
+                console.error(error);
+                window.alert?.(
+                  "Something went wrong signing you in. Please try again.",
+                );
+              }
+            } finally {
+              if (!signal.aborted) {
+                button.disabled = false;
+              }
+            }
+          })}
           class={`
             mb-10
-
-            override:bg-green-800
-
-            override:hover:bg-green-700
-
+            override:bg-green-800 override:hover:bg-green-700
             override:active:bg-white
           `}
         >
@@ -502,11 +777,80 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action={registerHref}
-          fx-target="body"
-          fx-method="POST"
-          fx-swap="innerHTML"
           class={`flex flex-col gap-2`}
+          data-swap-target="body"
+          data-swap-mode="innerHTML"
+          on={event.submit(async function (
+            event: SubmitEvent,
+            signal: AbortSignal,
+          ) {
+            "use client";
+            event.preventDefault();
+            if (
+              !(event.currentTarget instanceof HTMLFormElement) ||
+              signal.aborted
+            ) {
+              return;
+            }
+            const form = event.currentTarget;
+            const formData = new FormData(form);
+            const submitter = event.submitter;
+            if (
+              submitter instanceof HTMLButtonElement &&
+              submitter.name &&
+              !formData.has(submitter.name)
+            ) {
+              formData.append(submitter.name, submitter.value);
+            }
+            const username = formData.get("username");
+            if (!username) {
+              window.alert?.("Please choose a username to continue.");
+              return;
+            }
+            try {
+              const { register } = await import("@packages/passkey");
+              const token = await register(
+                "/auth/challenge",
+                username.toString(),
+              );
+              if (!token || signal.aborted) {
+                return;
+              }
+              formData.set("token", token);
+              const response = await fetch("/auth/register", {
+                method: "POST",
+                headers: { "fx-request": "true" },
+                body: formData,
+                signal,
+                redirect: "manual",
+              });
+              if (signal.aborted) {
+                return;
+              }
+              if (
+                response.ok ||
+                response.type === "opaqueredirect" ||
+                (response.status >= 300 && response.status < 400)
+              ) {
+                const location = response.headers.get("Location");
+                if (location) {
+                  window.location.href = location;
+                  return;
+                }
+              }
+              await swap(response, {
+                target: form.dataset.swapTarget ?? "body",
+                swap: form.dataset.swapMode ?? "innerHTML",
+              });
+            } catch (error) {
+              if (!signal.aborted) {
+                console.error(error);
+                window.alert?.(
+                  "We could not register you right now. Please try again.",
+                );
+              }
+            }
+          })}
         >
           <div class={`flex flex-col gap-2`}>
             <label for="register-username" class={`text-sm text-gray-400`}>
@@ -539,9 +883,8 @@ const IconButton = ({
     <button
       class={cx(
         `
-          flex cursor-pointer items-center rounded-lg border border-slate-700 bg-gray-900 p-2
-          text-gray-400
-
+          flex cursor-pointer items-center rounded-lg border border-slate-700
+          bg-gray-900 p-2 text-gray-400
           hover:bg-gray-800
         `,
         className,
@@ -598,10 +941,9 @@ const MenuButton = ({
     <button
       class={cx(
         `
-          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2 text-white
-
+          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2
+          text-white
           hover:bg-gray-800
-
           active:bg-white active:text-slate-950 active:text-shadow-sm/100
         `,
         className,
