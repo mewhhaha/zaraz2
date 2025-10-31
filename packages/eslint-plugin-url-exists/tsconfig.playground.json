@@ -1,21 +1,21 @@
 {
-    "include": ["playground"],
-    "compilerOptions": {
-      "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo.lib.json",
-      "composite": true,
-      "lib": ["ESNext"],
-      "isolatedModules": true,
-      "esModuleInterop": true,
-      "module": "NodeNext",
-      "moduleResolution": "nodenext",
-      "resolveJsonModule": true,
-      "target": "ESNext",
-      "strict": true,
-      "jsx": "react-jsx",
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "allowSyntheticDefaultImports": true,
-      "noEmit": true,
-      "declaration": true
-    }
+  "include": ["playground"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo.playground.json",
+    "composite": true,
+    "lib": ["ESNext"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "target": "ESNext",
+    "strict": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "declaration": true
   }
+}

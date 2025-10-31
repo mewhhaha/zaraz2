@@ -4,8 +4,10 @@ import { cx } from "../../helpers/style";
 import { events, event } from "@mewhhaha/ruwuter/events";
 import { authenticate } from "../auth.$/helpers.ts";
 
-const menuHref = new URL("./menu.client.ts", import.meta.url).pathname;
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
+const isAbortError = (error: unknown): error is DOMException => {
+  return error instanceof DOMException && error.name === "AbortError";
+};
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const user = await authenticate(request, env.SECRET_KEY);
@@ -98,6 +100,10 @@ export default function Home({ loaderData }: t.ComponentProps) {
   }
 
   const { direction, confetti, current, completed } = loaderData;
+  const menuState = {
+    currentId: current?.id ?? null,
+    another: "",
+  };
 
   return (
     <div
@@ -187,52 +193,130 @@ export default function Home({ loaderData }: t.ComponentProps) {
         <header class={`relative flex w-full justify-end`}>
           <form
             id="menu-form"
-            fx-action={menuHref}
-            fx-method="POST"
-            fx-target="body"
-            fx-swap="innerHTML"
-            ext-fx-indicator="#task"
+            on={events(
+              menuState,
+              event.submit<HTMLFormElement, typeof menuState>(
+                async function (this, submitEvent, signal) {
+                  "use client";
+                  submitEvent.preventDefault();
+                  if (
+                    !(submitEvent.currentTarget instanceof HTMLFormElement) ||
+                    signal.aborted
+                  ) {
+                    return;
+                  }
+
+                  const form = submitEvent.currentTarget;
+                  if (form.dataset.pending === "true") {
+                    return;
+                  }
+                  form.dataset.pending = "true";
+
+                  const indicatorTarget =
+                    document.querySelector("#task") ?? form;
+                  indicatorTarget?.setAttribute("data-indicator", "");
+
+                  const formData = new FormData();
+                  if (this.currentId) {
+                    formData.set("id", this.currentId);
+                  }
+                  if (this.another) {
+                    formData.set("another", this.another);
+                  }
+                  const submitter = submitEvent.submitter;
+                  if (
+                    submitter instanceof HTMLButtonElement &&
+                    submitter.name
+                  ) {
+                    formData.set(submitter.name, submitter.value);
+                  }
+
+                  try {
+                    const response = await fetch("/home", {
+                      method: "POST",
+                      body: formData,
+                      signal,
+                    });
+
+                    const performSwap = () =>
+                      swap(response, {
+                        target: "body",
+                        swap: "innerHTML",
+                      });
+
+                    const supportsViewTransition =
+                      typeof document.startViewTransition === "function";
+                    let swapPromise: Promise<unknown> | undefined;
+
+                    if (supportsViewTransition) {
+                      const viewTransition = document.startViewTransition(
+                        () => {
+                          swapPromise = performSwap();
+                          return swapPromise;
+                        },
+                      );
+                      await viewTransition.finished;
+                      await swapPromise;
+                    } else {
+                      await performSwap();
+                    }
+
+                    const intent = formData.get("intent");
+                    if (intent === "done") {
+                      const { default: confetti } = await import(
+                        "canvas-confetti"
+                      );
+                      confetti.reset();
+                      confetti({
+                        particleCount: 100,
+                        spread: 180,
+                        origin: { y: -0.1 },
+                        startVelocity: -35,
+                        disableForReducedMotion: true,
+                      });
+                    }
+
+                    const transitions = document.querySelectorAll(
+                      "[data-view-transition]",
+                    );
+                    for (const transition of transitions) {
+                      transition.removeAttribute("data-view-transition");
+                    }
+                  } catch (error) {
+                    if (isAbortError(error)) {
+                      return;
+                    }
+                    console.error(error);
+                    window.alert?.(
+                      "We could not update your tasks right now. Please try again.",
+                    );
+                  } finally {
+                    this.another = "";
+                    indicatorTarget?.removeAttribute("data-indicator");
+                    form.dataset.pending = "false";
+                  }
+                },
+              ),
+            )}
             class={`
               absolute right-2 bottom-10 flex flex-none grow flex-col items-end
               gap-2
             `}
           >
-            {current && <input type="hidden" name="id" value={current.id} />}
-            <input type="hidden" name="another" value="" />
             <MenuButton
-              type="button"
               on={events(
-                {
-                  title: "What's next?",
-                  target: "input[name='another']",
-                  name: "",
-                },
-                event.click(
-                  function (
-                    this: { title: string; target: string },
-                    ev: Event,
-                  ) {
+                menuState,
+                event.click<HTMLButtonElement, typeof menuState>(
+                  function (this, ev) {
                     "use client";
-                    const trigger = ev.currentTarget;
-                    if (!(trigger instanceof HTMLElement)) {
-                      return;
-                    }
-                    const form = trigger.closest("form");
-                    if (!(form instanceof HTMLFormElement)) {
-                      return;
-                    }
-                    const input = form.querySelector(this.target);
-                    if (!(input instanceof HTMLInputElement)) {
-                      return;
-                    }
-                    const value = window.prompt(this.title);
+                    const value = window.prompt("What's next?");
                     if (!value) {
+                      this.another = "";
+                      ev.preventDefault();
                       return;
                     }
-                    input.value = value;
-                    form.requestSubmit();
+                    this.another = value;
                   },
-                  { preventDefault: true },
                 ),
               )}
             >
@@ -285,12 +369,65 @@ const Account = () => {
       <dialog
         id="passkeys-menu"
         popover="auto"
-        fx-action="/auth"
-        fx-target="#passkeys-settings"
-        fx-trigger="toggle"
-        ext-fx-trigger-value="newState"
-        ext-fx-transition="#passkeys-settings"
-        ext-fx-allow-default
+        on={event.toggle<HTMLDialogElement>(async function (evt, signal) {
+          "use client";
+          const dialog = evt.currentTarget;
+          const toggleEvent = evt as Event & { newState?: string };
+          if (toggleEvent.newState && toggleEvent.newState !== "open") {
+            return;
+          }
+          if (!dialog.open || signal.aborted) {
+            return;
+          }
+          if (dialog.dataset.pending === "true") {
+            return;
+          }
+          dialog.dataset.pending = "true";
+
+          const targetElement = document.querySelector("#passkeys-settings");
+          if (!(targetElement instanceof Element)) {
+            dialog.dataset.pending = "false";
+            return;
+          }
+          targetElement.setAttribute("data-indicator", "");
+
+          try {
+            const response = await fetch("/auth", {
+              signal,
+            });
+
+            const performSwap = () =>
+              swap(response, {
+                target: targetElement,
+                swap: "innerHTML",
+              });
+
+            let swapPromise: Promise<unknown> | undefined;
+            const supportsViewTransition =
+              typeof document.startViewTransition === "function";
+            if (supportsViewTransition) {
+              const viewTransition = document.startViewTransition(() => {
+                swapPromise = performSwap();
+                return swapPromise;
+              });
+              await viewTransition.finished;
+              await swapPromise;
+            } else {
+              await performSwap();
+            }
+          } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
+            console.error(error);
+            window.alert?.(
+              "We couldn't load your passkey settings. Please try again.",
+            );
+          } finally {
+            targetElement.removeAttribute("data-indicator");
+            dialog.dataset.pending = "false";
+          }
+        })}
         class={`
           fixed overflow-visible bg-transparent
           [position-anchor:--passkeys]

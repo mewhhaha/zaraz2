@@ -4,7 +4,7 @@
   "type": "module",
   "description": "",
   "scripts": {
-    "build": "tsc -b && publint --strict",
+    "build": "tsgo -p tsconfig.lib.json && publint --strict",
     "lint": "oxlint"
   },
   "files": [
@@ -13,8 +13,8 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/plugin.d.mts",
-        "default": "./dist/plugin.mjs"
+        "types": "./dist/plugin.d.ts",
+        "default": "./dist/plugin.js"
       }
     }
   },
@@ -22,9 +22,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^24.9.1",
+    "@types/node": "^24.9.2",
     "@types/react": "^19.2.2",
     "@typescript-eslint/utils": "^8.46.2",
+    "@typescript/native-preview": "7.0.0-dev.20251029.1",
     "eslint": "^9.38.0",
     "oxlint": "^1.24.0",
     "prettier": "^3.6.2",

@@ -1,12 +1,12 @@
+import { exclude, id, include } from "@rolldown/pluginutils";
+import type { TopLevelFilterExpression } from "@rolldown/pluginutils";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import ts from "typescript";
 import type { Plugin, TransformPluginContext } from "rolldown";
 import {
   INLINE_ID_PREFIX,
-  INLINE_SPECIFIER_PREFIX,
   clearInlineClientModules,
-  deleteInlineClientModule,
   getInlineClientModule,
   setInlineClientModule,
 } from "./inline-client-registry.js";
@@ -24,6 +24,11 @@ type Replacement = {
   start: number;
   end: number;
   replacement: string;
+};
+
+type Range = {
+  start: number;
+  end: number;
 };
 
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
@@ -350,9 +355,7 @@ function collectReferences(
   });
 }
 
-function collectFunctionExternalReferences(
-  node: ts.FunctionLikeDeclaration,
-) {
+function collectFunctionExternalReferences(node: ts.FunctionLikeDeclaration) {
   const references = new Set<string>();
   const scope = new Set<string>();
   if (node.name && ts.isIdentifier(node.name)) {
@@ -476,267 +479,388 @@ function buildDeclarationMap(sourceFile: ts.SourceFile) {
   return map;
 }
 
-const specifierToId = new Map<string, string>();
-const fileSpecifiers = new Map<string, Set<string>>();
+function isPositionInRanges(position: number, ranges: Range[]) {
+  for (const range of ranges) {
+    if (position >= range.start && position < range.end) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function collectIdentifierPositions(sourceFile: ts.SourceFile) {
+  const positions = new Map<string, number[]>();
+
+  const visit = (node: ts.Node) => {
+    if (ts.isIdentifier(node)) {
+      const name = node.text;
+      let list = positions.get(name);
+      if (!list) {
+        list = [];
+        positions.set(name, list);
+      }
+      list.push(node.getStart(sourceFile));
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return positions;
+}
 
 export type InlineClientPluginOptions = {
   /**
-   * Absolute or relative directory that contains files to transform.
-   * Defaults to the current working directory.
+   * Extra filter expression(s) to append to the default transform filter.
+   * By default we include common JS/TS sources and ignore `node_modules`.
    */
-  root?: string;
-  /**
-   * Additional include predicate. Receives the normalized absolute path.
-   */
-  include?: (id: string) => boolean;
-  /**
-   * File pattern to consider for inline extraction.
-   */
-  filePattern?: RegExp;
+  filter?: TopLevelFilterExpression | TopLevelFilterExpression[];
 };
 
 export default function inlineClientHandlers(
   options: InlineClientPluginOptions = {},
 ): Plugin {
-  const rootDir = options.root ? path.resolve(options.root) : process.cwd();
-  const normalizedRoot = rootDir.replace(/\\/g, "/");
-  const filePattern = options.filePattern ?? /\.[cm]?[jt]sx?$/;
-  const include =
-    options.include ??
-    ((normalizedPath: string) => {
-      if (normalizedPath.includes("/node_modules/")) {
-        return false;
-      }
-      return (
-        normalizedPath === normalizedRoot ||
-        normalizedPath.startsWith(`${normalizedRoot}/`)
-      );
-    });
+  const defaultFilter: TopLevelFilterExpression[] = [
+    include(id(/\.[cm]?[jt]sx?$/i, { cleanUrl: true })),
+    exclude(id(/(?:^|[\\/])node_modules(?:[\\/]|$)/)),
+  ];
+  const userFilter = options.filter;
+  const transformFilter: TopLevelFilterExpression[] =
+    userFilter === undefined
+      ? defaultFilter
+      : [
+          ...defaultFilter,
+          ...(Array.isArray(userFilter) ? userFilter : [userFilter]),
+        ];
 
   return {
     name: "inline-client-handlers",
 
     buildStart() {
       clearInlineClientModules();
-      specifierToId.clear();
-      fileSpecifiers.clear();
     },
-    async transform(this: TransformPluginContext, code, id) {
-      if (id.startsWith("\0")) return;
+    transform: {
+      filter: transformFilter,
+      async handler(this: TransformPluginContext, code, id) {
+        if (id.startsWith("\0")) return;
 
-      const absoluteId = path.isAbsolute(id) ? id : path.resolve(id);
-      const normalizedId = absoluteId.replace(/\\/g, "/");
+        const absoluteId = path.isAbsolute(id) ? id : path.resolve(id);
 
-      if (!filePattern.test(absoluteId)) {
-        return;
-      }
+        this.addWatchFile?.(absoluteId);
 
-      if (!include(normalizedId)) {
-        return;
-      }
+        const ext = path.extname(absoluteId);
+        const scriptKind = SCRIPT_KIND_BY_EXT[ext];
+        if (!scriptKind) return;
 
-      this.addWatchFile?.(absoluteId);
+        const sourceFile = ts.createSourceFile(
+          absoluteId,
+          code,
+          ts.ScriptTarget.Latest,
+          true,
+          scriptKind,
+        );
 
-      const ext = path.extname(absoluteId);
-      const scriptKind = SCRIPT_KIND_BY_EXT[ext];
-      if (!scriptKind) return;
+        const importMap = buildImportMap(sourceFile);
+        const declarationMap = buildDeclarationMap(sourceFile);
 
-      const sourceFile = ts.createSourceFile(
-        absoluteId,
-        code,
-        ts.ScriptTarget.Latest,
-        true,
-        scriptKind,
-      );
+        const replacements: Replacement[] = [];
+        const inlineFunctionRanges: Range[] = [];
+        const importReferences = new Map<ts.ImportDeclaration, Set<string>>();
 
-      const importMap = buildImportMap(sourceFile);
-      const declarationMap = buildDeclarationMap(sourceFile);
-
-      const replacements: Replacement[] = [];
-      const newSpecifiers = new Set<string>();
-
-      const visit = (node: ts.Node) => {
-        if (
-          (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
-          ts.isBlock(node.body) &&
-          node.body.statements.length > 0
-        ) {
-          const first = node.body.statements[0];
+        const visit = (node: ts.Node) => {
           if (
-            ts.isExpressionStatement(first) &&
-            (ts.isStringLiteral(first.expression) ||
-              ts.isNoSubstitutionTemplateLiteral(first.expression)) &&
-            first.expression.text === "use client"
+            (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
+            ts.isBlock(node.body) &&
+            node.body.statements.length > 0
           ) {
-            const updatedBlock = ts.factory.createBlock(
-              node.body.statements.slice(1),
-              true,
-            );
+            const first = node.body.statements[0];
+            if (
+              ts.isExpressionStatement(first) &&
+              (ts.isStringLiteral(first.expression) ||
+                ts.isNoSubstitutionTemplateLiteral(first.expression)) &&
+              first.expression.text === "use client"
+            ) {
+              inlineFunctionRanges.push({
+                start: node.getStart(sourceFile),
+                end: node.end,
+              });
+              const updatedBlock = ts.factory.createBlock(
+                node.body.statements.slice(1),
+                true,
+              );
 
-            const normalized = ts.isArrowFunction(node)
-              ? ts.factory.updateArrowFunction(
-                  node,
-                  node.modifiers,
-                  node.typeParameters,
-                  node.parameters,
-                  node.type,
-                  node.equalsGreaterThanToken,
-                  updatedBlock,
-                )
-              : ts.factory.updateFunctionExpression(
-                  node,
-                  node.modifiers,
-                  node.asteriskToken,
-                  node.name,
-                  node.typeParameters,
-                  node.parameters,
-                  node.type,
-                  updatedBlock,
-                );
-
-            const handlerText = printer.printNode(
-              ts.EmitHint.Expression,
-              normalized,
-              sourceFile,
-            );
-
-            const externalRefs = collectFunctionExternalReferences(normalized);
-            const requiredImports = new Map<ts.ImportDeclaration, ImportInfo>();
-            const requiredDeclarations = new Map<ts.Statement, DeclarationInfo>();
-
-            const pending = [...externalRefs].filter(
-              (name) => !GLOBAL_IDENTIFIERS.has(name),
-            );
-            const seen = new Set(pending);
-
-            while (pending.length > 0) {
-              const name = pending.pop();
-              if (!name) continue;
-
-              const importInfo = importMap.get(name);
-              if (importInfo) {
-                requiredImports.set(importInfo.node, importInfo);
-                continue;
-              }
-
-              const declarationInfo = declarationMap.get(name);
-              if (declarationInfo) {
-                if (!requiredDeclarations.has(declarationInfo.node)) {
-                  requiredDeclarations.set(
-                    declarationInfo.node,
-                    declarationInfo,
+              const normalized = ts.isArrowFunction(node)
+                ? ts.factory.updateArrowFunction(
+                    node,
+                    node.modifiers,
+                    node.typeParameters,
+                    node.parameters,
+                    node.type,
+                    node.equalsGreaterThanToken,
+                    updatedBlock,
+                  )
+                : ts.factory.updateFunctionExpression(
+                    node,
+                    node.modifiers,
+                    node.asteriskToken,
+                    node.name,
+                    node.typeParameters,
+                    node.parameters,
+                    node.type,
+                    updatedBlock,
                   );
-                  for (const dep of declarationInfo.dependencies) {
-                    if (!seen.has(dep) && !GLOBAL_IDENTIFIERS.has(dep)) {
-                      pending.push(dep);
-                      seen.add(dep);
+
+              const handlerText = printer.printNode(
+                ts.EmitHint.Expression,
+                normalized,
+                sourceFile,
+              );
+
+              const externalRefs =
+                collectFunctionExternalReferences(normalized);
+              const requiredImports = new Map<
+                ts.ImportDeclaration,
+                ImportInfo
+              >();
+              const requiredDeclarations = new Map<
+                ts.Statement,
+                DeclarationInfo
+              >();
+
+              const pending = [...externalRefs].filter(
+                (name) => !GLOBAL_IDENTIFIERS.has(name),
+              );
+              const seen = new Set(pending);
+
+              while (pending.length > 0) {
+                const name = pending.pop();
+                if (!name) continue;
+
+                const importInfo = importMap.get(name);
+                if (importInfo) {
+                  requiredImports.set(importInfo.node, importInfo);
+                  let names = importReferences.get(importInfo.node);
+                  if (!names) {
+                    names = new Set<string>();
+                    importReferences.set(importInfo.node, names);
+                  }
+                  names.add(name);
+                  continue;
+                }
+
+                const declarationInfo = declarationMap.get(name);
+                if (declarationInfo) {
+                  if (!requiredDeclarations.has(declarationInfo.node)) {
+                    requiredDeclarations.set(
+                      declarationInfo.node,
+                      declarationInfo,
+                    );
+                    for (const dep of declarationInfo.dependencies) {
+                      if (!seen.has(dep) && !GLOBAL_IDENTIFIERS.has(dep)) {
+                        pending.push(dep);
+                        seen.add(dep);
+                      }
                     }
                   }
+                  continue;
                 }
-                continue;
+              }
+
+              const sortedImports = Array.from(requiredImports.values()).sort(
+                (a, b) => a.node.pos - b.node.pos,
+              );
+              const importCode =
+                sortedImports.length > 0
+                  ? `${sortedImports
+                      .map((info) => info.code.trim())
+                      .join("\n")}\n\n`
+                  : "";
+              const sortedDeclarations = Array.from(
+                requiredDeclarations.values(),
+              ).sort((a, b) => a.node.pos - b.node.pos);
+              const declarationCode =
+                sortedDeclarations.length > 0
+                  ? `${sortedDeclarations
+                      .map((info) => info.code.trim())
+                      .join("\n\n")}\n\n`
+                  : "";
+
+              const hash = createHash("sha1")
+                .update(absoluteId)
+                .update(String(node.getStart(sourceFile)))
+                .update(handlerText)
+                .digest("hex")
+                .slice(0, 12);
+
+              const baseName = path
+                .basename(absoluteId)
+                .replace(/\.[^.]+$/, "")
+                .replace(/[^a-zA-Z0-9_-]+/g, "_");
+
+              const fileName = `${baseName}.${hash}.client.ts`;
+              const moduleId = `${INLINE_ID_PREFIX}${fileName}`;
+
+              const moduleCode = `"use client";\n\n${importCode}${declarationCode}export default ${handlerText};\n`;
+
+              setInlineClientModule(moduleId, moduleCode);
+
+              const emittedChunk: Parameters<
+                TransformPluginContext["emitFile"]
+              >[0] & { moduleSideEffects: false } = {
+                type: "chunk",
+                id: moduleId,
+                fileName: `assets/${fileName.replace(/\.ts$/, ".js")}`,
+                moduleSideEffects: false,
+              };
+
+              const refId = this.emitFile(emittedChunk);
+
+              replacements.push({
+                start: node.getStart(sourceFile),
+                end: node.end,
+                replacement: `new URL(import.meta.ROLLUP_FILE_URL_${refId}).pathname`,
+              });
+            }
+          }
+
+          ts.forEachChild(node, visit);
+        };
+
+        visit(sourceFile);
+
+        if (inlineFunctionRanges.length > 0 && importReferences.size > 0) {
+          const identifierPositions = collectIdentifierPositions(sourceFile);
+
+          for (const [importNode, names] of importReferences) {
+            const removableNames = new Set<string>();
+            const importStart = importNode.getStart(sourceFile);
+            const importEnd = importNode.end;
+
+            for (const name of names) {
+              const positions = identifierPositions.get(name) ?? [];
+              const hasExternalUse = positions.some((position) => {
+                if (position >= importStart && position < importEnd) {
+                  return false;
+                }
+                if (isPositionInRanges(position, inlineFunctionRanges)) {
+                  return false;
+                }
+                return true;
+              });
+              if (!hasExternalUse) {
+                removableNames.add(name);
               }
             }
 
-            const sortedImports = Array.from(requiredImports.values()).sort(
-              (a, b) => a.node.pos - b.node.pos,
+            if (removableNames.size === 0) {
+              continue;
+            }
+
+            const importClause = importNode.importClause;
+            if (!importClause) {
+              continue;
+            }
+
+            const defaultBinding =
+              importClause.name && removableNames.has(importClause.name.text)
+                ? undefined
+                : (importClause.name ?? undefined);
+
+            let namedBindings = importClause.namedBindings ?? undefined;
+            let modified = false;
+
+            if (namedBindings) {
+              if (ts.isNamespaceImport(namedBindings)) {
+                if (removableNames.has(namedBindings.name.text)) {
+                  namedBindings = undefined;
+                  modified = true;
+                }
+              } else {
+                const keptElements = namedBindings.elements.filter(
+                  (specifier) => !removableNames.has(specifier.name.text),
+                );
+                if (keptElements.length !== namedBindings.elements.length) {
+                  modified = true;
+                  if (keptElements.length === 0) {
+                    namedBindings = undefined;
+                  } else {
+                    namedBindings = ts.factory.updateNamedImports(
+                      namedBindings,
+                      ts.factory.createNodeArray(keptElements),
+                    );
+                  }
+                }
+              }
+            }
+
+            if (importClause.name && !defaultBinding) {
+              modified = true;
+            }
+
+            if (!modified) {
+              continue;
+            }
+
+            if (!defaultBinding && !namedBindings) {
+              replacements.push({
+                start: importNode.getStart(sourceFile),
+                end: importNode.end,
+                replacement: "",
+              });
+              continue;
+            }
+
+            const updatedClause = ts.factory.updateImportClause(
+              importClause,
+              importClause.isTypeOnly,
+              defaultBinding,
+              namedBindings,
             );
-            const importCode =
-              sortedImports.length > 0
-                ? `${sortedImports
-                    .map((info) => info.code.trim())
-                    .join("\n")}\n\n`
-                : "";
-            const sortedDeclarations = Array.from(
-              requiredDeclarations.values(),
-            ).sort((a, b) => a.node.pos - b.node.pos);
-            const declarationCode =
-              sortedDeclarations.length > 0
-                ? `${sortedDeclarations
-                    .map((info) => info.code.trim())
-                    .join("\n\n")}\n\n`
-                : "";
 
-            const hash = createHash("sha1")
-              .update(absoluteId)
-              .update(String(node.getStart(sourceFile)))
-              .update(handlerText)
-              .digest("hex")
-              .slice(0, 12);
+            const updatedImport = ts.factory.updateImportDeclaration(
+              importNode,
+              importNode.modifiers,
+              updatedClause,
+              importNode.moduleSpecifier,
+              importNode.assertClause,
+            );
 
-            const baseName = path
-              .basename(absoluteId)
-              .replace(/\.[^.]+$/, "")
-              .replace(/[^a-zA-Z0-9_-]+/g, "_");
-
-            const fileName = `${baseName}.${hash}.client.ts`;
-            const moduleId = `${INLINE_ID_PREFIX}${fileName}`;
-
-            const moduleCode = `"use client";\n\n${importCode}${declarationCode}export default ${handlerText};\n`;
-
-            setInlineClientModule(moduleId, moduleCode);
-            specifierToId.set(fileName, moduleId);
-            newSpecifiers.add(fileName);
-
-            const specifier = `${INLINE_SPECIFIER_PREFIX}${fileName}`;
+            const updatedCode = printer.printNode(
+              ts.EmitHint.Unspecified,
+              updatedImport,
+              sourceFile,
+            );
 
             replacements.push({
-              start: node.getStart(sourceFile),
-              end: node.end,
-              replacement: `new URL(${JSON.stringify(
-                specifier,
-              )}, import.meta.url).pathname`,
+              start: importNode.getStart(sourceFile),
+              end: importNode.end,
+              replacement: updatedCode,
             });
           }
         }
 
-        ts.forEachChild(node, visit);
-      };
-
-      visit(sourceFile);
-
-      const previousSpecs = fileSpecifiers.get(absoluteId);
-      if (previousSpecs) {
-        for (const spec of previousSpecs) {
-          if (!newSpecifiers.has(spec)) {
-            const moduleId = specifierToId.get(spec);
-            if (moduleId) {
-              specifierToId.delete(spec);
-              deleteInlineClientModule(moduleId);
-            }
-          }
+        if (replacements.length === 0) {
+          return;
         }
-      }
-      if (newSpecifiers.size > 0) {
-        fileSpecifiers.set(absoluteId, newSpecifiers);
-      } else if (previousSpecs) {
-        fileSpecifiers.delete(absoluteId);
-      }
 
-      if (replacements.length === 0) {
-        return;
-      }
+        replacements.sort((a, b) => b.start - a.start);
 
-      replacements.sort((a, b) => b.start - a.start);
+        let transformed = code;
+        for (const { start, end, replacement } of replacements) {
+          transformed =
+            transformed.slice(0, start) + replacement + transformed.slice(end);
+        }
 
-      let transformed = code;
-      for (const { start, end, replacement } of replacements) {
-        transformed =
-          transformed.slice(0, start) + replacement + transformed.slice(end);
-      }
-
-      return {
-        code: transformed,
-        map: null,
-      };
+        return {
+          code: transformed,
+          map: null,
+        };
+      },
     },
 
-    resolveId(source) {
-      if (source.startsWith(INLINE_SPECIFIER_PREFIX)) {
-        const fileName = source.slice(INLINE_SPECIFIER_PREFIX.length);
-        const moduleId = specifierToId.get(fileName);
-        if (moduleId) {
-          return moduleId;
-        }
+    resolveId(id) {
+      if (typeof id === "string" && id.startsWith(INLINE_ID_PREFIX)) {
+        return id;
       }
       return null;
     },

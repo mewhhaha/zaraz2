@@ -1,4 +1,4 @@
-import { server } from "@passwordless-id/webauthn";
+import * as server from "@passwordless-id/webauthn/dist/esm/server.js";
 import { DurableObject } from "cloudflare:workers";
 import type {
   AuthenticationInfo,

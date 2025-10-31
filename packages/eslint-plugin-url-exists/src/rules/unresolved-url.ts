@@ -2,6 +2,7 @@ import { type RuleModule } from "@typescript-eslint/utils/ts-eslint";
 import { type TSESTree } from "@typescript-eslint/utils";
 import path from "node:path";
 import fs from "node:fs";
+
 const messages = {
   unresolvedUrl: "Unresolved URL '{{url}}'",
 };
@@ -44,7 +45,6 @@ const rule: RuleModule<keyof typeof messages, []> = {
           return;
         }
 
-        // Check if secondArg is import.meta.url (actual AST structure)
         if (
           secondArg.type === "MemberExpression" &&
           secondArg.object.type === "MetaProperty" &&
@@ -55,7 +55,6 @@ const rule: RuleModule<keyof typeof messages, []> = {
           secondArg.property.type === "Identifier" &&
           secondArg.property.name === "url"
         ) {
-          // import.meta.url detected, precious!
           if (
             firstArg.type === "Literal" &&
             typeof firstArg.value === "string" &&

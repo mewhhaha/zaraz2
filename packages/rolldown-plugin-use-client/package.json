@@ -15,16 +15,21 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "lint": "oxlint"
+    "build": "tsgo",
+    "lint": "oxlint",
+    "test": "pnpm run build && node --test ./tests/**/*.test.mjs"
   },
   "peerDependencies": {
+    "@rolldown/pluginutils": "^1.0.0-beta.45",
     "eslint": "^9.0.0",
     "rolldown": "^1.0.0-beta.45",
     "typescript": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.9.1",
+    "@rolldown/pluginutils": "1.0.0-beta.45",
+    "@types/estree": "^1.0.6",
+    "@types/node": "^24.9.2",
+    "@typescript/native-preview": "7.0.0-dev.20251029.1",
     "oxlint": "^1.24.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3"

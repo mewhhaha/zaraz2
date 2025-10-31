@@ -1,5 +1,5 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
-import { event } from "@mewhhaha/ruwuter/events";
+import { event, events } from "@mewhhaha/ruwuter/events";
 import {
   authenticate,
   AuthExpiredError,
@@ -16,8 +16,16 @@ import {
   authenticate as authenticateClient,
   register as registerClient,
 } from "@packages/passkey";
-
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+
+const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
+const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
+const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
+
+const isAbortError = (error: unknown): error is DOMException => {
+  return error instanceof DOMException && error.name === "AbortError";
+};
+
 class ParseError extends Error {
   summary: string;
 
@@ -83,8 +91,9 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   ).account();
 
   if (request.method === "DELETE") {
-    const id = new URL(request.url).searchParams.get("id")?.toString();
-    if (!id) {
+    const formData = await request.formData();
+    const id = formData.get("id");
+    if (typeof id !== "string" || id.length === 0) {
       return new Response("id_missing", { status: 400 });
     }
 
@@ -244,22 +253,15 @@ export default function Route({
           <input
             type="hidden"
             value={auth.credentialId}
-            on={event.mount(async function (event: Event, signal: AbortSignal) {
+            on={event.mount<HTMLInputElement>(async function (event, signal) {
               "use client";
-              if (!(event.currentTarget instanceof HTMLInputElement)) {
-                return;
-              }
               const input = event.currentTarget;
-              if (!input.value || signal.aborted) {
-                return;
-              }
               try {
-                const token = await authenticateClient("/auth/challenge", [
-                  input.value,
-                ]);
-                if (!token || signal.aborted) {
-                  return;
-                }
+                const token = await authenticateClient(
+                  "/auth/challenge",
+                  [input.value],
+                  { signal },
+                );
                 const formData = new FormData();
                 formData.set("token", token);
                 const response = await fetch("/auth/verify", {
@@ -267,13 +269,14 @@ export default function Route({
                   body: formData,
                   signal,
                 });
-                if (!signal.aborted && response.ok) {
+                if (response.ok) {
                   window.location.href = "/home";
                 }
               } catch (error) {
-                if (!signal.aborted) {
-                  console.error(error);
+                if (isAbortError(error)) {
+                  return;
                 }
+                console.error(error);
               }
             })}
           />
@@ -301,6 +304,14 @@ type SignedInProps = {
 };
 
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
+  const registerAction = {
+    username: auth.username,
+    intent: "register" as const,
+  };
+  const signOutAction = {
+    intent: "signout" as const,
+  };
+
   return (
     <OpenModal id="passkeys-settings">
       <h2
@@ -326,74 +337,51 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            data-swap-target="#passkeys-list"
-            on={event.submit(async function (
-              event: SubmitEvent,
-              signal: AbortSignal,
-            ) {
-              "use client";
-              event.preventDefault();
-              if (
-                !(event.currentTarget instanceof HTMLFormElement) ||
-                signal.aborted
-              ) {
-                return;
-              }
-              const form = event.currentTarget;
-              const formData = new FormData(form);
-              const submitter = event.submitter;
-              if (
-                submitter instanceof HTMLButtonElement &&
-                submitter.name &&
-                !formData.has(submitter.name)
-              ) {
-                formData.append(submitter.name, submitter.value);
-              }
-              const username = formData.get("username");
-              if (!username) {
-                window.alert?.("Username is required.");
-                return;
-              }
-              try {
-                const token = await registerClient(
-                  "/auth/challenge",
-                  username.toString(),
-                );
-                if (!token || signal.aborted) {
-                  return;
-                }
-                formData.set("token", token);
-                const response = await fetch("/auth", {
-                  method: "POST",
-                  headers: { "fx-request": "true" },
-                  body: formData,
-                  signal,
-                });
-                if (signal.aborted) {
-                  return;
-                }
-                await swap(response, {
-                  target: form.dataset.swapTarget ?? "#passkeys-list",
-                });
-              } catch (error) {
-                if (!signal.aborted) {
-                  console.error(error);
-                  window.alert?.(
-                    "Something went wrong adding your passkey. Please try again.",
-                  );
-                }
-              }
-            })}
+            on={events(
+              registerAction,
+              event.submit<HTMLFormElement, typeof registerAction>(
+                async function (this, _submitEvent, signal) {
+                  "use client";
+
+                  try {
+                    const token = await registerClient(
+                      "/auth/challenge",
+                      this.username,
+                      { signal },
+                    );
+                    const formData = new FormData();
+                    formData.set("intent", this.intent);
+                    formData.set("token", token);
+
+                    const response = await fetch("/auth", {
+                      method: "POST",
+                      body: formData,
+                      signal,
+                    });
+                    await swap(response, {
+                      target: PASSKEYS_LIST_SELECTOR,
+                    });
+                  } catch (error) {
+                    if (isAbortError(error)) {
+                      return;
+                    }
+                    console.error(error);
+                    window.alert?.(
+                      "Something went wrong adding your passkey. Please try again.",
+                    );
+                  }
+                },
+                { preventDefault: true },
+              ),
+            )}
           >
-            <input type="hidden" name="username" value={auth.username} />
             <button
+              type="submit"
               class={`
                 flex cursor-pointer items-center rounded-lg border
                 border-slate-700 bg-gray-900 px-3 py-1.5
                 hover:bg-gray-800
               `}
-              name="intent"
-              value="register"
             >
               Add new passkey
             </button>
@@ -409,53 +397,48 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
 
       <MenuButton
         type="button"
-        on={event.click(async function (ev: Event, signal: AbortSignal) {
-          "use client";
-          if (
-            !(ev.currentTarget instanceof HTMLButtonElement) ||
-            signal.aborted
-          ) {
-            return;
-          }
-          const button = ev.currentTarget;
-          if (button.disabled) {
-            return;
-          }
-          button.disabled = true;
-          const formData = new FormData();
-          formData.set("intent", "signout");
-          try {
-            const response = await fetch("/auth", {
-              method: "POST",
-              headers: { "fx-request": "true" },
-              body: formData,
-              signal,
-              redirect: "manual",
-            });
-            if (signal.aborted) {
-              return;
-            }
-            if (
-              response.ok ||
-              response.type === "opaqueredirect" ||
-              (response.status >= 300 && response.status < 400)
-            ) {
-              const location = response.headers.get("Location") ?? "/";
-              window.location.href = location;
-              return;
-            }
-            await swap(response, { target: "body", swap: "innerHTML" });
-          } catch (error) {
-            if (!signal.aborted) {
-              console.error(error);
-              window.alert?.("Could not sign you out. Please try again.");
-            }
-          } finally {
-            if (!signal.aborted) {
-              button.disabled = false;
-            }
-          }
-        })}
+        on={events(
+          signOutAction,
+          event.click<HTMLButtonElement, typeof signOutAction>(
+            async function (this, ev, signal) {
+              "use client";
+
+              const button = ev.currentTarget;
+              if (button.disabled) {
+                return;
+              }
+              button.disabled = true;
+              const formData = new FormData();
+              formData.set("intent", this.intent);
+              try {
+                const response = await fetch("/auth", {
+                  method: "POST",
+                  body: formData,
+                  signal,
+                  redirect: "manual",
+                });
+                if (
+                  response.ok ||
+                  response.type === "opaqueredirect" ||
+                  (response.status >= 300 && response.status < 400)
+                ) {
+                  const location = response.headers.get("Location") ?? "/";
+                  window.location.href = location;
+                  return;
+                }
+                await swap(response, { target: "body", swap: "innerHTML" });
+              } catch (error) {
+                if (isAbortError(error)) {
+                  return;
+                }
+                console.error(error);
+                window.alert?.("Could not sign you out. Please try again.");
+              } finally {
+                button.disabled = false;
+              }
+            },
+          ),
+        )}
       >
         Sign out
       </MenuButton>
@@ -550,58 +533,48 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
   return (
     <form
       hidden={passkeyId === auth.passkeyId}
-      data-swap-target="#passkeys-list"
-      data-confirm="Are you sure you want to delete this passkey?"
-      on={event.submit(async function (
-        event: SubmitEvent,
-        signal: AbortSignal,
-      ) {
-        "use client";
-        event.preventDefault();
-        if (
-          !(event.currentTarget instanceof HTMLFormElement) ||
-          signal.aborted
-        ) {
-          return;
-        }
-        const form = event.currentTarget;
-        const message = form.getAttribute("data-confirm");
-        if (message && !window.confirm(message)) {
-          return;
-        }
-        const formData = new FormData(form);
-        const submitter = event.submitter;
-        if (
-          submitter instanceof HTMLButtonElement &&
-          submitter.name &&
-          !formData.has(submitter.name)
-        ) {
-          formData.append(submitter.name, submitter.value);
-        }
-        try {
-          const response = await fetch("/auth", {
-            method: "DELETE",
-            headers: { "fx-request": "true" },
-            body: formData,
-            signal,
-          });
-          if (signal.aborted) {
-            return;
-          }
-          await swap(response, {
-            target: form.dataset.swapTarget ?? "#passkeys-list",
-          });
-        } catch (error) {
-          if (!signal.aborted) {
-            console.error(error);
-            window.alert?.(
-              "Failed to delete the passkey. Please try again in a moment.",
-            );
-          }
-        }
-      })}
+      on={events(
+        { passkeyId },
+        event.submit<HTMLFormElement, { passkeyId: string }>(
+          async function (this, submitEvent, signal) {
+            "use client";
+            if (
+              !(submitEvent.currentTarget instanceof HTMLFormElement) ||
+              signal.aborted
+            ) {
+              return;
+            }
+
+            if (!window.confirm(DELETE_PASSKEY_CONFIRM)) {
+              return;
+            }
+
+            const formData = new FormData();
+            formData.set("id", this.passkeyId);
+
+            try {
+              const response = await fetch("/auth", {
+                method: "DELETE",
+                body: formData,
+                signal,
+              });
+              await swap(response, {
+                target: PASSKEYS_LIST_SELECTOR,
+              });
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "Failed to delete the passkey. Please try again in a moment.",
+              );
+            }
+          },
+          { preventDefault: true },
+        ),
+      )}
     >
-      <input type="hidden" name="id" value={passkeyId} />
       <IconButton
         type="submit"
         aria-label="Delete passkey"
@@ -624,81 +597,51 @@ type RenameButtonProps = {
 const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
     <form
-      data-swap-target="#passkeys-list"
-      data-prompt-title="What should we call this passkey?"
-      on={event.submit(async function (
-        event: SubmitEvent,
-        signal: AbortSignal,
-      ) {
-        "use client";
-        event.preventDefault();
-        if (
-          !(event.currentTarget instanceof HTMLFormElement) ||
-          signal.aborted
-        ) {
-          return;
-        }
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-        const submitter = event.submitter;
-        if (
-          submitter instanceof HTMLButtonElement &&
-          submitter.name &&
-          !formData.has(submitter.name)
-        ) {
-          formData.append(submitter.name, submitter.value);
-        }
-        try {
-          const response = await fetch("/auth", {
-            method: "PATCH",
-            headers: { "fx-request": "true" },
-            body: formData,
-            signal,
-          });
-          if (signal.aborted) {
-            return;
-          }
-          await swap(response, {
-            target: form.dataset.swapTarget ?? "#passkeys-list",
-          });
-        } catch (error) {
-          if (!signal.aborted) {
-            console.error(error);
-            window.alert?.("Could not rename this passkey. Please try again.");
-          }
-        }
-      })}
+      on={events(
+        { passkeyId, currentName },
+        event.submit<
+          HTMLFormElement,
+          { passkeyId: string; currentName: string }
+        >(
+          async function (this, _submitEvent, signal) {
+            "use client";
+
+            const nextName = window.prompt(
+              RENAME_PASSKEY_PROMPT,
+              this.currentName,
+            );
+            if (!nextName) {
+              return;
+            }
+
+            const formData = new FormData();
+            formData.set("id", this.passkeyId);
+            formData.set("name", nextName);
+
+            try {
+              const response = await fetch("/auth", {
+                method: "PATCH",
+                body: formData,
+                signal,
+              });
+              await swap(response, {
+                target: PASSKEYS_LIST_SELECTOR,
+              });
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "Could not rename this passkey. Please try again.",
+              );
+            }
+          },
+          { preventDefault: true },
+        ),
+      )}
     >
-      <input type="hidden" name="id" value={passkeyId} />
-      <input type="hidden" name="name" value={currentName} />
-      <IconButton
-        type="button"
-        aria-label="Rename passkey"
-        on={event.click(function (ev: Event) {
-          "use client";
-          ev.preventDefault();
-          if (!(ev.currentTarget instanceof HTMLElement)) {
-            return;
-          }
-          const button = ev.currentTarget;
-          const form = button.closest("form");
-          const input = form?.querySelector("input[name='name']");
-          if (
-            !(form instanceof HTMLFormElement) ||
-            !(input instanceof HTMLInputElement)
-          ) {
-            return;
-          }
-          const title =
-            form.getAttribute("data-prompt-title") ?? "Rename passkey";
-          const next = window.prompt(title, input.value);
-          if (!next) {
-            return;
-          }
-          input.value = next;
-          form.requestSubmit(button as HTMLButtonElement);
-        })}
-      >
+      <IconButton type="submit" aria-label="Rename passkey">
         <PencilIcon class={`pointer-events-none inline-block size-5`} />
       </IconButton>
     </form>
@@ -723,22 +666,21 @@ const SignedOut = () => {
             }
             button.disabled = true;
             try {
-              const token = await authenticateClient("/auth/challenge");
-              if (!token || signal.aborted) {
-                return;
-              }
+              const token = await authenticateClient(
+                "/auth/challenge",
+                undefined,
+                {
+                  signal,
+                },
+              );
               const formData = new FormData();
               formData.set("token", token);
               const response = await fetch("/auth/verify", {
                 method: "POST",
-                headers: { "fx-request": "true" },
                 body: formData,
                 redirect: "manual",
                 signal,
               });
-              if (signal.aborted) {
-                return;
-              }
               if (response.ok) {
                 window.location.href = "/";
                 return;
@@ -753,16 +695,15 @@ const SignedOut = () => {
               }
               throw new Error(await response.text());
             } catch (error) {
-              if (!signal.aborted) {
-                console.error(error);
-                window.alert?.(
-                  "Something went wrong signing you in. Please try again.",
-                );
+              if (isAbortError(error)) {
+                return;
               }
+              console.error(error);
+              window.alert?.(
+                "Something went wrong signing you in. Please try again.",
+              );
             } finally {
-              if (!signal.aborted) {
-                button.disabled = false;
-              }
+              button.disabled = false;
             }
           })}
           class={`
@@ -779,12 +720,7 @@ const SignedOut = () => {
         </h2>
         <form
           class={`flex flex-col gap-2`}
-          data-swap-target="body"
-          data-swap-mode="innerHTML"
-          on={event.submit(async function (
-            event: SubmitEvent,
-            signal: AbortSignal,
-          ) {
+          on={event.submit<HTMLFormElement>(async function (event, signal) {
             "use client";
             event.preventDefault();
             if (
@@ -812,21 +748,15 @@ const SignedOut = () => {
               const token = await registerClient(
                 "/auth/challenge",
                 username.toString(),
+                { signal },
               );
-              if (!token || signal.aborted) {
-                return;
-              }
               formData.set("token", token);
               const response = await fetch("/auth/register", {
                 method: "POST",
-                headers: { "fx-request": "true" },
                 body: formData,
                 signal,
                 redirect: "manual",
               });
-              if (signal.aborted) {
-                return;
-              }
               if (
                 response.ok ||
                 response.type === "opaqueredirect" ||
@@ -839,16 +769,17 @@ const SignedOut = () => {
                 }
               }
               await swap(response, {
-                target: form.dataset.swapTarget ?? "body",
-                swap: form.dataset.swapMode ?? "innerHTML",
+                target: "body",
+                swap: "innerHTML",
               });
             } catch (error) {
-              if (!signal.aborted) {
-                console.error(error);
-                window.alert?.(
-                  "We could not register you right now. Please try again.",
-                );
+              if (isAbortError(error)) {
+                return;
               }
+              console.error(error);
+              window.alert?.(
+                "We could not register you right now. Please try again.",
+              );
             }
           })}
         >

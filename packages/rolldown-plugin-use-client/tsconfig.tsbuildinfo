@@ -1,1 +1,0 @@
-{"root":["./src/index.ts","./src/use-client-rolldown.ts","./src/eslint/use-client-plugin.js","./src/rolldown/bundle-assets-rolldown.ts","./src/rolldown/inline-client-registry.ts","./src/rolldown/inline-client-rolldown.ts"],"version":"5.9.3"}

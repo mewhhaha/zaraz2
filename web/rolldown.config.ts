@@ -13,7 +13,6 @@ const {
 } = await generate("app");
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
-const appRoot = path.join(projectRoot, "app");
 const isProduction = process.env.NODE_ENV === "production";
 
 const existing = await readFile(routes.path, "utf8");
@@ -29,7 +28,9 @@ for (const file of types) {
 export default defineConfig({
   tsconfig: "tsconfig.server.json",
   input: "worker/main.ts",
+
   output: {
+    sourcemap: true,
     dir: "dist",
     cleanDir: true,
     intro: 'import.meta.url = "file://"',
@@ -39,13 +40,10 @@ export default defineConfig({
       }
       return "assets/[name]-[hash].[ext]";
     },
+    chunkFileNames: "assets/[name]-[hash].js",
   },
   plugins: [
-    useClient({
-      root: appRoot,
-      filePattern: /\.[cm]?[jt]sx?$/,
-      assetPattern: /\.client\.[cm]?[jt]sx?$/,
-    }),
+    useClient(),
     tailwindcss({
       root: projectRoot,
       optimize: true,

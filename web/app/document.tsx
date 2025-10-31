@@ -4,11 +4,10 @@ const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url)
   .pathname;
 const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
   .pathname;
-const fixiUrl = new URL("./assets/fixi.js", import.meta.url).pathname;
-const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url).pathname;
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
 const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
 const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
+const swapUrl = new URL("./assets/swap.js", import.meta.url).pathname;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
@@ -55,11 +54,10 @@ export default function Document({
           crossorigin=""
         />
         <link rel="stylesheet" href={stylesUrl} />
-        <script nonce={nonce} src={fixiUrl} async></script>
-        <script nonce={nonce} src={fixiExtUrl} async></script>
         <script nonce={nonce} src={cmdUrl} async></script>
         <script type="module" nonce={nonce} src={clientUrl} async></script>
         <script type="module" nonce={nonce} src={resolveUrl} async></script>
+        <script type="module" nonce={nonce} src={swapUrl} async></script>
       </head>
       <body
         class={`

@@ -8,8 +8,8 @@
     "declaration": true,
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
-    "allowJs": true,
-    "checkJs": false,
+    "isolatedDeclarations": true,
+    "isolatedModules": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true
