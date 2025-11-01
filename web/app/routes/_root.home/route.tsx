@@ -294,20 +294,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
               gap-2
             `}
           >
-            <input
-              type="hidden"
-              name="another"
-              on={events(
-                { ref: inputRef },
-                event.mount<
-                  HTMLInputElement,
-                  { ref: Ref<HTMLInputElement | null> }
-                >(function (this, event) {
-                  "use client";
-                  this.ref.set(event.currentTarget);
-                }),
-              )}
-            />
+            <input ref={inputRef} type="hidden" name="another" />
             <MenuButton
               name="intent"
               value="another"
