@@ -1,0 +1,37 @@
+{
+  "name": "@mewhhaha/rolldown-plugin-use-client",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Rolldown helpers for extracting \"use client\" handlers plus linting utilities.",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    },
+    "./eslint/use-client": {
+      "import": "./dist/eslint/use-client-plugin.js"
+    }
+  },
+  "scripts": {
+    "build": "tsgo",
+    "lint": "oxlint",
+    "test": "pnpm run build && node --test ./tests/**/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@rolldown/pluginutils": "^1.0.0-beta.45",
+    "eslint": "^9.0.0",
+    "rolldown": "^1.0.0-beta.45",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@rolldown/pluginutils": "1.0.0-beta.45",
+    "@types/estree": "^1.0.6",
+    "@types/node": "^24.9.2",
+    "@typescript/native-preview": "7.0.0-dev.20251029.1",
+    "oxlint": "^1.24.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}

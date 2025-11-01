@@ -1,4 +1,4 @@
-import * as t from "./+types.route";
+import type { Route as t } from "./+types.route";
 import register from "./paths/register";
 import challenge from "./paths/challenge";
 import refresh from "./paths/refresh";

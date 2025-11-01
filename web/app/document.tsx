@@ -1,11 +1,13 @@
-import type * as t from "./+types.document";
+import type { Route as t } from "./+types.document";
 
-const fixiUrl = new URL("./assets/fixi.js", import.meta.url);
-const fixiExtUrl = new URL("./assets/ext-fixi.js", import.meta.url);
-
-const stylesUrl = new URL("./assets/tailwind.css", import.meta.url);
-const iconUrl = new URL("./assets/favicon.ico", import.meta.url);
-const cmdUrl = new URL("./assets/cmd.js", import.meta.url);
+const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url)
+  .pathname;
+const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
+  .pathname;
+const swapUrl = new URL("@mewhhaha/ruwuter/swap.js", import.meta.url).pathname;
+const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
+const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
+const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
@@ -40,7 +42,7 @@ export default function Document({
       <head>
         <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
-        <link rel="icon" type="image/svg" href={iconUrl.pathname}></link>
+        <link rel="icon" type="image/svg" href={iconUrl}></link>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
@@ -51,15 +53,15 @@ export default function Document({
           href="https://fonts.gstatic.com"
           crossorigin=""
         />
-        <link rel="stylesheet" href={stylesUrl.pathname} />
-        <script nonce={nonce} src={fixiUrl.pathname} defer></script>
-        <script nonce={nonce} src={fixiExtUrl.pathname} defer></script>
-        <script nonce={nonce} src={cmdUrl.pathname} defer></script>
+        <link rel="stylesheet" href={stylesUrl} />
+        <script nonce={nonce} src={cmdUrl} async></script>
+        <script type="module" nonce={nonce} src={clientUrl} async></script>
+        <script type="module" nonce={nonce} src={resolveUrl} async></script>
+        <script type="module" nonce={nonce} src={swapUrl} async></script>
       </head>
       <body
         class={`
           bg-slate-950 text-amber-50 transition-[filter] duration-300
-
           inert:grayscale-100
         `}
       >

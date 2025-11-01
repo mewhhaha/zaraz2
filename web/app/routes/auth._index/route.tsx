@@ -1,4 +1,5 @@
-import type { JSX } from "@mewhhaha/fx-router/jsx-runtime";
+import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
+import { event, events } from "@mewhhaha/ruwuter/events";
 import {
   authenticate,
   AuthExpiredError,
@@ -6,13 +7,24 @@ import {
   extractVisitorHeaders,
   parseToken,
   type Auth,
-} from "../auth.$/helpers.mts";
-import t from "./+types.route";
+} from "../auth.$/helpers.ts";
+import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
-import { makePasskeyLink, type Account } from "../../objects/user.mts";
-
+import { makePasskeyLink, type Account } from "../../objects/user";
+import {
+  authenticate as authenticateClient,
+  register as registerClient,
+} from "@packages/passkey";
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+
+const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
+const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
+const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
+
+const isAbortError = (error: unknown): error is DOMException => {
+  return error instanceof DOMException && error.name === "AbortError";
+};
 
 class ParseError extends Error {
   summary: string;
@@ -79,8 +91,9 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   ).account();
 
   if (request.method === "DELETE") {
-    const id = new URL(request.url).searchParams.get("id")?.toString();
-    if (!id) {
+    const formData = await request.formData();
+    const id = formData.get("id");
+    if (typeof id !== "string" || id.length === 0) {
       return new Response("id_missing", { status: 400 });
     }
 
@@ -99,7 +112,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -122,7 +135,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -193,7 +206,8 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
         timezone={timezone}
       />
     );
-    return new Response(list.toString(), {
+
+    return new Response(list.toReadableStream(), {
       status: 200,
       headers: { "Content-Type": "text/html" },
     });
@@ -238,8 +252,33 @@ export default function Route({
         {auth && (
           <input
             type="hidden"
-            ext-fx-init={new URL("./auto.client.mts", import.meta.url)}
             value={auth.credentialId}
+            on={event.mount<HTMLInputElement>(async function (event, signal) {
+              "use client";
+              const input = event.currentTarget;
+              try {
+                const token = await authenticateClient(
+                  "/auth/challenge",
+                  [input.value],
+                  { signal },
+                );
+                const formData = new FormData();
+                formData.set("token", token);
+                const response = await fetch("/auth/verify", {
+                  method: "POST",
+                  body: formData,
+                  signal,
+                });
+                if (response.ok) {
+                  window.location.href = "/home";
+                }
+              } catch (error) {
+                if (isAbortError(error)) {
+                  return;
+                }
+                console.error(error);
+              }
+            })}
           />
         )}
         <SignedOut />
@@ -265,12 +304,19 @@ type SignedInProps = {
 };
 
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
+  const registerAction = {
+    username: auth.username,
+    intent: "register" as const,
+  };
+  const signOutAction = {
+    intent: "signout" as const,
+  };
+
   return (
     <OpenModal id="passkeys-settings">
       <h2
         class={`
           mb-4 text-lg font-medium text-gray-200
-
           sm:text-xl
         `}
       >
@@ -279,31 +325,63 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
 
       <div
         class={`
-          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700 overflow-hidden rounded-lg
-          border border-slate-700
+          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700
+          overflow-hidden rounded-lg border border-slate-700
         `}
       >
         <div
-          class={`flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2 py-4`}
+          class={`
+            flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2
+            py-4
+          `}
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
-            fx-action={
-              new URL("./add-passkey.client.mts", import.meta.url).pathname
-            }
-            fx-method="POST"
-            fx-target="#passkeys-list"
-          >
-            <input type="hidden" name="username" value={auth.username} />
-            <button
-              class={`
-                flex cursor-pointer items-center rounded-lg border border-slate-700
-                bg-gray-900 px-3 py-1.5
+            on={events(
+              registerAction,
+              event.submit<HTMLFormElement, typeof registerAction>(
+                async function (this, _submitEvent, signal) {
+                  "use client";
 
+                  try {
+                    const token = await registerClient(
+                      "/auth/challenge",
+                      this.username,
+                      { signal },
+                    );
+                    const formData = new FormData();
+                    formData.set("intent", this.intent);
+                    formData.set("token", token);
+
+                    const response = await fetch("/auth", {
+                      method: "POST",
+                      body: formData,
+                      signal,
+                    });
+                    await swap(response, {
+                      target: PASSKEYS_LIST_SELECTOR,
+                    });
+                  } catch (error) {
+                    if (isAbortError(error)) {
+                      return;
+                    }
+                    console.error(error);
+                    window.alert?.(
+                      "Something went wrong adding your passkey. Please try again.",
+                    );
+                  }
+                },
+                { preventDefault: true },
+              ),
+            )}
+          >
+            <button
+              type="submit"
+              class={`
+                flex cursor-pointer items-center rounded-lg border
+                border-slate-700 bg-gray-900 px-3 py-1.5
                 hover:bg-gray-800
               `}
-              name="intent"
-              value="register"
             >
               Add new passkey
             </button>
@@ -318,12 +396,49 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
       </div>
 
       <MenuButton
-        name="intent"
-        value="signout"
-        fx-action="/auth"
-        fx-method="POST"
-        fx-target="body"
-        fx-swap="innerHTML"
+        type="button"
+        on={events(
+          signOutAction,
+          event.click<HTMLButtonElement, typeof signOutAction>(
+            async function (this, ev, signal) {
+              "use client";
+
+              const button = ev.currentTarget;
+              if (button.disabled) {
+                return;
+              }
+              button.disabled = true;
+              const formData = new FormData();
+              formData.set("intent", this.intent);
+              try {
+                const response = await fetch("/auth", {
+                  method: "POST",
+                  body: formData,
+                  signal,
+                  redirect: "manual",
+                });
+                if (
+                  response.ok ||
+                  response.type === "opaqueredirect" ||
+                  (response.status >= 300 && response.status < 400)
+                ) {
+                  const location = response.headers.get("Location") ?? "/";
+                  window.location.href = location;
+                  return;
+                }
+                await swap(response, { target: "body", swap: "innerHTML" });
+              } catch (error) {
+                if (isAbortError(error)) {
+                  return;
+                }
+                console.error(error);
+                window.alert?.("Could not sign you out. Please try again.");
+              } finally {
+                button.disabled = false;
+              }
+            },
+          ),
+        )}
       >
         Sign out
       </MenuButton>
@@ -360,7 +475,10 @@ const PasskeyList = ({
               <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
               <div
                 hidden={passkey.passkeyId !== auth.passkeyId}
-                class={`rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500`}
+                class={`
+                  rounded-full border border-blue-500 px-2 py-0.5 text-xs
+                  text-blue-500
+                `}
               >
                 Current
               </div>
@@ -368,7 +486,6 @@ const PasskeyList = ({
             <div
               class={`
                 hidden gap-2
-
                 sm:flex
               `}
             >
@@ -392,7 +509,6 @@ const PasskeyList = ({
           <div
             class={`
               flex gap-2
-
               sm:hidden
             `}
           >
@@ -416,19 +532,55 @@ type DeleteButtonProps = {
 const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
   return (
     <form
-      fx-method="DELETE"
-      fx-action="/auth"
-      fx-target="#passkeys-list"
-      ext-fx-confirm="Are you sure you want to delete this passkey?"
       hidden={passkeyId === auth.passkeyId}
+      on={events(
+        { passkeyId },
+        event.submit<HTMLFormElement, { passkeyId: string }>(
+          async function (this, submitEvent, signal) {
+            "use client";
+            if (
+              !(submitEvent.currentTarget instanceof HTMLFormElement) ||
+              signal.aborted
+            ) {
+              return;
+            }
+
+            if (!window.confirm(DELETE_PASSKEY_CONFIRM)) {
+              return;
+            }
+
+            const formData = new FormData();
+            formData.set("id", this.passkeyId);
+
+            try {
+              const response = await fetch("/auth", {
+                method: "DELETE",
+                body: formData,
+                signal,
+              });
+              await swap(response, {
+                target: PASSKEYS_LIST_SELECTOR,
+              });
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "Failed to delete the passkey. Please try again in a moment.",
+              );
+            }
+          },
+          { preventDefault: true },
+        ),
+      )}
     >
-      <input type="hidden" name="id" value={passkeyId} />
       <IconButton
+        type="submit"
         aria-label="Delete passkey"
         class={`
-          override:text-red-400
-
-          override:hover:border-red-700 override:hover:bg-red-700 override:hover:text-white
+          override:text-red-400 override:hover:border-red-700
+          override:hover:bg-red-700 override:hover:text-white
         `}
       >
         <TrashIconSolid class={`inline-block size-5`} />
@@ -444,16 +596,53 @@ type RenameButtonProps = {
 
 const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
-    <form fx-action="/auth" fx-target="#passkeys-list" fx-method="PATCH">
-      <input type="hidden" name="id" value={passkeyId} />
-      <input
-        type="hidden"
-        name="name"
-        value={currentName}
-        ext-fx-prompt="What should we call this passkey?"
-      />
-      <IconButton aria-label="Rename passkey">
-        <PencilIcon class={`inline-block size-5`} />
+    <form
+      on={events(
+        { passkeyId, currentName },
+        event.submit<
+          HTMLFormElement,
+          { passkeyId: string; currentName: string }
+        >(
+          async function (this, _submitEvent, signal) {
+            "use client";
+
+            const nextName = window.prompt(
+              RENAME_PASSKEY_PROMPT,
+              this.currentName,
+            );
+            if (!nextName) {
+              return;
+            }
+
+            const formData = new FormData();
+            formData.set("id", this.passkeyId);
+            formData.set("name", nextName);
+
+            try {
+              const response = await fetch("/auth", {
+                method: "PATCH",
+                body: formData,
+                signal,
+              });
+              await swap(response, {
+                target: PASSKEYS_LIST_SELECTOR,
+              });
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "Could not rename this passkey. Please try again.",
+              );
+            }
+          },
+          { preventDefault: true },
+        ),
+      )}
+    >
+      <IconButton type="submit" aria-label="Rename passkey">
+        <PencilIcon class={`pointer-events-none inline-block size-5`} />
       </IconButton>
     </form>
   );
@@ -468,17 +657,58 @@ const SignedOut = () => {
         </h2>
 
         <MenuButton
-          fx-action={new URL("./verify.client.mts", import.meta.url).pathname}
-          fx-target="body"
-          fx-method="POST"
-          fx-swap="innerHTML"
+          type="button"
+          on={event.click<HTMLButtonElement>(async function (ev, signal) {
+            "use client";
+            const button = ev.currentTarget;
+            if (button.disabled || signal.aborted) {
+              return;
+            }
+            button.disabled = true;
+            try {
+              const token = await authenticateClient(
+                "/auth/challenge",
+                undefined,
+                {
+                  signal,
+                },
+              );
+              const formData = new FormData();
+              formData.set("token", token);
+              const response = await fetch("/auth/verify", {
+                method: "POST",
+                body: formData,
+                redirect: "manual",
+                signal,
+              });
+              if (response.ok) {
+                window.location.href = "/";
+                return;
+              }
+              if (
+                response.type === "opaqueredirect" ||
+                (response.status >= 300 && response.status < 400)
+              ) {
+                const location = response.headers.get("Location");
+                window.location.href = location ?? "/";
+                return;
+              }
+              throw new Error(await response.text());
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "Something went wrong signing you in. Please try again.",
+              );
+            } finally {
+              button.disabled = false;
+            }
+          })}
           class={`
             mb-10
-
-            override:bg-green-800
-
-            override:hover:bg-green-700
-
+            override:bg-green-800 override:hover:bg-green-700
             override:active:bg-white
           `}
         >
@@ -489,11 +719,69 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
-          fx-action={new URL("./register.client.mts", import.meta.url).pathname}
-          fx-target="body"
-          fx-method="POST"
-          fx-swap="innerHTML"
           class={`flex flex-col gap-2`}
+          on={event.submit<HTMLFormElement>(async function (event, signal) {
+            "use client";
+            event.preventDefault();
+            if (
+              !(event.currentTarget instanceof HTMLFormElement) ||
+              signal.aborted
+            ) {
+              return;
+            }
+            const form = event.currentTarget;
+            const formData = new FormData(form);
+            const submitter = event.submitter;
+            if (
+              submitter instanceof HTMLButtonElement &&
+              submitter.name &&
+              !formData.has(submitter.name)
+            ) {
+              formData.append(submitter.name, submitter.value);
+            }
+            const username = formData.get("username");
+            if (!username) {
+              window.alert?.("Please choose a username to continue.");
+              return;
+            }
+            try {
+              const token = await registerClient(
+                "/auth/challenge",
+                username.toString(),
+                { signal },
+              );
+              formData.set("token", token);
+              const response = await fetch("/auth/register", {
+                method: "POST",
+                body: formData,
+                signal,
+                redirect: "manual",
+              });
+              if (
+                response.ok ||
+                response.type === "opaqueredirect" ||
+                (response.status >= 300 && response.status < 400)
+              ) {
+                const location = response.headers.get("Location");
+                if (location) {
+                  window.location.href = location;
+                  return;
+                }
+              }
+              await swap(response, {
+                target: "body",
+                swap: "innerHTML",
+              });
+            } catch (error) {
+              if (isAbortError(error)) {
+                return;
+              }
+              console.error(error);
+              window.alert?.(
+                "We could not register you right now. Please try again.",
+              );
+            }
+          })}
         >
           <div class={`flex flex-col gap-2`}>
             <label for="register-username" class={`text-sm text-gray-400`}>
@@ -526,9 +814,8 @@ const IconButton = ({
     <button
       class={cx(
         `
-          flex cursor-pointer items-center rounded-lg border border-slate-700 bg-gray-900 p-2
-          text-gray-400
-
+          flex cursor-pointer items-center rounded-lg border border-slate-700
+          bg-gray-900 p-2 text-gray-400
           hover:bg-gray-800
         `,
         className,
@@ -585,10 +872,9 @@ const MenuButton = ({
     <button
       class={cx(
         `
-          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2 text-white
-
+          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2
+          text-white
           hover:bg-gray-800
-
           active:bg-white active:text-slate-950 active:text-shadow-sm/100
         `,
         className,

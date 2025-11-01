@@ -4,8 +4,8 @@ import {
   expires,
   extractVisitorHeaders,
   parseToken,
-} from "../helpers.mjs";
-import { makePasskeyLink } from "../../../objects/user.mjs";
+} from "../helpers.js";
+import { makePasskeyLink } from "../../../objects/user.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({

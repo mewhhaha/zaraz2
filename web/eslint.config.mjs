@@ -1,15 +1,47 @@
 import ts from "typescript-eslint";
-import tailwind, {
-  loadTailwind,
-} from "@mewhhaha/eslint-plugin-simple-tailwind";
+import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 import oxlint from "eslint-plugin-oxlint";
 import urlExists from "@mewhhaha/eslint-plugin-url-exists";
+import { defineConfig } from "eslint/config";
+import useClientPlugin from "@mewhhaha/rolldown-plugin-use-client/eslint/use-client";
 
-const tw = await loadTailwind(import.meta.dirname + "/app/assets/tailwind.css");
+const tailwindcss = {
+  plugins: {
+    "better-tailwindcss": betterTailwindcss,
+  },
+  rules: {
+    ...betterTailwindcss.configs["recommended-warn"].rules,
+    "better-tailwindcss/no-deprecated-classes": "error",
+    "better-tailwindcss/no-restricted-classes": "warn",
+  },
+};
 
-export default ts.config(
+export default defineConfig(
   ts.configs.recommended,
-  tailwind(tw).configs.recommended,
+  tailwindcss,
   oxlint.configs["flat/recommended"],
   urlExists.configs.recommended,
+  {
+    plugins: {
+      "use-client": useClientPlugin,
+    },
+    rules: {
+      "use-client/no-invalid-inline-client-closure": "warn",
+      "use-client/require-use-client-directive": "warn",
+    },
+  },
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    settings: {
+      "better-tailwindcss": {
+        entryPoint: "app/assets/tailwind.css",
+      },
+    },
+  },
 );

@@ -1,74 +1,125 @@
 import { client } from "@passwordless-id/webauthn";
 
-let controller: AbortController;
+type PasskeyRequestOptions = {
+    signal?: AbortSignal;
+};
+
+let activeController: AbortController | undefined;
+const finalizeController = (controller: AbortController) => {
+    if (activeController === controller) {
+        activeController = undefined;
+    }
+};
+
+const createSignal = (external?: AbortSignal) => {
+    activeController?.abort();
+
+    const controller = new AbortController();
+    activeController = controller;
+
+    const signal =
+        external !== undefined
+            ? AbortSignal.any([controller.signal, external])
+            : controller.signal;
+
+    if (signal.aborted) {
+        controller.abort();
+    }
+
+    return { controller, signal };
+};
 
 export const authenticate = async (
-  challengeUri: string,
-  allowCredentials?: string[],
+    challengeUri: string,
+    allowCredentials?: string[],
+    options?: PasskeyRequestOptions,
 ): Promise<string> => {
-  controller?.abort();
-  controller = new AbortController();
+    const { controller, signal } = createSignal(options?.signal);
 
-  const response = await fetch(challengeUri, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain",
-    },
-    signal: controller.signal,
-  });
+    try {
+        signal.throwIfAborted();
 
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
+        const response = await fetch(challengeUri, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain",
+            },
+            signal,
+        });
 
-  const token = await response.text();
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
 
-  const [challenge] = token.split(".");
+        signal.throwIfAborted();
 
-  const authentication = await client.authenticate({
-    challenge,
-    userVerification: "required",
-    allowCredentials,
-  });
+        const token = await response.text();
+        signal.throwIfAborted();
 
-  const signinToken = `${token}.${btoa(JSON.stringify(authentication))}`;
+        const [challenge] = token.split(".");
 
-  return signinToken;
+        const authentication = await client.authenticate({
+            challenge,
+            userVerification: "required",
+            ...(allowCredentials ? { allowCredentials } : {}),
+        });
+
+        signal.throwIfAborted();
+
+        const signinToken = `${token}.${btoa(JSON.stringify(authentication))}`;
+
+        return signinToken;
+    } finally {
+        finalizeController(controller);
+    }
 };
 
 export const register = async (
-  challengeUri: string,
-  username: string,
+    challengeUri: string,
+    username: string,
+    options?: PasskeyRequestOptions,
 ): Promise<string> => {
-  controller?.abort();
-  controller = new AbortController();
+    const { controller, signal } = createSignal(options?.signal);
 
-  const response = await fetch(challengeUri, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain",
-    },
-    signal: controller.signal,
-  });
+    try {
+        signal.throwIfAborted();
 
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
+        const response = await fetch(challengeUri, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain",
+            },
+            signal,
+        });
 
-  const token = await response.text();
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
 
-  const [challenge] = token.split(".");
+        signal.throwIfAborted();
 
-  const registration = await client.register({
-    user: username,
-    challenge,
-    userVerification: "required",
-    discoverable: "required",
-    timeout: 60000,
-    attestation: true,
-  });
+        const token = await response.text();
+        signal.throwIfAborted();
 
-  const registrationToken = `${token}.${btoa(JSON.stringify(registration))}`;
+        const [challenge] = token.split(".");
 
-  return registrationToken;
+        const registration = await client.register({
+            user: username,
+            challenge,
+            userVerification: "required",
+            discoverable: "required",
+            timeout: 60000,
+            attestation: true,
+        });
+
+        signal.throwIfAborted();
+
+        const registrationToken = `${token}.${btoa(JSON.stringify(registration))}`;
+
+        return registrationToken;
+    } finally {
+        finalizeController(controller);
+    }
 };
+
+export type { PasskeyRequestOptions };

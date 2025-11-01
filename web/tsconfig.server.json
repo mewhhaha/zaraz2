@@ -3,15 +3,15 @@
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.server.json",
     "composite": true,
     "target": "ESNext",
-    "lib": ["ESNext", "DOM.Iterable", "DOM.AsyncIterable"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
     "jsx": "react-jsx",
+    "jsxImportSource": "@mewhhaha/ruwuter",
     "allowImportingTsExtensions": true,
     "module": "ESNext",
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
+    "useDefineForClassFields": true,
     "moduleResolution": "Bundler",
-    "jsxImportSource": "@mewhhaha/fx-router",
-    "types": ["@cloudflare/workers-types/2023-07-01"],
     "exactOptionalPropertyTypes": true,
     "resolveJsonModule": true,
     "allowJs": true,
@@ -26,6 +26,12 @@
     "skipLibCheck": true,
     "rootDirs": ["./.router/types", "."]
   },
-  "exclude": ["test", "dist", "app/**/*.client.mts"],
-  "include": ["app", "main.ts", "app/assets", ".router/types"]
+  "exclude": ["test", "dist", "app/assets/**/*"],
+  "include": [
+    "app",
+    "worker/main.ts",
+    ".router/types",
+    "worker-configuration.d.ts",
+    "types"
+  ]
 }
