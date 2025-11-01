@@ -64,7 +64,7 @@ export class DurableObjectUser extends DurableObject<Env> {
       created: new Date(),
       completed: undefined,
     });
-    this.store.set("#tasks", tasks);
+    await this.store.set("#tasks", tasks);
 
     return { next: [...tasks].at(-1) } as const;
   }
@@ -77,16 +77,16 @@ export class DurableObjectUser extends DurableObject<Env> {
     }
     task.completed = new Date();
     tasks.delete(id);
-    this.store.set("#tasks", tasks);
+    await this.store.set("#tasks", tasks);
 
     const completed = await this.store.get("#completed");
     const historyKey = createHistoryKey(completed);
     let next = await this.ctx.storage.get<Task[]>(historyKey);
     next ??= [];
     next.push(task);
-    this.ctx.storage.put(historyKey, next);
+    await this.ctx.storage.put(historyKey, next);
 
-    this.store.set("#completed", completed + 1);
+    await this.store.set("#completed", completed + 1);
     return { error: false, next: [...tasks].at(-1) } as const;
   }
 
@@ -98,7 +98,7 @@ export class DurableObjectUser extends DurableObject<Env> {
     }
 
     const next = new Map(tasks);
-    this.store.set("#tasks", next);
+    await this.store.set("#tasks", next);
     return { error: false, next: tasks.at(-1) } as const;
   }
 
@@ -118,9 +118,9 @@ export class DurableObjectUser extends DurableObject<Env> {
       return "user_exists" as const;
     }
 
-    this.store.set("#account", account);
-    this.store.set("#completed", 0);
-    this.store.set("#tasks", new Map());
+    await this.store.set("#account", account);
+    await this.store.set("#completed", 0);
+    await this.store.set("#tasks", new Map());
     return account;
   }
 
@@ -134,7 +134,7 @@ export class DurableObjectUser extends DurableObject<Env> {
       async link(passkeyLink: PasskeyLink) {
         const account = await that.store.get("#account");
         account.passkeys.unshift(passkeyLink);
-        that.store.set("#account", account);
+        await that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
@@ -144,7 +144,7 @@ export class DurableObjectUser extends DurableObject<Env> {
         if (passkey) {
           passkey.name = name;
         }
-        that.store.set("#account", account);
+        await that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
@@ -153,7 +153,7 @@ export class DurableObjectUser extends DurableObject<Env> {
         account.passkeys = account.passkeys.filter(
           (p) => p.passkeyId !== passkeyId,
         );
-        that.store.set("#account", account);
+        await that.store.set("#account", account);
         return { passkeys: account.passkeys };
       }
 
@@ -163,7 +163,7 @@ export class DurableObjectUser extends DurableObject<Env> {
         if (passkey) {
           passkey.lastUsedAt = new Date();
         }
-        that.store.set("#account", account);
+        await that.store.set("#account", account);
       }
     }
     return new AccountRpc();

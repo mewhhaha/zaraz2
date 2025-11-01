@@ -84,10 +84,12 @@ export class DurableObjectPasskey extends DurableObject<Env> {
       };
       const visitors = [makeVisitor(visited)];
 
-      this.store.set("#visitors", visitors);
-      this.store.set("#credential", credential);
-      this.store.set("#metadata", metadata);
-      this.store.set("#authenticator", authenticator);
+      await Promise.all([
+        this.store.set("#visitors", visitors),
+        this.store.set("#credential", credential),
+        this.store.set("#metadata", metadata),
+        this.store.set("#authenticator", authenticator),
+      ]);
 
       return { metadata };
     } catch (e) {
@@ -114,7 +116,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
       const visitor = makeVisitor(visited, authenticationInfo);
       const next = [visitor, ...visitors].slice(0, VISITOR_HISTORY_LENGTH);
-      this.store.set("#visitors", next);
+      await this.store.set("#visitors", next);
 
       return { metadata };
     } catch {
@@ -129,13 +131,14 @@ export class DurableObjectPasskey extends DurableObject<Env> {
       return "unauthorized" as const;
     }
 
-    void this.ctx.storage.deleteAll();
-    void this.ctx.storage.deleteAlarm();
-
-    this.store.delete("#metadata");
-    this.store.delete("#credential");
-    this.store.delete("#visitors");
-    this.store.delete("#authenticator");
+    await Promise.all([
+      this.ctx.storage.deleteAll(),
+      this.ctx.storage.deleteAlarm(),
+      this.store.delete("#metadata"),
+      this.store.delete("#credential"),
+      this.store.delete("#visitors"),
+      this.store.delete("#authenticator"),
+    ]);
 
     return { metadata };
   }

@@ -1,4 +1,5 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
+import { ref, type Ref } from "@mewhhaha/ruwuter/components";
 import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { events, event } from "@mewhhaha/ruwuter/events";
@@ -28,7 +29,8 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     await stub.cycleTasks();
   }
 
-  if (another) {
+  console.log(intent, another);
+  if (intent === "another" && another) {
     await stub.addTask(another);
   }
 
@@ -71,6 +73,8 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 };
 
 export default function Home({ loaderData }: t.ComponentProps) {
+  const inputRef = ref<HTMLInputElement | null>(null);
+
   if (!loaderData.authenticated) {
     return (
       <div class={`relative mx-auto flex size-full max-w-5xl flex-col`}>
@@ -100,10 +104,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
   }
 
   const { direction, confetti, current, completed } = loaderData;
-  const menuState = {
-    currentId: current?.id ?? null,
-    another: "",
-  };
 
   return (
     <div
@@ -194,17 +194,10 @@ export default function Home({ loaderData }: t.ComponentProps) {
           <form
             id="menu-form"
             on={events(
-              menuState,
-              event.submit<HTMLFormElement, typeof menuState>(
+              { currentId: current?.id },
+              event.submit<HTMLFormElement, { currentId: string | undefined }>(
                 async function (this, submitEvent, signal) {
                   "use client";
-                  submitEvent.preventDefault();
-                  if (
-                    !(submitEvent.currentTarget instanceof HTMLFormElement) ||
-                    signal.aborted
-                  ) {
-                    return;
-                  }
 
                   const form = submitEvent.currentTarget;
                   if (form.dataset.pending === "true") {
@@ -216,13 +209,11 @@ export default function Home({ loaderData }: t.ComponentProps) {
                     document.querySelector("#task") ?? form;
                   indicatorTarget?.setAttribute("data-indicator", "");
 
-                  const formData = new FormData();
+                  const formData = new FormData(submitEvent.currentTarget);
                   if (this.currentId) {
                     formData.set("id", this.currentId);
                   }
-                  if (this.another) {
-                    formData.set("another", this.another);
-                  }
+
                   const submitter = submitEvent.submitter;
                   if (
                     submitter instanceof HTMLButtonElement &&
@@ -291,11 +282,11 @@ export default function Home({ loaderData }: t.ComponentProps) {
                       "We could not update your tasks right now. Please try again.",
                     );
                   } finally {
-                    this.another = "";
                     indicatorTarget?.removeAttribute("data-indicator");
                     form.dataset.pending = "false";
                   }
                 },
+                { preventDefault: true },
               ),
             )}
             class={`
@@ -303,20 +294,40 @@ export default function Home({ loaderData }: t.ComponentProps) {
               gap-2
             `}
           >
-            <MenuButton
+            <input
+              type="hidden"
+              name="another"
               on={events(
-                menuState,
-                event.click<HTMLButtonElement, typeof menuState>(
+                { ref: inputRef },
+                event.mount<
+                  HTMLInputElement,
+                  { ref: Ref<HTMLInputElement | null> }
+                >(function (this, event) {
+                  "use client";
+                  this.ref.set(event.currentTarget);
+                }),
+              )}
+            />
+            <MenuButton
+              name="intent"
+              value="another"
+              on={events(
+                { ref: inputRef },
+                event.click<
+                  HTMLButtonElement,
+                  { ref: Ref<HTMLInputElement | null> }
+                >(
                   function (this, ev) {
                     "use client";
                     const value = window.prompt("What's next?");
                     if (!value) {
-                      this.another = "";
-                      ev.preventDefault();
                       return;
                     }
-                    this.another = value;
+                    const input = this.ref.get() as HTMLInputElement;
+                    input.value = value;
+                    ev.currentTarget.form?.requestSubmit(ev.currentTarget);
                   },
+                  { preventDefault: true },
                 ),
               )}
             >

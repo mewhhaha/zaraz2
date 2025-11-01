@@ -33,14 +33,14 @@ export class DurableStore<Schema extends Record<string, unknown>> {
     return cached as Schema[Key];
   }
 
-  set<Key extends keyof Schema>(key: Key, value: Schema[Key]) {
+  async set<Key extends keyof Schema>(key: Key, value: Schema[Key]) {
     this.cache.set(key, value as Schema[keyof Schema]);
-    void this.storage.put(String(key), value);
+    await this.storage.put(String(key), value);
   }
 
-  delete<Key extends keyof Schema>(key: Key) {
+  async delete<Key extends keyof Schema>(key: Key) {
     this.cache.set(key, MISS);
-    void this.storage.delete(String(key));
+    await this.storage.delete(String(key));
   }
 }
 

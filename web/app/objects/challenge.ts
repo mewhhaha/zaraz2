@@ -25,25 +25,28 @@ export class DurableObjectChallenge extends DurableObject<Env> {
       return "challenge_exists" as const;
     }
 
-    this.store.set("#data", state);
+    await this.store.set("#data", state);
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 10);
-    this.ctx.storage.setAlarm(expires);
+    await this.ctx.storage.setAlarm(expires);
     return { expires };
   }
 
   async alarm() {
-    void this.ctx.storage.deleteAlarm();
-    void this.ctx.storage.deleteAll();
-
-    this.store.delete("#data");
+    await Promise.all([
+      this.ctx.storage.deleteAlarm(),
+      this.ctx.storage.deleteAll(),
+      this.store.delete("#data"),
+    ]);
   }
 
   async finish() {
     try {
       const state = await this.store.get("#data");
-      void this.ctx.storage.deleteAll();
-      void this.ctx.storage.deleteAlarm();
-      this.store.delete("#data");
+      await Promise.all([
+        this.ctx.storage.deleteAll(),
+        this.ctx.storage.deleteAlarm(),
+        this.store.delete("#data"),
+      ]);
 
       return { state };
     } catch {

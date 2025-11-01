@@ -4,10 +4,10 @@ const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url)
   .pathname;
 const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
   .pathname;
+const swapUrl = new URL("@mewhhaha/ruwuter/swap.js", import.meta.url).pathname;
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
 const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
 const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
-const swapUrl = new URL("./assets/swap.js", import.meta.url).pathname;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
