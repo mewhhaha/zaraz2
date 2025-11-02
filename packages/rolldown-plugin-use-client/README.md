@@ -73,18 +73,10 @@ This package also exposes linting helpers under `@mewhhaha/rolldown-plugin-use-c
 
 ```js
 // eslint.config.js
-import useClientPlugin from "@mewhhaha/rolldown-plugin-use-client/eslint/use-client";
+import useclient from "@mewhhaha/rolldown-plugin-use-client/eslint/use-client";
 
 export default [
-  {
-    plugins: {
-      "@mewhhaha/use-client": useClientPlugin,
-    },
-    rules: {
-      "@mewhhaha/use-client/no-invalid-inline-client-closure": "error",
-      "@mewhhaha/use-client/require-use-client-directive": "warn",
-    },
-  },
+  useclient.configs.recommended
 ];
 ```
 

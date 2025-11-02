@@ -1,0 +1,12 @@
+{
+  "name": "@mewhhaha/rolldown-plugin-use-client",
+  "version": "0.0.1",
+  "include": ["src"],
+  "license": "MIT",
+  "description": "Rolldown helpers for extracting \"use client\" handlers plus linting utilities.",
+  "files": ["src", "README.md"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./eslint-plugin": "./src/eslint/use-client-plugin.ts"
+  }
+}

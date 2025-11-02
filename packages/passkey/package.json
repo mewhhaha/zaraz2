@@ -18,9 +18,9 @@
   "sideEffects": false,
   "devDependencies": {
     "@passwordless-id/webauthn": "^2.3.1",
-    "@typescript/native-preview": "7.0.0-dev.20251029.1",
-    "esbuild": "^0.25.11",
+    "@typescript/native-preview": "7.0.0-dev.20251102.1",
+    "esbuild": "^0.25.12",
     "typescript": "^5.9.3",
-    "wrangler": "4.45.2"
+    "wrangler": "4.45.3"
   }
 }

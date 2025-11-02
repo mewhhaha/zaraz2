@@ -277,11 +277,30 @@ const requireUseClientDirectiveRule: Rule.RuleModule = {
   },
 };
 
-const plugin: { rules: Record<string, Rule.RuleModule> } = {
+type UseClientPlugin = {
+  rules: Record<string, Rule.RuleModule>;
+  configs?: Record<string, unknown>;
+};
+
+const plugin: UseClientPlugin = {
   rules: {
     "no-invalid-inline-client-closure": noInvalidInlineClientClosureRule,
     "require-use-client-directive": requireUseClientDirectiveRule,
   },
+};
+
+const recommendedConfig = {
+  plugins: {
+    "@mewhhaha/use-client": plugin,
+  },
+  rules: {
+    "@mewhhaha/use-client/no-invalid-inline-client-closure": "error",
+    "@mewhhaha/use-client/require-use-client-directive": "warn",
+  },
+} satisfies Record<string, unknown>;
+
+plugin.configs = {
+  recommended: recommendedConfig,
 };
 
 export default plugin;
