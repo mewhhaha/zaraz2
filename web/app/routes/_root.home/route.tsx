@@ -192,7 +192,9 @@ export default function Home({ loaderData }: t.ComponentProps) {
         </main>
         <header class={`relative flex w-full justify-end`}>
           <form
+            method="POST"
             id="menu-form"
+            action="/home"
             on={events(
               { currentId: current?.id },
               event.submit<HTMLFormElement, { currentId: string | undefined }>(

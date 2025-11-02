@@ -20,7 +20,7 @@
     "@mewhhaha/eslint-plugin-url-exists": "workspace:*",
     "@mewhhaha/rolldown-plugin-tailwindcss": "workspace:*",
     "@mewhhaha/rolldown-plugin-use-client": "workspace:*",
-    "@mewhhaha/ruwuter": "jsr:^0.1.37",
+    "@mewhhaha/ruwuter": "jsr:^0.1.38",
     "@prettier/plugin-oxc": "^0.0.4",
     "@tailwindcss/node": "^4.1.16",
     "@tailwindcss/oxide": "^4.1.16",

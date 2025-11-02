@@ -306,10 +306,6 @@ type SignedInProps = {
 const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
   const registerAction = {
     username: auth.username,
-    intent: "register" as const,
-  };
-  const signOutAction = {
-    intent: "signout" as const,
   };
 
   return (
@@ -337,10 +333,12 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         >
           <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
           <form
+            method="POST"
+            action="/auth"
             on={events(
               registerAction,
               event.submit<HTMLFormElement, typeof registerAction>(
-                async function (this, _submitEvent, signal) {
+                async function (this, event, signal) {
                   "use client";
 
                   try {
@@ -349,12 +347,11 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
                       this.username,
                       { signal },
                     );
-                    const formData = new FormData();
-                    formData.set("intent", this.intent);
+                    const formData = new FormData(event.currentTarget);
                     formData.set("token", token);
 
-                    const response = await fetch("/auth", {
-                      method: "POST",
+                    const response = await fetch(event.currentTarget.action, {
+                      method: event.currentTarget.method,
                       body: formData,
                       signal,
                     });
@@ -375,6 +372,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
               ),
             )}
           >
+            <input type="hidden" name="intent" value="register" />
             <button
               type="submit"
               class={`
@@ -397,48 +395,39 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
 
       <MenuButton
         type="button"
-        on={events(
-          signOutAction,
-          event.click<HTMLButtonElement, typeof signOutAction>(
-            async function (this, ev, signal) {
-              "use client";
+        on={event.click<HTMLButtonElement>(async function (ev, signal) {
+          "use client";
 
-              const button = ev.currentTarget;
-              if (button.disabled) {
-                return;
-              }
-              button.disabled = true;
-              const formData = new FormData();
-              formData.set("intent", this.intent);
-              try {
-                const response = await fetch("/auth", {
-                  method: "POST",
-                  body: formData,
-                  signal,
-                  redirect: "manual",
-                });
-                if (
-                  response.ok ||
-                  response.type === "opaqueredirect" ||
-                  (response.status >= 300 && response.status < 400)
-                ) {
-                  const location = response.headers.get("Location") ?? "/";
-                  window.location.href = location;
-                  return;
-                }
-                await swap(response, { target: "body", swap: "innerHTML" });
-              } catch (error) {
-                if (isAbortError(error)) {
-                  return;
-                }
-                console.error(error);
-                window.alert?.("Could not sign you out. Please try again.");
-              } finally {
-                button.disabled = false;
-              }
-            },
-          ),
-        )}
+          const button = ev.currentTarget;
+          if (button.disabled) {
+            return;
+          }
+          button.disabled = true;
+          const formData = new FormData();
+          formData.set("intent", "signout");
+          try {
+            const response = await fetch("/auth", {
+              method: "POST",
+              body: formData,
+              signal,
+              redirect: "manual",
+            });
+            const location = findRedirectLocation(response);
+            if (location) {
+              window.location.href = location;
+              return;
+            }
+            await swap(response, { target: "body", swap: "innerHTML" });
+          } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
+            console.error(error);
+            window.alert?.("Could not sign you out. Please try again.");
+          } finally {
+            button.disabled = false;
+          }
+        })}
       >
         Sign out
       </MenuButton>
@@ -532,6 +521,7 @@ type DeleteButtonProps = {
 const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
   return (
     <form
+      method="POST"
       hidden={passkeyId === auth.passkeyId}
       on={events(
         { passkeyId },
@@ -597,6 +587,7 @@ type RenameButtonProps = {
 const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
     <form
+      method="POST"
       on={events(
         { passkeyId, currentName },
         event.submit<
@@ -719,69 +710,62 @@ const SignedOut = () => {
           Register a new account
         </h2>
         <form
+          method="POST"
+          action="/auth"
           class={`flex flex-col gap-2`}
-          on={event.submit<HTMLFormElement>(async function (event, signal) {
-            "use client";
-            event.preventDefault();
-            if (
-              !(event.currentTarget instanceof HTMLFormElement) ||
-              signal.aborted
-            ) {
-              return;
-            }
-            const form = event.currentTarget;
-            const formData = new FormData(form);
-            const submitter = event.submitter;
-            if (
-              submitter instanceof HTMLButtonElement &&
-              submitter.name &&
-              !formData.has(submitter.name)
-            ) {
-              formData.append(submitter.name, submitter.value);
-            }
-            const username = formData.get("username");
-            if (!username) {
-              window.alert?.("Please choose a username to continue.");
-              return;
-            }
-            try {
-              const token = await registerClient(
-                "/auth/challenge",
-                username.toString(),
-                { signal },
-              );
-              formData.set("token", token);
-              const response = await fetch("/auth/register", {
-                method: "POST",
-                body: formData,
-                signal,
-                redirect: "manual",
-              });
+          on={event.submit<HTMLFormElement>(
+            async function (event, signal) {
+              "use client";
+
+              const formData = new FormData(event.currentTarget);
+              const submitter = event.submitter;
               if (
-                response.ok ||
-                response.type === "opaqueredirect" ||
-                (response.status >= 300 && response.status < 400)
+                submitter instanceof HTMLButtonElement &&
+                submitter.name &&
+                !formData.has(submitter.name)
               ) {
-                const location = response.headers.get("Location");
+                formData.append(submitter.name, submitter.value);
+              }
+              const username = formData.get("username");
+              if (!username) {
+                window.alert?.("Please choose a username to continue.");
+                return;
+              }
+              try {
+                const token = await registerClient(
+                  "/auth/challenge",
+                  username.toString(),
+                  { signal },
+                );
+                formData.set("token", token);
+                const response = await fetch("/auth/register", {
+                  method: "POST",
+                  body: formData,
+                  signal,
+                  redirect: "manual",
+                });
+
+                const location = findRedirectLocation(response);
                 if (location) {
                   window.location.href = location;
                   return;
                 }
+                await swap(response, {
+                  target: "body",
+                  swap: "innerHTML",
+                });
+              } catch (error) {
+                if (isAbortError(error)) {
+                  return;
+                }
+                console.error(error);
+                window.alert?.(
+                  "We could not register you right now. Please try again.",
+                );
               }
-              await swap(response, {
-                target: "body",
-                swap: "innerHTML",
-              });
-            } catch (error) {
-              if (isAbortError(error)) {
-                return;
-              }
-              console.error(error);
-              window.alert?.(
-                "We could not register you right now. Please try again.",
-              );
-            }
-          })}
+            },
+            { preventDefault: true },
+          )}
         >
           <div class={`flex flex-col gap-2`}>
             <label for="register-username" class={`text-sm text-gray-400`}>
@@ -953,4 +937,17 @@ const formatRelativeDate = (date: Date, locale: string) => {
     const years = Math.round(diffInSeconds / secondsInYear);
     return formatter.format(years, "year");
   }
+};
+
+const isRedirect = (response: Response) => {
+  return (
+    (response.status >= 300 && response.status < 400) ||
+    response.type === "opaqueredirect"
+  );
+};
+
+const findRedirectLocation = (response: Response) => {
+  if (!isRedirect(response)) return;
+  const location = response.headers.get("Location");
+  return location;
 };
