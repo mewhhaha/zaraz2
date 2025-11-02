@@ -6,9 +6,6 @@ import { events, event } from "@mewhhaha/ruwuter/events";
 import { authenticate } from "../auth.$/helpers.ts";
 
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
-const isAbortError = (error: unknown): error is DOMException => {
-  return error instanceof DOMException && error.name === "AbortError";
-};
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const user = await authenticate(request, env.SECRET_KEY);
@@ -276,13 +273,10 @@ export default function Home({ loaderData }: t.ComponentProps) {
                       transition.removeAttribute("data-view-transition");
                     }
                   } catch (error) {
-                    if (isAbortError(error)) {
-                      return;
-                    }
-                    console.error(error);
                     window.alert?.(
                       "We could not update your tasks right now. Please try again.",
                     );
+                    throw error;
                   } finally {
                     indicatorTarget?.removeAttribute("data-indicator");
                     form.dataset.pending = "false";
@@ -416,13 +410,10 @@ const Account = () => {
               await performSwap();
             }
           } catch (error) {
-            if (isAbortError(error)) {
-              return;
-            }
-            console.error(error);
             window.alert?.(
               "We couldn't load your passkey settings. Please try again.",
             );
+            throw error;
           } finally {
             targetElement.removeAttribute("data-indicator");
             dialog.dataset.pending = "false";

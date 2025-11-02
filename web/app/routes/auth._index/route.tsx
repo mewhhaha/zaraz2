@@ -22,10 +22,6 @@ const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
 const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
 const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
 
-const isAbortError = (error: unknown): error is DOMException => {
-  return error instanceof DOMException && error.name === "AbortError";
-};
-
 class ParseError extends Error {
   summary: string;
 
@@ -256,27 +252,20 @@ export default function Route({
             on={event.mount<HTMLInputElement>(async function (event, signal) {
               "use client";
               const input = event.currentTarget;
-              try {
-                const token = await authenticateClient(
-                  "/auth/challenge",
-                  [input.value],
-                  { signal },
-                );
-                const formData = new FormData();
-                formData.set("token", token);
-                const response = await fetch("/auth/verify", {
-                  method: "POST",
-                  body: formData,
-                  signal,
-                });
-                if (response.ok) {
-                  window.location.href = "/home";
-                }
-              } catch (error) {
-                if (isAbortError(error)) {
-                  return;
-                }
-                console.error(error);
+              const token = await authenticateClient(
+                "/auth/challenge",
+                [input.value],
+                { signal },
+              );
+              const formData = new FormData();
+              formData.set("token", token);
+              const response = await fetch("/auth/verify", {
+                method: "POST",
+                body: formData,
+                signal,
+              });
+              if (response.ok) {
+                window.location.href = "/home";
               }
             })}
           />
@@ -359,13 +348,10 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
                       target: PASSKEYS_LIST_SELECTOR,
                     });
                   } catch (error) {
-                    if (isAbortError(error)) {
-                      return;
-                    }
-                    console.error(error);
                     window.alert?.(
                       "Something went wrong adding your passkey. Please try again.",
                     );
+                    throw error;
                   }
                 },
                 { preventDefault: true },
@@ -419,11 +405,8 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
             }
             await swap(response, { target: "body", swap: "innerHTML" });
           } catch (error) {
-            if (isAbortError(error)) {
-              return;
-            }
-            console.error(error);
             window.alert?.("Could not sign you out. Please try again.");
+            throw error;
           } finally {
             button.disabled = false;
           }
@@ -552,13 +535,10 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
                 target: PASSKEYS_LIST_SELECTOR,
               });
             } catch (error) {
-              if (isAbortError(error)) {
-                return;
-              }
-              console.error(error);
               window.alert?.(
                 "Failed to delete the passkey. Please try again in a moment.",
               );
+              throw error;
             }
           },
           { preventDefault: true },
@@ -619,13 +599,10 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
                 target: PASSKEYS_LIST_SELECTOR,
               });
             } catch (error) {
-              if (isAbortError(error)) {
-                return;
-              }
-              console.error(error);
               window.alert?.(
                 "Could not rename this passkey. Please try again.",
               );
+              throw error;
             }
           },
           { preventDefault: true },
@@ -686,13 +663,10 @@ const SignedOut = () => {
               }
               throw new Error(await response.text());
             } catch (error) {
-              if (isAbortError(error)) {
-                return;
-              }
-              console.error(error);
               window.alert?.(
                 "Something went wrong signing you in. Please try again.",
               );
+              throw error;
             } finally {
               button.disabled = false;
             }
@@ -755,13 +729,10 @@ const SignedOut = () => {
                   swap: "innerHTML",
                 });
               } catch (error) {
-                if (isAbortError(error)) {
-                  return;
-                }
-                console.error(error);
                 window.alert?.(
                   "We could not register you right now. Please try again.",
                 );
+                throw error;
               }
             },
             { preventDefault: true },

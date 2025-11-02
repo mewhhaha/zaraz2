@@ -42,39 +42,22 @@ export default function Root({
               async function (this, _event, signal) {
                 "use client";
 
-                const challengeUri = "/auth/challenge";
-
                 let busy = false;
                 let releaseBusy = () => {};
 
                 const refresh = async () => {
-                  let response: Response;
-
                   if (new Date(this.expires) > new Date()) {
-                    response = await fetch("/auth/refresh", {
+                    const response = await fetch("/auth/refresh", {
                       method: "POST",
                       signal,
                     });
+                    if (response.ok) {
+                      const { expires }: { expires: string } =
+                        await response.json();
+                      this.expires = expires;
+                    }
                   } else {
-                    const token = await authenticateClient(
-                      challengeUri,
-                      [this.credentialId],
-                      { signal },
-                    );
-                    const formData = new FormData();
-                    formData.set("token", token);
-                    response = await fetch("/auth/verify", {
-                      method: "POST",
-                      body: formData,
-                      redirect: "manual",
-                      signal,
-                    });
-                  }
-
-                  if (response.ok) {
-                    const { expires }: { expires: string } =
-                      await response.json();
-                    this.expires = expires;
+                    window.location.reload();
                   }
                 };
 
