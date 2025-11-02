@@ -98,9 +98,6 @@ importers:
       rolldown:
         specifier: ^1.0.0-beta.45
         version: 1.0.0-beta.45
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.3
     devDependencies:
       '@types/estree':
         specifier: ^1.0.8
@@ -114,6 +111,9 @@ importers:
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
     optionalDependencies:
       eslint:
         specifier: ^9.0.0
@@ -144,11 +144,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/eslint-plugin-url-exists
       '@mewhhaha/rolldown-plugin-tailwindcss':
-        specifier: workspace:*
-        version: link:../packages/rolldown-plugin-tailwindcss
+        specifier: jsr:*
+        version: '@jsr/mewhhaha__rolldown-plugin-tailwindcss@0.0.1'
       '@mewhhaha/rolldown-plugin-use-client':
-        specifier: workspace:*
-        version: link:../packages/rolldown-plugin-use-client
+        specifier: jsr:*
+        version: '@jsr/mewhhaha__rolldown-plugin-use-client@0.0.1(jiti@2.6.1)'
       '@mewhhaha/ruwuter':
         specifier: jsr:^0.1.38
         version: '@jsr/mewhhaha__ruwuter@0.1.38'
@@ -774,6 +774,12 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@jsr/mewhhaha__rolldown-plugin-tailwindcss@0.0.1':
+    resolution: {integrity: sha512-QchvNivbNyFK4WPDtI/aApEl4VjQxgg1BtdlVx3fkSkpo743spRRWyyfIRqcDEgxhECZYNeqSALw2iV86FIvLA==, tarball: https://npm.jsr.io/~/11/@jsr/mewhhaha__rolldown-plugin-tailwindcss/0.0.1.tgz}
+
+  '@jsr/mewhhaha__rolldown-plugin-use-client@0.0.1':
+    resolution: {integrity: sha512-yEe0C6G8mVXHJbXR5Z2Jf4zM+TSWEiMuBqhfa8k1ds3pO13tlDB7SzBdSBheyagDQ8nNywNmRbH/ogOb2Rgqhw==, tarball: https://npm.jsr.io/~/11/@jsr/mewhhaha__rolldown-plugin-use-client/0.0.1.tgz}
 
   '@jsr/mewhhaha__ruwuter@0.1.38':
     resolution: {integrity: sha512-bgN9AniTSwv06aC8SpJ0RDNVzMOU/NyUo7S99R/C8++MSafrcvZOt7KI4tBR1Sa8ugNGiOAd0u/dFc8I0bKNWg==, tarball: https://npm.jsr.io/~/11/@jsr/mewhhaha__ruwuter/0.1.38.tgz}
@@ -3222,6 +3228,24 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@jsr/mewhhaha__rolldown-plugin-tailwindcss@0.0.1':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-beta.45
+      '@tailwindcss/node': 4.1.16
+      '@tailwindcss/oxide': 4.1.16
+      rolldown: 1.0.0-beta.45
+
+  '@jsr/mewhhaha__rolldown-plugin-use-client@0.0.1(jiti@2.6.1)':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-beta.45
+      '@types/estree': 1.0.8
+      eslint: 9.39.0(jiti@2.6.1)
+      rolldown: 1.0.0-beta.45
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
 
   '@jsr/mewhhaha__ruwuter@0.1.38':
     dependencies:
