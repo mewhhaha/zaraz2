@@ -1,7 +1,7 @@
 import type { Plugin } from "rolldown";
 import inlineClientHandlers, {
   type InlineClientPluginOptions,
-} from "./rolldown/inline-client-rolldown.js";
+} from "./rolldown/inline-client-rolldown.ts";
 
 export type UseClientPluginOptions = InlineClientPluginOptions;
 

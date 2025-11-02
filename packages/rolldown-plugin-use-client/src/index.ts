@@ -1,2 +1,2 @@
-export { default } from "./use-client-rolldown.js";
-export type { UseClientPluginOptions } from "./use-client-rolldown.js";
+export { default } from "./use-client-rolldown.ts";
+export type { UseClientPluginOptions } from "./use-client-rolldown.ts";

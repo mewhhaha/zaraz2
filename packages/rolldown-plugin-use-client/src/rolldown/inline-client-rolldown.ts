@@ -9,7 +9,7 @@ import {
   clearInlineClientModules,
   getInlineClientModule,
   setInlineClientModule,
-} from "./inline-client-registry.js";
+} from "./inline-client-registry.ts";
 
 const SCRIPT_KIND_BY_EXT: Record<string, ts.ScriptKind> = {
   ".js": ts.ScriptKind.JS,

@@ -25,16 +25,18 @@
   "dependencies": {
     "@rolldown/pluginutils": "^1.0.0-beta.45",
     "eslint": "^9.0.0",
-    "rolldown": "^1.0.0-beta.45",
-    "typescript": "^5.0.0"
+    "rolldown": "^1.0.0-beta.45"
   },
   "peerDependencies": {
-    "eslint": "^9.0.0",
-    "rolldown": "*"
+    "rolldown": "*",
+    "typescript": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "eslint": "^9.0.0"
   },
   "devDependencies": {
     "@rolldown/pluginutils": "1.0.0-beta.45",
-    "@types/estree": "^1.0.6",
+    "@types/estree": "^1.0.8",
     "@types/node": "^24.9.2",
     "oxlint": "^1.25.0",
     "prettier": "^3.6.2",

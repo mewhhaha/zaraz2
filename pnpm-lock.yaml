@@ -92,18 +92,18 @@ importers:
 
   packages/rolldown-plugin-use-client:
     dependencies:
-      eslint:
-        specifier: ^9.0.0
-        version: 9.38.0(jiti@2.6.1)
+      '@rolldown/pluginutils':
+        specifier: ^1.0.0-beta.45
+        version: 1.0.0-beta.45
       rolldown:
         specifier: ^1.0.0-beta.45
         version: 1.0.0-beta.45
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
     devDependencies:
-      '@rolldown/pluginutils':
-        specifier: 1.0.0-beta.45
-        version: 1.0.0-beta.45
       '@types/estree':
-        specifier: ^1.0.6
+        specifier: ^1.0.8
         version: 1.0.8
       '@types/node':
         specifier: ^24.9.2
@@ -114,9 +114,10 @@ importers:
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+    optionalDependencies:
+      eslint:
+        specifier: ^9.0.0
+        version: 9.38.0(jiti@2.6.1)
 
   web:
     dependencies:
@@ -3040,6 +3041,7 @@ snapshots:
     dependencies:
       eslint: 9.38.0(jiti@2.6.1)
       eslint-visitor-keys: 3.4.3
+    optional: true
 
   '@eslint-community/eslint-utils@4.9.0(eslint@9.39.0(jiti@2.6.1))':
     dependencies:
@@ -3059,6 +3061,7 @@ snapshots:
   '@eslint/config-helpers@0.4.1':
     dependencies:
       '@eslint/core': 0.16.0
+    optional: true
 
   '@eslint/config-helpers@0.4.2':
     dependencies:
@@ -3067,6 +3070,7 @@ snapshots:
   '@eslint/core@0.16.0':
     dependencies:
       '@types/json-schema': 7.0.15
+    optional: true
 
   '@eslint/core@0.17.0':
     dependencies:
@@ -3091,7 +3095,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@eslint/js@9.38.0': {}
+  '@eslint/js@9.38.0':
+    optional: true
 
   '@eslint/js@9.39.0': {}
 
@@ -3101,6 +3106,7 @@ snapshots:
     dependencies:
       '@eslint/core': 0.16.0
       levn: 0.4.1
+    optional: true
 
   '@eslint/plugin-kit@0.4.1':
     dependencies:
@@ -4117,6 +4123,7 @@ snapshots:
       jiti: 2.6.1
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   eslint@9.39.0(jiti@2.6.1):
     dependencies:
