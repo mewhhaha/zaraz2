@@ -12,7 +12,13 @@
 @custom-variant override (&);
 
 @utility view-name-* {
-  view-transition-name: --value([*]);
+  view-transition-name: --value([ *]);
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
 }
 
 html,

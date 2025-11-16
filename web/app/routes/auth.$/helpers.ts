@@ -225,7 +225,7 @@ export const authenticate = async (request: Request, secret: string) => {
 };
 
 export const expires = () => {
-  return new Date(Date.now() + 1000 * 60 * 30).toISOString();
+  return new Date(Date.now() + 1000 * 60 * 60 * 60 * 10).toISOString();
 };
 
 export const parseToken = async <T>(
