@@ -472,7 +472,7 @@ const Task = ({ children, class: className, ...props }: TaskProps) => {
       id="task"
       class={cx(
         `
-          z-10 h-fit w-fit self-center justify-self-center rounded-full
+          z-10 size-full self-center justify-self-center rounded-full
           bg-blue-800 px-10 py-2 text-center font-serif text-4xl text-gray-100
           drop-shadow-sm/100 transition-[opacity_transform] duration-300
           text-shadow-lg/100
