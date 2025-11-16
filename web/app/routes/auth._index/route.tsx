@@ -140,11 +140,8 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   if (request.method === "POST" && formData["intent"] === "signout") {
     const cookie = createAuthCookie("auth", env.SECRET_KEY);
     return new Response(null, {
-      status: 303,
-      headers: {
-        Location: "/",
-        "Set-Cookie": cookie.destroy(),
-      },
+      status: 201,
+      headers: { "Set-Cookie": cookie.destroy() },
     });
   }
 
@@ -396,11 +393,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
               method: "POST",
               body: formData,
               signal,
-              redirect: "manual",
             });
-            const location = findRedirectLocation(response);
-            if (location) {
-              window.location.href = location;
+            if (response.ok) {
+              window.location.href = "/";
               return;
             }
             await swap(response, { target: "body", swap: "innerHTML" });
