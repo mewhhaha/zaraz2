@@ -68,9 +68,8 @@ export default async function ({
   const cookie = createAuthCookie("auth", env.SECRET);
 
   return new Response(null, {
-    status: 303,
+    status: 200,
     headers: {
-      Location: "/",
       "Set-Cookie": await cookie.serialize({
         username,
         passkeyId: passkey.id.toString(),

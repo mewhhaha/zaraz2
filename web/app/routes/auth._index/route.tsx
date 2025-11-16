@@ -645,19 +645,14 @@ const SignedOut = () => {
                 const response = await fetch("/auth/verify", {
                   method: "POST",
                   body: formData,
-                  redirect: "manual",
                   signal,
                 });
                 if (response.ok) {
                   window.location.href = "/";
                   return;
+                } else {
+                  throw new Error(await response.text());
                 }
-                const location = response.headers.get("Location");
-                if (location && location.startsWith("/")) {
-                  window.location.href = location;
-                  return;
-                }
-                throw new Error(await response.text());
               } catch (error) {
                 window.alert?.(
                   "Something went wrong signing you in. Please try again.",
@@ -714,18 +709,16 @@ const SignedOut = () => {
                   method: "POST",
                   body: formData,
                   signal,
-                  redirect: "manual",
                 });
 
-                const location = findRedirectLocation(response);
-                if (location) {
-                  window.location.href = location;
-                  return;
+                if (response.ok) {
+                  window.location.href = "/";
+                } else {
+                  await swap(response, {
+                    target: "body",
+                    swap: "innerHTML",
+                  });
                 }
-                await swap(response, {
-                  target: "body",
-                  swap: "innerHTML",
-                });
               } catch (error) {
                 window.alert?.(
                   "We could not register you right now. Please try again.",
