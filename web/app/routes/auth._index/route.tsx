@@ -626,51 +626,49 @@ const SignedOut = () => {
 
         <MenuButton
           type="button"
-          on={event.click<HTMLButtonElement>(async function (ev, signal) {
-            "use client";
-            const button = ev.currentTarget;
-            if (button.disabled || signal.aborted) {
-              return;
-            }
-            button.disabled = true;
-            try {
-              const token = await authenticateClient(
-                "/auth/challenge",
-                undefined,
-                {
+          on={event.click<HTMLButtonElement>(
+            async function (ev, signal) {
+              "use client";
+              const button = ev.currentTarget;
+              if (button.disabled || signal.aborted) {
+                return;
+              }
+              button.disabled = true;
+              try {
+                const token = await authenticateClient(
+                  "/auth/challenge",
+                  undefined,
+                  { signal },
+                );
+                const formData = new FormData();
+                formData.set("token", token);
+                const response = await fetch("/auth/verify", {
+                  method: "POST",
+                  body: formData,
+                  redirect: "manual",
                   signal,
-                },
-              );
-              const formData = new FormData();
-              formData.set("token", token);
-              const response = await fetch("/auth/verify", {
-                method: "POST",
-                body: formData,
-                redirect: "manual",
-                signal,
-              });
-              if (response.ok) {
-                window.location.href = "/";
-                return;
-              }
-              if (
-                response.type === "opaqueredirect" ||
-                (response.status >= 300 && response.status < 400)
-              ) {
+                });
+                if (response.ok) {
+                  window.location.href = "/";
+                  return;
+                }
                 const location = response.headers.get("Location");
-                window.location.href = location ?? "/";
-                return;
+                if (location && location.startsWith("/")) {
+                  window.location.href = location;
+                  return;
+                }
+                throw new Error(await response.text());
+              } catch (error) {
+                window.alert?.(
+                  "Something went wrong signing you in. Please try again.",
+                );
+                throw error;
+              } finally {
+                button.disabled = false;
               }
-              throw new Error(await response.text());
-            } catch (error) {
-              window.alert?.(
-                "Something went wrong signing you in. Please try again.",
-              );
-              throw error;
-            } finally {
-              button.disabled = false;
-            }
-          })}
+            },
+            { preventDefault: true },
+          )}
           class={`
             mb-10
             override:bg-green-800 override:hover:bg-green-700
