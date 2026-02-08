@@ -6,7 +6,6 @@ export type EnvAuth = {
   USER: DurableObjectNamespace<DurableObjectUser>;
   PASSKEY: DurableObjectNamespace<DurableObjectPasskey>;
   CHALLENGE: DurableObjectNamespace<DurableObjectChallenge>;
-  REGISTERED_USERS: KVNamespace;
   SECRET: string;
 };
 

@@ -5,6 +5,7 @@ import {
   AuthExpiredError,
   createAuthCookie,
   extractVisitorHeaders,
+  ensurePasskeyLinked,
   parseToken,
   type Auth,
 } from "../auth.$/helpers.ts";
@@ -15,7 +16,7 @@ import { makePasskeyLink, type Account } from "../../objects/user";
 import {
   authenticate as authenticateClient,
   register as registerClient,
-} from "@packages/passkey";
+} from "../../helpers/passkey";
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
 
 const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
@@ -80,7 +81,17 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const locale = getLocale(request);
   const timezone = getTimezone(request);
 
-  const auth = await authenticate(request, env.SECRET_KEY);
+  let auth: Auth;
+  try {
+    auth = await authenticate(request, env.SECRET_KEY);
+    await ensurePasskeyLinked(env.OBJECT_USER, auth);
+  } catch {
+    const cookie = createAuthCookie("auth", env.SECRET_KEY);
+    return new Response("unauthorized", {
+      status: 401,
+      headers: { "Set-Cookie": cookie.destroy() },
+    });
+  }
 
   const account = env.OBJECT_USER.get(
     env.OBJECT_USER.idFromName(auth.username),
@@ -146,8 +157,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   }
 
   if (request.method === "POST" && formData["intent"] === "register") {
-    const { username } = await authenticate(request, env.SECRET_KEY);
-
+    const { username } = auth;
     const visited = extractVisitorHeaders(request.headers);
 
     const fd = parseRegister(formData);
@@ -223,8 +233,8 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {
     // Check if the user is authenticated via cookie
     const auth = await authenticate(request, env.SECRET_KEY);
-    const user = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(auth.username));
-    return { auth, account: await user.account().data(), locale, timezone };
+    const account = await ensurePasskeyLinked(env.OBJECT_USER, auth);
+    return { auth, account, locale, timezone };
   } catch (error) {
     if (error instanceof AuthExpiredError) {
       return { auth: error.auth, account: undefined, locale, timezone };

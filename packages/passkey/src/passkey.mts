@@ -109,7 +109,7 @@ export const register = async (
             userVerification: "required",
             discoverable: "required",
             timeout: 60000,
-            attestation: true,
+            attestation: false,
         });
 
         signal.throwIfAborted();

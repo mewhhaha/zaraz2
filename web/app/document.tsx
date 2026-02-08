@@ -8,6 +8,7 @@ const swapUrl = new URL("@mewhhaha/ruwuter/swap.js", import.meta.url).pathname;
 const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
 const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
 const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
+const offlineUrl = new URL("./assets/offline.js", import.meta.url).pathname;
 
 export const loader = ({ context: [env] }: t.LoaderArgs) => {
   return { nonce: env.nonce };
@@ -25,6 +26,7 @@ export const headers: t.HeadersFunction = ({ loaderData, context: [env] }) => {
 script-src 'strict-dynamic' 'nonce-${env.nonce}' 'unsafe-inline' http: https:;
 object-src 'none';
 base-uri 'none';
+worker-src 'self';
 require-trusted-types-for 'script';
 `.replace(/\n/g, " "),
     );
@@ -58,6 +60,7 @@ export default function Document({
         <script type="module" nonce={nonce} src={clientUrl} async></script>
         <script type="module" nonce={nonce} src={resolveUrl} async></script>
         <script type="module" nonce={nonce} src={swapUrl} async></script>
+        <script type="module" nonce={nonce} src={offlineUrl} async></script>
       </head>
       <body
         class={`

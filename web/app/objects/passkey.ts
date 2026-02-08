@@ -9,6 +9,7 @@ import type {
 } from "@passwordless-id/webauthn/dist/esm/types.js";
 import type { Env } from "@mewhhaha/ruwuter";
 import { createStore, DurableStore } from "../helpers/store";
+import type { VisitedHeaders } from "../helpers/visited";
 
 const VISITOR_HISTORY_LENGTH = 10;
 
@@ -102,6 +103,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
     try {
       const metadata = await this.store.get("#metadata");
       const credential = await this.store.get("#credential");
+      const authenticator = await this.store.get("#authenticator");
       const visitors = await this.store.get("#visitors");
 
       const authenticationInfo = await server.verifyAuthentication(
@@ -111,8 +113,12 @@ export class DurableObjectPasskey extends DurableObject<Env> {
           origin: this.env.ORIGIN,
           challenge: challengeId,
           userVerified: true,
+          counter: authenticator.counter,
         },
       );
+
+      authenticator.counter = authenticationInfo.counter;
+      await this.store.set("#authenticator", authenticator);
 
       const visitor = makeVisitor(visited, authenticationInfo);
       const next = [visitor, ...visitors].slice(0, VISITOR_HISTORY_LENGTH);
@@ -144,21 +150,6 @@ export class DurableObjectPasskey extends DurableObject<Env> {
   }
 }
 
-export const getVisitedHeaders = (request: Request): VisitedHeaders => {
-  return {
-    city: request.headers.get("cf-ipcity") ?? undefined,
-    country: request.headers.get("cf-ipcountry") ?? undefined,
-    continent: request.headers.get("cf-ipcontinent") ?? undefined,
-    longitude: request.headers.get("cf-iplongitude") ?? undefined,
-    latitude: request.headers.get("cf-iplatitude") ?? undefined,
-    region: request.headers.get("cf-region") ?? undefined,
-    regionCode: request.headers.get("cf-region-code") ?? undefined,
-    metroCode: request.headers.get("cf-metro-code") ?? undefined,
-    postalCode: request.headers.get("cf-postal-code") ?? undefined,
-    timezone: request.headers.get("cf-timezone") ?? undefined,
-  };
-};
-
 const makeVisitor = (
   headers: VisitedHeaders,
   authentication?: AuthenticationInfo,
@@ -187,15 +178,4 @@ type Visitor = {
 
 const now = () => new Date().toISOString();
 
-export type VisitedHeaders = {
-  city?: string | undefined;
-  country?: string | undefined;
-  continent?: string | undefined;
-  longitude?: string | undefined;
-  latitude?: string | undefined;
-  region?: string | undefined;
-  regionCode?: string | undefined;
-  metroCode?: string | undefined;
-  postalCode?: string | undefined;
-  timezone?: string | undefined;
-};
+export type { VisitedHeaders };

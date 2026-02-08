@@ -1,4 +1,4 @@
-import { createAuthCookie, expires } from "../helpers.js";
+import { createAuthCookie, ensurePasskeyLinked, expires } from "../helpers.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -17,6 +17,17 @@ export default async function ({
   const user = await cookie.parse(cookieHeader);
   if (!user) {
     throw new Response("invalid_cookie", { status: 401 });
+  }
+
+  try {
+    await ensurePasskeyLinked(env.USER, user);
+  } catch {
+    return new Response("passkey_revoked", {
+      status: 401,
+      headers: {
+        "Set-Cookie": cookie.destroy(),
+      },
+    });
   }
 
   user.expires = expires();

@@ -3,37 +3,41 @@ import { ref, type Ref } from "@mewhhaha/ruwuter/components";
 import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { events, event } from "@mewhhaha/ruwuter/events";
-import { authenticate } from "../auth.$/helpers.ts";
+import { authenticate, ensurePasskeyLinked } from "../auth.$/helpers.ts";
+import type { TaskEvent } from "../../objects/user";
 
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
-  const user = await authenticate(request, env.SECRET_KEY);
+  let user: Awaited<ReturnType<typeof authenticate>>;
+  try {
+    user = await authenticate(request, env.SECRET_KEY);
+    await ensurePasskeyLinked(env.OBJECT_USER, user);
+  } catch {
+    return new Response("unauthorized", { status: 401 });
+  }
 
   const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-  const another = formData.get("another") as string;
-  const id = formData.get("id") as string;
-  const open = formData.get("open") as string;
+  const intent = formData.get("intent")?.toString() ?? null;
+  const another = formData.get("another")?.toString() ?? null;
+  const id = formData.get("id")?.toString() ?? null;
+  const open = formData.get("open")?.toString() ?? null;
 
   const stub = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(user.username));
 
-  if (intent === "done") {
-    await stub.completeTask(id);
-  }
-
-  if (intent === "cycle") {
-    await stub.cycleTasks();
-  }
-
-  console.log(intent, another);
-  if (intent === "another" && another) {
-    await stub.addTask(another);
+  const parsedEvent = parseEvent(formData);
+  const fallbackEvent = parsedEvent
+    ? undefined
+    : createFallbackEvent(intent, another, id);
+  const eventToApply = parsedEvent ?? fallbackEvent;
+  if (eventToApply) {
+    await stub.applyEvents([eventToApply]);
   }
 
   const url = new URL(request.url);
-  url.searchParams.set("direction", intent === "done" ? "up" : "right");
-  if (intent === "done") {
+  const actionType = parsedEvent?.type ?? fallbackEvent?.type ?? undefined;
+  url.searchParams.set("direction", actionType === "task.done" ? "up" : "right");
+  if (actionType === "task.done") {
     url.searchParams.set("confetti", "true");
   }
 
@@ -44,9 +48,109 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   return Response.redirect(url.href, 303);
 };
 
+const parseEvent = (formData: FormData): TaskEvent | undefined => {
+  const id = formData.get("event_id")?.toString();
+  const type = formData.get("event_type")?.toString();
+  const clientId = formData.get("event_client_id")?.toString();
+  const seqRaw = formData.get("event_seq")?.toString();
+  const tsRaw = formData.get("event_ts")?.toString();
+  const taskId = formData.get("event_task_id")?.toString();
+  const text = formData.get("event_text")?.toString();
+
+  if (!id || !type || !clientId || !seqRaw || !tsRaw) {
+    return;
+  }
+
+  const seq = Number(seqRaw);
+  const ts = Number(tsRaw);
+  if (!Number.isFinite(seq) || !Number.isFinite(ts)) {
+    return;
+  }
+
+  if (type === "task.add") {
+    if (!taskId || !text) {
+      return;
+    }
+    return {
+      id,
+      clientId,
+      seq,
+      ts,
+      type,
+      taskId,
+      text,
+    };
+  }
+
+  if (type === "task.done") {
+    return {
+      id,
+      clientId,
+      seq,
+      ts,
+      type,
+      taskId: taskId || undefined,
+    };
+  }
+
+  if (type === "task.cycle") {
+    return { id, clientId, seq, ts, type };
+  }
+};
+
+const createFallbackEvent = (
+  intent: string | null,
+  another: string | null,
+  id: string | null,
+): TaskEvent | undefined => {
+  if (!intent) {
+    return;
+  }
+
+  const clientId = "server";
+  const seq = Date.now();
+  const eventId = `${clientId}:${seq}`;
+  const ts = Date.now();
+
+  if (intent === "another" && another) {
+    return {
+      id: eventId,
+      clientId,
+      seq,
+      ts,
+      type: "task.add",
+      taskId: crypto.randomUUID(),
+      text: another,
+    };
+  }
+
+  if (intent === "done") {
+    return {
+      id: eventId,
+      clientId,
+      seq,
+      ts,
+      type: "task.done",
+      taskId: id || undefined,
+    };
+  }
+
+  if (intent === "cycle") {
+    return {
+      id: eventId,
+      clientId,
+      seq,
+      ts,
+      type: "task.cycle",
+    };
+  }
+};
+
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {
-    const { username } = await authenticate(request, env.SECRET_KEY);
+    const auth = await authenticate(request, env.SECRET_KEY);
+    await ensurePasskeyLinked(env.OBJECT_USER, auth);
+    const { username } = auth;
 
     const url = new URL(request.url);
     const direction = url.searchParams.get("direction");
@@ -104,6 +208,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
 
   return (
     <div
+      id="home-root"
       data-empty={current === undefined || undefined}
       class={`relative mx-auto flex size-full max-w-5xl flex-col`}
     >
@@ -167,9 +272,12 @@ export default function Home({ loaderData }: t.ComponentProps) {
             >
               <div class={`rounded-full bg-white p-10 blur-2xl`} />
               <Task
+                data-task-id={current?.id}
+                data-task-text={current?.text}
                 data-last={current === undefined}
                 data-direction={direction}
                 data-view-transition={direction !== null}
+                hidden={current === undefined}
                 class={`
                   view-name-[task]
                   data-last:invisible
@@ -177,13 +285,13 @@ export default function Home({ loaderData }: t.ComponentProps) {
               >
                 {current?.text}
               </Task>
-              {!current && (
-                <div
-                  class={`z-10 flex items-center text-xl font-bold text-black`}
-                >
-                  You did it. You're a real human 🫘.
-                </div>
-              )}
+              <div
+                id="task-empty"
+                hidden={current !== undefined}
+                class={`z-10 flex items-center text-xl font-bold text-black`}
+              >
+                You did it. You're a real human 🫘.
+              </div>
             </div>
           </div>
         </main>
@@ -209,8 +317,13 @@ export default function Home({ loaderData }: t.ComponentProps) {
                   indicatorTarget?.setAttribute("data-indicator", "");
 
                   const formData = new FormData(submitEvent.currentTarget);
-                  if (this.currentId) {
-                    formData.set("id", this.currentId);
+                  const taskEl = document.querySelector("#task");
+                  const liveId =
+                    taskEl instanceof HTMLElement
+                      ? taskEl.dataset.taskId
+                      : undefined;
+                  if (liveId || this.currentId) {
+                    formData.set("id", liveId ?? this.currentId ?? "");
                   }
 
                   const submitter = submitEvent.submitter;
@@ -221,7 +334,264 @@ export default function Home({ loaderData }: t.ComponentProps) {
                     formData.set(submitter.name, submitter.value);
                   }
 
+                  const intent = formData.get("intent")?.toString();
+
+                  const getClientId = () => {
+                    const key = "todo:client-id";
+                    const existing = window.localStorage?.getItem(key);
+                    if (existing) {
+                      return existing;
+                    }
+                    const next = crypto.randomUUID();
+                    window.localStorage?.setItem(key, next);
+                    return next;
+                  };
+
+                  const nextSeq = () => {
+                    const key = "todo:client-seq";
+                    const raw = window.localStorage?.getItem(key) ?? "0";
+                    const value = Number.parseInt(raw, 10);
+                    const seq = Number.isFinite(value) ? value + 1 : 1;
+                    window.localStorage?.setItem(key, String(seq));
+                    return seq;
+                  };
+
+                  const buildEvent = (): TaskEvent | undefined => {
+                    if (!intent) {
+                      return;
+                    }
+
+                    const clientId = getClientId();
+                    const seq = nextSeq();
+                    const id = `${clientId}:${seq}`;
+                    const ts = Date.now();
+
+                    if (intent === "another") {
+                      const text = formData.get("another")?.toString().trim();
+                      if (!text) {
+                        return;
+                      }
+                      const taskId = crypto.randomUUID();
+                      formData.set("event_task_id", taskId);
+                      formData.set("event_text", text);
+                      formData.set("event_type", "task.add");
+                      formData.set("event_id", id);
+                      formData.set("event_client_id", clientId);
+                      formData.set("event_seq", String(seq));
+                      formData.set("event_ts", String(ts));
+                      return {
+                        id,
+                        clientId,
+                        seq,
+                        ts,
+                        type: "task.add",
+                        taskId,
+                        text,
+                      };
+                    }
+
+                    if (intent === "done") {
+                      const taskId =
+                        taskEl instanceof HTMLElement
+                          ? taskEl.dataset.taskId
+                          : undefined;
+                      if (taskId) {
+                        formData.set("event_task_id", taskId);
+                      }
+                      formData.set("event_type", "task.done");
+                      formData.set("event_id", id);
+                      formData.set("event_client_id", clientId);
+                      formData.set("event_seq", String(seq));
+                      formData.set("event_ts", String(ts));
+                      return {
+                        id,
+                        clientId,
+                        seq,
+                        ts,
+                        type: "task.done",
+                        taskId,
+                      };
+                    }
+
+                    if (intent === "cycle") {
+                      formData.set("event_type", "task.cycle");
+                      formData.set("event_id", id);
+                      formData.set("event_client_id", clientId);
+                      formData.set("event_seq", String(seq));
+                      formData.set("event_ts", String(ts));
+                      return {
+                        id,
+                        clientId,
+                        seq,
+                        ts,
+                        type: "task.cycle",
+                      };
+                    }
+                  };
+
+                  const taskEvent = buildEvent();
+                  if (!taskEvent) {
+                    form.dataset.pending = "false";
+                    indicatorTarget?.removeAttribute("data-indicator");
+                    return;
+                  }
+
+                  const getState = () => {
+                    let state = window.__todoState;
+                    if (!state) {
+                      const countEl = document.querySelector("#task-count");
+                      const count = Number.parseInt(
+                        countEl?.textContent ?? "0",
+                        10,
+                      );
+                      const text =
+                        taskEl instanceof HTMLElement
+                          ? taskEl.dataset.taskText ?? taskEl.textContent?.trim()
+                          : undefined;
+                      const id =
+                        taskEl instanceof HTMLElement
+                          ? taskEl.dataset.taskId
+                          : undefined;
+                      const queue =
+                        text && text.length > 0
+                          ? [
+                              {
+                                id: id ?? `server-${Date.now()}`,
+                                text,
+                                createdAt: Date.now(),
+                              },
+                            ]
+                          : [];
+                      state = {
+                        queue,
+                        completed: Number.isFinite(count) ? count : 0,
+                        counter: 0,
+                      };
+                      window.__todoState = state;
+                    }
+                    return state;
+                  };
+
+                  const renderState = (state: TodoState) => {
+                    const root = document.querySelector("#home-root");
+                    const emptyEl = document.querySelector("#task-empty");
+                    const countEl = document.querySelector("#task-count");
+                    const current = state.queue.at(-1);
+
+                    if (root instanceof HTMLElement) {
+                      root.toggleAttribute("data-empty", !current);
+                    }
+
+                    if (taskEl instanceof HTMLElement) {
+                      if (current) {
+                        taskEl.textContent = current.text;
+                        taskEl.dataset.taskId = current.id;
+                        taskEl.dataset.taskText = current.text;
+                        taskEl.hidden = false;
+                        taskEl.removeAttribute("data-last");
+                      } else {
+                        taskEl.textContent = "";
+                        taskEl.hidden = true;
+                        taskEl.setAttribute("data-last", "");
+                        delete taskEl.dataset.taskId;
+                        delete taskEl.dataset.taskText;
+                      }
+                    }
+
+                    if (emptyEl instanceof HTMLElement) {
+                      emptyEl.hidden = Boolean(current);
+                    }
+
+                    if (countEl instanceof HTMLElement) {
+                      countEl.textContent = state.completed
+                        .toString()
+                        .padStart(3, "0");
+                    }
+
+                    const cycleButton =
+                      document.querySelector<HTMLButtonElement>("#btn-cycle");
+                    const doneButton =
+                      document.querySelector<HTMLButtonElement>("#btn-done");
+                    if (cycleButton) {
+                      cycleButton.disabled = !current;
+                    }
+                    if (doneButton) {
+                      doneButton.disabled = !current;
+                    }
+                  };
+
+                  const applyOptimistic = () => {
+                    const state = getState();
+                    if (taskEvent.type === "task.add") {
+                      state.queue.push({
+                        id: taskEvent.taskId,
+                        text: taskEvent.text,
+                        createdAt: taskEvent.ts,
+                      });
+                      renderState(state);
+                      return true;
+                    }
+
+                    if (taskEvent.type === "task.cycle") {
+                      if (state.queue.length > 1) {
+                        const last = state.queue.pop();
+                        if (last) {
+                          state.queue.unshift(last);
+                        }
+                        renderState(state);
+                      }
+                      return true;
+                    }
+
+                    if (taskEvent.type === "task.done") {
+                      if (state.queue.length === 0) {
+                        return true;
+                      }
+                      const index =
+                        taskEvent.taskId !== undefined
+                          ? state.queue.findIndex(
+                              (task) => task.id === taskEvent.taskId,
+                            )
+                          : state.queue.length - 1;
+                      if (index >= 0) {
+                        state.queue.splice(index, 1);
+                        state.completed += 1;
+                        renderState(state);
+                      }
+                      return true;
+                    }
+
+                    return false;
+                  };
+
+                  const enqueueOffline = async () => {
+                    const params = new URLSearchParams();
+                    for (const [key, value] of formData.entries()) {
+                      params.set(key, value.toString());
+                    }
+                    const payload = params.toString();
+                    const queued = await window.__offline?.queue?.({
+                      url: "/home",
+                      method: "POST",
+                      headers: {
+                        "Content-Type":
+                          "application/x-www-form-urlencoded;charset=UTF-8",
+                      },
+                      body: payload,
+                    });
+                    if (queued) {
+                      applyOptimistic();
+                    }
+                    return queued === true;
+                  };
+
                   try {
+                    if (navigator.onLine === false) {
+                      if (await enqueueOffline()) {
+                        return;
+                      }
+                    }
+
                     const response = await fetch("/home", {
                       method: "POST",
                       body: formData,
@@ -251,7 +621,8 @@ export default function Home({ loaderData }: t.ComponentProps) {
                       await performSwap();
                     }
 
-                    const intent = formData.get("intent");
+                    window.__todoState = undefined;
+
                     if (intent === "done") {
                       const { default: confetti } = await import(
                         "canvas-confetti"
@@ -273,6 +644,9 @@ export default function Home({ loaderData }: t.ComponentProps) {
                       transition.removeAttribute("data-view-transition");
                     }
                   } catch (error) {
+                    if (await enqueueOffline()) {
+                      return;
+                    }
                     window.alert?.(
                       "We could not update your tasks right now. Please try again.",
                     );
@@ -319,6 +693,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
             <MenuButton
               name="intent"
               value="cycle"
+              id="btn-cycle"
               disabled={current === undefined}
             >
               ♻️ Cycle?
@@ -327,6 +702,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
               class={`mt-10`}
               name="intent"
               value="done"
+              id="btn-done"
               disabled={current === undefined}
             >
               🎉 Done.

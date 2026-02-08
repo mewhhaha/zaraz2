@@ -16,7 +16,9 @@ export type Account = {
   passkeys: PasskeyLink[];
 };
 
-const BUCKET_SIZE = 100;
+const EVENT_BUCKET_SIZE = 200;
+const SEEN_EVENT_LIMIT = 2000;
+const SNAPSHOT_INTERVAL = 400;
 
 export type Task = {
   id: string;
@@ -25,10 +27,46 @@ export type Task = {
   completed: Date | undefined;
 };
 
+export type TaskEvent =
+  | {
+      id: string;
+      clientId: string;
+      seq: number;
+      ts: number;
+      type: "task.add";
+      taskId: string;
+      text: string;
+    }
+  | {
+      id: string;
+      clientId: string;
+      seq: number;
+      ts: number;
+      type: "task.done";
+      taskId?: string;
+    }
+  | {
+      id: string;
+      clientId: string;
+      seq: number;
+      ts: number;
+      type: "task.cycle";
+    }
+  | {
+      id: string;
+      clientId: string;
+      seq: number;
+      ts: number;
+      type: "task.completed.set";
+      count: number;
+    };
+
 type UserStore = {
   "#account": Account;
-  "#tasks": Map<string, Task>;
-  "#completed": number;
+  "#eventCount": number;
+  "#seenEvents": string[];
+  "#snapshot": TaskState;
+  "#snapshotCursor": number;
 };
 
 export class DurableObjectUser extends DurableObject<Env> {
@@ -38,68 +76,215 @@ export class DurableObjectUser extends DurableObject<Env> {
     super(state, env);
     this.store = createStore(state.storage, {
       "#account": () => state.storage.get<Account>("#account"),
-      "#tasks": async () =>
-        (await state.storage.get<Map<string, Task>>("#tasks")) ?? new Map(),
-      "#completed": async () =>
-        (await state.storage.get<number>("#completed")) ?? 0,
+      "#eventCount": async () =>
+        (await state.storage.get<number>("#eventCount")) ?? 0,
+      "#seenEvents": async () =>
+        (await state.storage.get<string[]>("#seenEvents")) ?? [],
+      "#snapshot": async () =>
+        (await state.storage.get<TaskState>("#snapshot")) ?? {
+          tasks: [],
+          completed: 0,
+        },
+      "#snapshotCursor": async () =>
+        (await state.storage.get<number>("#snapshotCursor")) ?? 0,
     });
   }
 
   async listTasks() {
-    const tasks = await this.store.get("#tasks");
-    const completed = await this.store.get("#completed");
+    const { tasks, completed } = await this.replayEvents();
 
     return {
-      current: [...tasks.values()].at(-1),
+      current: tasks.at(-1),
       completed,
     } as const;
   }
 
-  async addTask(text: string) {
-    const tasks = await this.store.get("#tasks");
-    const id = crypto.randomUUID();
-    tasks.set(id, {
-      id,
+  async addTask(text: string, taskId?: string) {
+    const event: TaskEvent = {
+      id: crypto.randomUUID(),
+      clientId: "server",
+      seq: Date.now(),
+      ts: Date.now(),
+      type: "task.add",
+      taskId: taskId ?? crypto.randomUUID(),
       text,
-      created: new Date(),
-      completed: undefined,
-    });
-    await this.store.set("#tasks", tasks);
-
-    return { next: [...tasks].at(-1) } as const;
+    };
+    await this.applyEvents([event]);
+    return this.listTasks();
   }
 
-  async completeTask(id: string) {
-    const tasks = await this.store.get("#tasks");
-    const task = tasks.get(id);
-    if (task === undefined) {
-      return { error: true, message: "missing_task" } as const;
-    }
-    task.completed = new Date();
-    tasks.delete(id);
-    await this.store.set("#tasks", tasks);
-
-    const completed = await this.store.get("#completed");
-    const historyKey = createHistoryKey(completed);
-    let next = await this.ctx.storage.get<Task[]>(historyKey);
-    next ??= [];
-    next.push(task);
-    await this.ctx.storage.put(historyKey, next);
-
-    await this.store.set("#completed", completed + 1);
-    return { error: false, next: [...tasks].at(-1) } as const;
+  async completeTask(id?: string) {
+    const event: TaskEvent = {
+      id: crypto.randomUUID(),
+      clientId: "server",
+      seq: Date.now(),
+      ts: Date.now(),
+      type: "task.done",
+      taskId: id,
+    };
+    await this.applyEvents([event]);
+    return this.listTasks();
   }
 
   async cycleTasks() {
-    const tasks = [...(await this.store.get("#tasks"))];
-    const first = tasks.pop();
-    if (first) {
-      tasks.unshift(first);
+    const event: TaskEvent = {
+      id: crypto.randomUUID(),
+      clientId: "server",
+      seq: Date.now(),
+      ts: Date.now(),
+      type: "task.cycle",
+    };
+    await this.applyEvents([event]);
+    return this.listTasks();
+  }
+
+  async applyEvents(events: TaskEvent[]) {
+    await this.appendEvents(events);
+    return this.listTasks();
+  }
+
+  private async appendEvents(events: TaskEvent[]) {
+    if (events.length === 0) {
+      return;
     }
 
-    const next = new Map(tasks);
-    await this.store.set("#tasks", next);
-    return { error: false, next: tasks.at(-1) } as const;
+    const [count, seen, snapshotCursor] = await Promise.all([
+      this.store.get("#eventCount"),
+      this.store.get("#seenEvents"),
+      this.store.get("#snapshotCursor"),
+    ]);
+
+    const seenSet = new Set(seen);
+    const newSeen: string[] = [];
+    let nextCount = count;
+    let bucketIndex = Math.floor(nextCount / EVENT_BUCKET_SIZE);
+    let bucket =
+      (await this.ctx.storage.get<TaskEvent[]>(eventBucketKey(bucketIndex))) ??
+      [];
+    let bucketDirty = false;
+
+    for (const event of events) {
+      if (seenSet.has(event.id)) {
+        continue;
+      }
+      seenSet.add(event.id);
+      newSeen.push(event.id);
+
+      bucket.push(event);
+      bucketDirty = true;
+      nextCount += 1;
+
+      if (bucket.length >= EVENT_BUCKET_SIZE) {
+        await this.ctx.storage.put(eventBucketKey(bucketIndex), bucket);
+        bucketIndex += 1;
+        bucket = [];
+        bucketDirty = false;
+      }
+    }
+
+    if (bucketDirty) {
+      await this.ctx.storage.put(eventBucketKey(bucketIndex), bucket);
+    }
+
+    if (nextCount !== count) {
+      await this.store.set("#eventCount", nextCount);
+    }
+
+    if (newSeen.length > 0) {
+      const merged = seen.concat(newSeen);
+      if (merged.length > SEEN_EVENT_LIMIT) {
+        merged.splice(0, merged.length - SEEN_EVENT_LIMIT);
+      }
+      await this.store.set("#seenEvents", merged);
+    }
+
+    if (
+      nextCount !== count &&
+      nextCount - snapshotCursor >= SNAPSHOT_INTERVAL
+    ) {
+      const state = await this.replayEvents();
+      await Promise.all([
+        this.store.set("#snapshot", state),
+        this.store.set("#snapshotCursor", nextCount),
+      ]);
+    }
+  }
+
+  private async replayEvents(): Promise<TaskState> {
+    await this.migrateLegacyTasks();
+    const [count, snapshot, cursor] = await Promise.all([
+      this.store.get("#eventCount"),
+      this.store.get("#snapshot"),
+      this.store.get("#snapshotCursor"),
+    ]);
+    const state: TaskState = {
+      tasks: snapshot.tasks.map((task) => ({
+        ...task,
+        created: new Date(task.created),
+        completed: task.completed ? new Date(task.completed) : undefined,
+      })),
+      completed: snapshot.completed,
+    };
+    const start = Math.min(cursor, count);
+    const events = await replayEventsSince(this.ctx.storage, start, count);
+    for (const event of events) {
+      applyTaskEvent(state, event);
+    }
+    return state;
+  }
+
+  private async migrateLegacyTasks() {
+    const existing = await this.store.get("#eventCount");
+    if (existing > 0) {
+      return;
+    }
+
+    const [legacyTasks, legacyCompleted] = await Promise.all([
+      this.ctx.storage.get<Map<string, Task>>("#tasks"),
+      this.ctx.storage.get<number>("#completed"),
+    ]);
+
+    if (!legacyTasks && !legacyCompleted) {
+      return;
+    }
+
+    const events: TaskEvent[] = [];
+
+    if (legacyTasks) {
+      for (const task of legacyTasks.values()) {
+        const createdAt =
+          task.created instanceof Date ? task.created.getTime() : Date.now();
+        events.push({
+          id: crypto.randomUUID(),
+          clientId: "migration",
+          seq: createdAt,
+          ts: createdAt,
+          type: "task.add",
+          taskId: task.id,
+          text: task.text,
+        });
+      }
+    }
+
+    if (legacyCompleted && legacyCompleted > 0) {
+      events.push({
+        id: crypto.randomUUID(),
+        clientId: "migration",
+        seq: legacyCompleted,
+        ts: Date.now(),
+        type: "task.completed.set",
+        count: legacyCompleted,
+      });
+    }
+
+    if (events.length > 0) {
+      await this.appendEvents(events);
+    }
+
+    await Promise.all([
+      this.ctx.storage.delete("#tasks"),
+      this.ctx.storage.delete("#completed"),
+    ]);
   }
 
   async exists() {
@@ -119,8 +304,10 @@ export class DurableObjectUser extends DurableObject<Env> {
     }
 
     await this.store.set("#account", account);
-    await this.store.set("#completed", 0);
-    await this.store.set("#tasks", new Map());
+    await this.store.set("#eventCount", 0);
+    await this.store.set("#seenEvents", []);
+    await this.store.set("#snapshot", { tasks: [], completed: 0 });
+    await this.store.set("#snapshotCursor", 0);
     return account;
   }
 
@@ -170,10 +357,7 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 }
 
-const createHistoryKey = (completed: number) => {
-  const bucket = (completed / BUCKET_SIZE) | 0;
-  return `history#${bucket}`;
-};
+const eventBucketKey = (bucket: number) => `events#${bucket}`;
 
 export const makePasskeyLink = ({
   passkeyId,
@@ -194,4 +378,84 @@ export const makePasskeyLink = ({
     lastUsedAt: date,
     name: `passkey-${passkeyIdString.slice(0, 3) + passkeyIdString.slice(-3)}`,
   };
+};
+
+type TaskState = {
+  tasks: Task[];
+  completed: number;
+};
+
+const applyTaskEvent = (state: TaskState, event: TaskEvent) => {
+  if (event.type === "task.add") {
+    state.tasks.push({
+      id: event.taskId,
+      text: event.text,
+      created: new Date(event.ts),
+      completed: undefined,
+    });
+    return;
+  }
+
+  if (event.type === "task.cycle") {
+    if (state.tasks.length > 1) {
+      const last = state.tasks.pop();
+      if (last) {
+        state.tasks.unshift(last);
+      }
+    }
+    return;
+  }
+
+  if (event.type === "task.done") {
+    if (state.tasks.length === 0) {
+      return;
+    }
+
+    const index =
+      event.taskId !== undefined
+        ? state.tasks.findIndex((task) => task.id === event.taskId)
+        : state.tasks.length - 1;
+
+    if (index < 0) {
+      return;
+    }
+
+    const [task] = state.tasks.splice(index, 1);
+    if (task) {
+      task.completed = new Date(event.ts);
+      state.completed += 1;
+    }
+    return;
+  }
+
+  if (event.type === "task.completed.set") {
+    if (event.count > state.completed) {
+      state.completed = event.count;
+    }
+  }
+};
+
+const replayEventsSince = async (
+  storage: DurableObjectState["storage"],
+  start: number,
+  count: number,
+): Promise<TaskEvent[]> => {
+  if (count === 0 || start >= count) {
+    return [];
+  }
+
+  const startBucket = Math.floor(start / EVENT_BUCKET_SIZE);
+  const endBucket = Math.floor((count - 1) / EVENT_BUCKET_SIZE);
+  const keys = Array.from(
+    { length: endBucket - startBucket + 1 },
+    (_, index) => eventBucketKey(startBucket + index),
+  );
+
+  const buckets = await Promise.all(
+    keys.map(async (key) => (await storage.get<TaskEvent[]>(key)) ?? []),
+  );
+
+  const all = buckets.flat();
+  const offset = start - startBucket * EVENT_BUCKET_SIZE;
+  return all.slice(offset, offset + (count - start));
 };

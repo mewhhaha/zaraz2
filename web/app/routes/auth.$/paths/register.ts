@@ -63,8 +63,6 @@ export default async function ({
   if (!created) {
     throw new Response("user_exists", { status: 409 });
   }
-  await env.REGISTERED_USERS.put(username, "taken");
-
   const cookie = createAuthCookie("auth", env.SECRET);
 
   return new Response(null, {

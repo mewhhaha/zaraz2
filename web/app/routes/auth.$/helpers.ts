@@ -1,3 +1,6 @@
+import { extractVisitedHeaders, type VisitedHeaders } from "../../helpers/visited";
+import type { Account, DurableObjectUser } from "../../objects/user";
+
 // Cookie implementation
 interface CookieSerializeOptions {
   maxAge?: number;
@@ -154,41 +157,10 @@ export const hmac = async (
     .join("");
 };
 
-export const extractVisitorHeaders = (headers: Headers): VisitedHeaders => {
-  const result: VisitedHeaders = {};
+export const extractVisitorHeaders = (headers: Headers): VisitedHeaders =>
+  extractVisitedHeaders(headers);
 
-  const keys: (keyof VisitedHeaders)[] = [
-    "city",
-    "country",
-    "continent",
-    "longitude",
-    "latitude",
-    "region",
-    "regionCode",
-    "metroCode",
-    "postalCode",
-    "timezone",
-  ];
-
-  for (const key of keys) {
-    result[key] = headers.get(key)?.toString() ?? undefined;
-  }
-
-  return result;
-};
-
-export type VisitedHeaders = {
-  city?: string | undefined;
-  country?: string | undefined;
-  continent?: string | undefined;
-  longitude?: string | undefined;
-  latitude?: string | undefined;
-  region?: string | undefined;
-  regionCode?: string | undefined;
-  metroCode?: string | undefined;
-  postalCode?: string | undefined;
-  timezone?: string | undefined;
-};
+export type { VisitedHeaders };
 
 export type Auth = {
   username: string;
@@ -224,6 +196,28 @@ export const authenticate = async (request: Request, secret: string) => {
   return auth;
 };
 
+export const ensurePasskeyLinked = async (
+  users: DurableObjectNamespace<DurableObjectUser>,
+  auth: Auth,
+): Promise<Account> => {
+  const account = await users
+    .get(users.idFromName(auth.username))
+    .account()
+    .data();
+
+  const linked = account.passkeys.some(
+    (passkey) =>
+      passkey.passkeyId === auth.passkeyId &&
+      passkey.credentialId === auth.credentialId,
+  );
+
+  if (!linked) {
+    throw new Error("passkey_revoked");
+  }
+
+  return account;
+};
+
 export const expires = () => {
   return new Date(Date.now() + 1000 * 60 * 60 * 60 * 10).toISOString();
 };
@@ -244,7 +238,7 @@ export const parseToken = async <T>(
   const a = btoa(await hmac(secret, challengeId));
   const b = signatureB64;
 
-  if (a !== b) {
+  if (!timingSafeEqual(encoder.encode(a), encoder.encode(b))) {
     throw new Response("signature_invalid", { status: 400 });
   }
 

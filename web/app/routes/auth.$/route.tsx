@@ -18,7 +18,6 @@ export const action = async ({
     {
       PASSKEY: env.OBJECT_PASSKEY,
       USER: env.OBJECT_USER,
-      REGISTERED_USERS: env.KV_USERS,
       SECRET: env.SECRET_KEY,
       CHALLENGE: env.OBJECT_CHALLENGE,
     } satisfies EnvAuth,

@@ -9,10 +9,6 @@ compatibility_date = "2025-06-15"
 assets = { directory = "./dist", binding = "ASSETS", run_worker_first = ["/main.js"] }
 
 
-[[kv_namespaces]]
-binding = "KV_USERS"
-id = "d081ddb4cd634225bee59466c65f6c68"
-
 [[durable_objects.bindings]]
 name = "OBJECT_USER"
 class_name = "DurableObjectUser"

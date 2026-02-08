@@ -1,5 +1,6 @@
 import { routes } from "../app/routes.mjs";
 import { Router, type Env } from "@mewhhaha/ruwuter";
+import { SERVICE_WORKER_SOURCE } from "./sw";
 
 export { DurableObjectUser } from "../app/objects/user.js";
 export { DurableObjectPasskey } from "../app/objects/passkey.js";
@@ -17,6 +18,18 @@ const handler: ExportedHandler<Env> = {
   fetch: (request, env, ctx) => {
     if (!env.DEMO) {
       env.nonce = generateNonce();
+    }
+
+    const url = new URL(request.url);
+    if (url.pathname === "/sw.js") {
+      return new Response(SERVICE_WORKER_SOURCE, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Service-Worker-Allowed": "/",
+        },
+      });
     }
 
     return router.handle(request, env, ctx);
