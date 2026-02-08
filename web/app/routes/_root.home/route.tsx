@@ -143,7 +143,16 @@ export default function Home({ loaderData }: t.ComponentProps) {
           view-name-[home]
         `}
       >
-        <main class={`flex size-full`}>
+        <div
+          aria-hidden="true"
+          class={`blob-field pointer-events-none`}
+          style="pointer-events: none;"
+        >
+          <div class={`blob blob-1 pointer-events-none`} />
+          <div class={`blob blob-2 pointer-events-none`} />
+          <div class={`blob blob-3 pointer-events-none`} />
+        </div>
+        <main class={`relative z-10 flex size-full`}>
           <div class={`absolute top-1 right-1 z-10 view-name-[account]`}>
             <Account />
           </div>
@@ -203,7 +212,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
             </div>
           </div>
         </main>
-        <header class={`relative flex w-full justify-end`}>
+        <header class={`relative z-10 flex w-full justify-end`}>
           <form
             method="POST"
             id="menu-form"
