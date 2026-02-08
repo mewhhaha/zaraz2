@@ -6,7 +6,9 @@ import type {
 } from "@mewhhaha/ruwuter/types";
 import * as r from "./route.js";
 
-export type RouteParams = { 0: string; };
+export type RouteParams = {
+  "0": string;
+};
 
 export namespace Route {
   export type ComponentProps = InferComponentProps<typeof r>;

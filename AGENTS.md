@@ -2,7 +2,6 @@
 
 ## Project Structure & Module Organization
 - `web/` Cloudflare Worker app and UI. `web/app/` holds routes/components/assets, `web/worker/main.ts` is the Worker entry, `web/types/` keeps shared types, and `web/wrangler.toml` is the deployment config.
-- `packages/passkey/` shared passkey helpers (ESM entry `packages/passkey/src/passkey.mts`).
 - `packages/eslint-plugin-url-exists/` custom ESLint plugin (source in `packages/eslint-plugin-url-exists/src/`, build output in `packages/eslint-plugin-url-exists/dist/`).
 - `pnpm-workspace.yaml` defines the monorepo workspace layout.
 

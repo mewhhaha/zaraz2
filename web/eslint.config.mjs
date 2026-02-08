@@ -11,7 +11,9 @@ const tailwindcss = {
   },
   rules: {
     ...betterTailwindcss.configs["recommended-warn"].rules,
-    "better-tailwindcss/no-deprecated-classes": "error",
+    "better-tailwindcss/enforce-consistent-variable-syntax": "warn",
+    "better-tailwindcss/enforce-consistent-important-position": "warn",
+    "better-tailwindcss/enforce-shorthand-classes": "warn",
     "better-tailwindcss/no-restricted-classes": "warn",
   },
 };

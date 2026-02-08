@@ -9,11 +9,11 @@ import * as $auth__index from "./routes/auth._index/route.tsx";
 const $document = { id: "", mod: document };
 const $$_root_home = { id: "_root.home", mod: $_root_home };
 const $$auth__index = { id: "auth._index", mod: $auth__index };
-const $$auth__ = { id: "auth.$", mod: $auth__, params: ["0"] };
 const $$_index = { id: "_index", mod: $_index };
 const $$_root = { id: "_root", mod: $_root };
+const $$auth__ = { id: "auth.$", mod: $auth__, params: ["0"] };
 
 export const routes: route[] = [[new URLPattern({ pathname: "/home/:__asset([A-Z][A-Za-z0-9_$]*\\.html)?" }), [$document,$$_root,$$_root_home]],
 [new URLPattern({ pathname: "/auth/:__asset([A-Z][A-Za-z0-9_$]*\\.html)?" }), [$document,$$auth__index]],
-[new URLPattern({ pathname: "/auth/*" }), [$document,$$auth__]],
-[new URLPattern({ pathname: "(/):__asset([A-Z][A-Za-z0-9_$]*\\.html)?" }), [$document,$$_index]]];
+[new URLPattern({ pathname: "(/):__asset([A-Z][A-Za-z0-9_$]*\\.html)?" }), [$document,$$_index]],
+[new URLPattern({ pathname: "/auth/*" }), [$document,$$auth__]]];

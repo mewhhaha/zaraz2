@@ -22,15 +22,15 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^24.9.2",
-    "@types/react": "^19.2.2",
-    "@typescript-eslint/utils": "^8.46.2",
-    "@typescript/native-preview": "7.0.0-dev.20251102.1",
-    "eslint": "^9.39.0",
-    "oxlint": "^1.25.0",
-    "prettier": "^3.6.2",
-    "publint": "^0.3.15",
+    "@types/node": "^25.2.2",
+    "@types/react": "^19.2.13",
+    "@typescript-eslint/utils": "^8.54.0",
+    "@typescript/native-preview": "7.0.0-dev.20260208.1",
+    "eslint": "^10.0.0",
+    "oxlint": "^1.43.0",
+    "prettier": "^3.8.1",
+    "publint": "^0.3.17",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.2"
+    "typescript-eslint": "^8.54.0"
   }
 }

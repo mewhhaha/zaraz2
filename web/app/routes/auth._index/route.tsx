@@ -1,12 +1,11 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
 import { event, events } from "@mewhhaha/ruwuter/events";
 import {
-  authenticate,
   AuthExpiredError,
   createAuthCookie,
   extractVisitorHeaders,
-  ensurePasskeyLinked,
   parseToken,
+  requireAuth,
   type Auth,
 } from "../auth.$/helpers.ts";
 import type { Route as t } from "./+types.route";
@@ -83,8 +82,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
   let auth: Auth;
   try {
-    auth = await authenticate(request, env.SECRET_KEY);
-    await ensurePasskeyLinked(env.OBJECT_USER, auth);
+    ({ auth } = await requireAuth(request, env.SECRET_KEY, env.OBJECT_USER));
   } catch {
     const cookie = createAuthCookie("auth", env.SECRET_KEY);
     return new Response("unauthorized", {
@@ -232,8 +230,11 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 
   try {
     // Check if the user is authenticated via cookie
-    const auth = await authenticate(request, env.SECRET_KEY);
-    const account = await ensurePasskeyLinked(env.OBJECT_USER, auth);
+    const { auth, account } = await requireAuth(
+      request,
+      env.SECRET_KEY,
+      env.OBJECT_USER,
+    );
     return { auth, account, locale, timezone };
   } catch (error) {
     if (error instanceof AuthExpiredError) {
@@ -351,14 +352,13 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
                       body: formData,
                       signal,
                     });
-                    await swap(response, {
+                    await window.swap(response, {
                       target: PASSKEYS_LIST_SELECTOR,
                     });
-                  } catch (error) {
+                  } catch {
                     window.alert?.(
                       "Something went wrong adding your passkey. Please try again.",
                     );
-                    throw error;
                   }
                 },
                 { preventDefault: true },
@@ -408,10 +408,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
               window.location.href = "/";
               return;
             }
-            await swap(response, { target: "body", swap: "innerHTML" });
-          } catch (error) {
+            await window.swap(response, { target: "body", swap: "innerHTML" });
+          } catch {
             window.alert?.("Could not sign you out. Please try again.");
-            throw error;
           } finally {
             button.disabled = false;
           }
@@ -536,14 +535,13 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
                 body: formData,
                 signal,
               });
-              await swap(response, {
+              await window.swap(response, {
                 target: PASSKEYS_LIST_SELECTOR,
               });
-            } catch (error) {
+            } catch {
               window.alert?.(
                 "Failed to delete the passkey. Please try again in a moment.",
               );
-              throw error;
             }
           },
           { preventDefault: true },
@@ -600,14 +598,13 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
                 body: formData,
                 signal,
               });
-              await swap(response, {
+              await window.swap(response, {
                 target: PASSKEYS_LIST_SELECTOR,
               });
-            } catch (error) {
+            } catch {
               window.alert?.(
                 "Could not rename this passkey. Please try again.",
               );
-              throw error;
             }
           },
           { preventDefault: true },
@@ -658,11 +655,10 @@ const SignedOut = () => {
                 } else {
                   throw new Error(await response.text());
                 }
-              } catch (error) {
+              } catch {
                 window.alert?.(
                   "Something went wrong signing you in. Please try again.",
                 );
-                throw error;
               } finally {
                 button.disabled = false;
               }
@@ -719,16 +715,15 @@ const SignedOut = () => {
                 if (response.ok) {
                   window.location.href = "/";
                 } else {
-                  await swap(response, {
+                  await window.swap(response, {
                     target: "body",
                     swap: "innerHTML",
                   });
                 }
-              } catch (error) {
+              } catch {
                 window.alert?.(
                   "We could not register you right now. Please try again.",
                 );
-                throw error;
               }
             },
             { preventDefault: true },

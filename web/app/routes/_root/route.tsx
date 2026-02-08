@@ -1,9 +1,6 @@
 import { event, events } from "@mewhhaha/ruwuter/events";
 import type { Route as t } from "./+types.route";
-import {
-  authenticate as authenticateServer,
-  ensurePasskeyLinked,
-} from "../auth.$/helpers.ts";
+import { requireAuth } from "../auth.$/helpers.ts";
 
 type AuthClientState = {
   credentialId: string;
@@ -12,8 +9,11 @@ type AuthClientState = {
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   try {
-    const user = await authenticateServer(request, env.SECRET_KEY);
-    await ensurePasskeyLinked(env.OBJECT_USER, user);
+    const { auth: user } = await requireAuth(
+      request,
+      env.SECRET_KEY,
+      env.OBJECT_USER,
+    );
 
     return {
       nonce: env.nonce,

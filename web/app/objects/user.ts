@@ -1,6 +1,7 @@
 import type { Env } from "@mewhhaha/ruwuter";
 import { DurableObject, RpcTarget } from "cloudflare:workers";
 import { createStore, DurableStore } from "../helpers/store";
+import type { TaskEvent } from "../helpers/task-events";
 
 type PasskeyLink = {
   name: string;
@@ -17,7 +18,6 @@ export type Account = {
 };
 
 const EVENT_BUCKET_SIZE = 200;
-const SEEN_EVENT_LIMIT = 2000;
 const SNAPSHOT_INTERVAL = 400;
 
 export type Task = {
@@ -27,44 +27,10 @@ export type Task = {
   completed: Date | undefined;
 };
 
-export type TaskEvent =
-  | {
-      id: string;
-      clientId: string;
-      seq: number;
-      ts: number;
-      type: "task.add";
-      taskId: string;
-      text: string;
-    }
-  | {
-      id: string;
-      clientId: string;
-      seq: number;
-      ts: number;
-      type: "task.done";
-      taskId?: string;
-    }
-  | {
-      id: string;
-      clientId: string;
-      seq: number;
-      ts: number;
-      type: "task.cycle";
-    }
-  | {
-      id: string;
-      clientId: string;
-      seq: number;
-      ts: number;
-      type: "task.completed.set";
-      count: number;
-    };
-
 type UserStore = {
   "#account": Account;
   "#eventCount": number;
-  "#seenEvents": string[];
+  "#lastSeqByClient": Record<string, number>;
   "#snapshot": TaskState;
   "#snapshotCursor": number;
 };
@@ -78,8 +44,10 @@ export class DurableObjectUser extends DurableObject<Env> {
       "#account": () => state.storage.get<Account>("#account"),
       "#eventCount": async () =>
         (await state.storage.get<number>("#eventCount")) ?? 0,
-      "#seenEvents": async () =>
-        (await state.storage.get<string[]>("#seenEvents")) ?? [],
+      "#lastSeqByClient": async () =>
+        (await state.storage.get<Record<string, number>>(
+          "#lastSeqByClient",
+        )) ?? {},
       "#snapshot": async () =>
         (await state.storage.get<TaskState>("#snapshot")) ?? {
           tasks: [],
@@ -99,45 +67,6 @@ export class DurableObjectUser extends DurableObject<Env> {
     } as const;
   }
 
-  async addTask(text: string, taskId?: string) {
-    const event: TaskEvent = {
-      id: crypto.randomUUID(),
-      clientId: "server",
-      seq: Date.now(),
-      ts: Date.now(),
-      type: "task.add",
-      taskId: taskId ?? crypto.randomUUID(),
-      text,
-    };
-    await this.applyEvents([event]);
-    return this.listTasks();
-  }
-
-  async completeTask(id?: string) {
-    const event: TaskEvent = {
-      id: crypto.randomUUID(),
-      clientId: "server",
-      seq: Date.now(),
-      ts: Date.now(),
-      type: "task.done",
-      taskId: id,
-    };
-    await this.applyEvents([event]);
-    return this.listTasks();
-  }
-
-  async cycleTasks() {
-    const event: TaskEvent = {
-      id: crypto.randomUUID(),
-      clientId: "server",
-      seq: Date.now(),
-      ts: Date.now(),
-      type: "task.cycle",
-    };
-    await this.applyEvents([event]);
-    return this.listTasks();
-  }
-
   async applyEvents(events: TaskEvent[]) {
     await this.appendEvents(events);
     return this.listTasks();
@@ -148,14 +77,14 @@ export class DurableObjectUser extends DurableObject<Env> {
       return;
     }
 
-    const [count, seen, snapshotCursor] = await Promise.all([
+    const [count, lastSeqByClient, snapshotCursor] = await Promise.all([
       this.store.get("#eventCount"),
-      this.store.get("#seenEvents"),
+      this.store.get("#lastSeqByClient"),
       this.store.get("#snapshotCursor"),
     ]);
 
-    const seenSet = new Set(seen);
-    const newSeen: string[] = [];
+    const nextSeqByClient = { ...lastSeqByClient };
+    let seqDirty = false;
     let nextCount = count;
     let bucketIndex = Math.floor(nextCount / EVENT_BUCKET_SIZE);
     let bucket =
@@ -164,11 +93,12 @@ export class DurableObjectUser extends DurableObject<Env> {
     let bucketDirty = false;
 
     for (const event of events) {
-      if (seenSet.has(event.id)) {
+      const lastSeq = nextSeqByClient[event.clientId] ?? 0;
+      if (event.seq <= lastSeq) {
         continue;
       }
-      seenSet.add(event.id);
-      newSeen.push(event.id);
+      nextSeqByClient[event.clientId] = event.seq;
+      seqDirty = true;
 
       bucket.push(event);
       bucketDirty = true;
@@ -190,12 +120,8 @@ export class DurableObjectUser extends DurableObject<Env> {
       await this.store.set("#eventCount", nextCount);
     }
 
-    if (newSeen.length > 0) {
-      const merged = seen.concat(newSeen);
-      if (merged.length > SEEN_EVENT_LIMIT) {
-        merged.splice(0, merged.length - SEEN_EVENT_LIMIT);
-      }
-      await this.store.set("#seenEvents", merged);
+    if (seqDirty) {
+      await this.store.set("#lastSeqByClient", nextSeqByClient);
     }
 
     if (
@@ -249,6 +175,11 @@ export class DurableObjectUser extends DurableObject<Env> {
     }
 
     const events: TaskEvent[] = [];
+    let seq = 0;
+    const nextSeq = () => {
+      seq += 1;
+      return seq;
+    };
 
     if (legacyTasks) {
       for (const task of legacyTasks.values()) {
@@ -257,7 +188,7 @@ export class DurableObjectUser extends DurableObject<Env> {
         events.push({
           id: crypto.randomUUID(),
           clientId: "migration",
-          seq: createdAt,
+          seq: nextSeq(),
           ts: createdAt,
           type: "task.add",
           taskId: task.id,
@@ -270,7 +201,7 @@ export class DurableObjectUser extends DurableObject<Env> {
       events.push({
         id: crypto.randomUUID(),
         clientId: "migration",
-        seq: legacyCompleted,
+        seq: nextSeq(),
         ts: Date.now(),
         type: "task.completed.set",
         count: legacyCompleted,
@@ -305,7 +236,7 @@ export class DurableObjectUser extends DurableObject<Env> {
 
     await this.store.set("#account", account);
     await this.store.set("#eventCount", 0);
-    await this.store.set("#seenEvents", []);
+    await this.store.set("#lastSeqByClient", {});
     await this.store.set("#snapshot", { tasks: [], completed: 0 });
     await this.store.set("#snapshotCursor", 0);
     return account;

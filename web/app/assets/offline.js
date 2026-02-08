@@ -42,22 +42,6 @@
     }
   };
 
-  window.__offline = {
-    queue: async (entry) => {
-      const message = { type: "queue", ...entry };
-      if (postMessage(message)) {
-        return true;
-      }
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        reg.active?.postMessage(message);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-  };
-
   window.addEventListener("online", () => {
     setUI();
     postMessage({ type: "flush" });

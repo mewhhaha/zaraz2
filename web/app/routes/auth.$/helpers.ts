@@ -12,42 +12,6 @@ interface CookieSerializeOptions {
   sameSite?: "strict" | "lax" | "none";
 }
 
-export const cookie = {
-  serialize(
-    name: string,
-    value: string,
-    options: CookieSerializeOptions = {},
-  ): string {
-    const pairs = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
-
-    // Add options to cookie string
-    if (options.maxAge) pairs.push(`Max-Age=${options.maxAge}`);
-    if (options.domain) pairs.push(`Domain=${options.domain}`);
-    if (options.path) pairs.push(`Path=${options.path}`);
-    if (options.expires) pairs.push(`Expires=${options.expires.toUTCString()}`);
-    if (options.httpOnly) pairs.push("HttpOnly");
-    if (options.secure) pairs.push("Secure");
-    if (options.sameSite) pairs.push(`SameSite=${options.sameSite}`);
-
-    return pairs.join("; ");
-  },
-
-  parse(str: string, key: string): string | null {
-    if (!str) return null;
-
-    // Find only the specified key's value
-    const match = str
-      .split(";")
-      .find((pair) => pair.trim().startsWith(`${encodeURIComponent(key)}=`));
-
-    if (!match) return null;
-
-    const value = match.split("=")[1]?.trim();
-    if (!value) return null;
-    return value;
-  },
-};
-
 const encoder = new TextEncoder();
 
 export const createCookie = <T, N extends string>(
@@ -216,6 +180,16 @@ export const ensurePasskeyLinked = async (
   }
 
   return account;
+};
+
+export const requireAuth = async (
+  request: Request,
+  secret: string,
+  users: DurableObjectNamespace<DurableObjectUser>,
+) => {
+  const auth = await authenticate(request, secret);
+  const account = await ensurePasskeyLinked(users, auth);
+  return { auth, account };
 };
 
 export const expires = () => {
