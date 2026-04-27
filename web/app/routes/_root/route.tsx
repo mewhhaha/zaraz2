@@ -39,8 +39,9 @@ export default function Root({
         aria-live="polite"
         class={`
           fixed left-1/2 top-3 z-50 hidden -translate-x-1/2 items-center gap-2
-          rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs
-          text-gray-300 shadow-lg
+          rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1
+          text-base/7 text-zinc-300 shadow-lg shadow-black/30 backdrop-blur
+          sm:text-sm/6
         `}
       >
         <span id="connection-state">Offline</span>

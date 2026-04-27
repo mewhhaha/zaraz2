@@ -64,8 +64,8 @@ export default function Document({
       </head>
       <body
         class={`
-          bg-slate-950 text-amber-50 transition-[filter] duration-300
-          inert:grayscale-100
+          bg-zinc-950 text-amber-50 antialiased transition-[filter]
+          duration-300 inert:grayscale-100
         `}
       >
         {children}

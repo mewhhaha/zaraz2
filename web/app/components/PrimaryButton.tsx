@@ -7,20 +7,14 @@ export const PrimaryButton = ({ children, ...props }: PrimaryButtonProps) => {
     <button
       class={`
         group relative flex cursor-pointer items-center justify-center gap-1
-        rounded-full border-2 border-slate-500 bg-slate-950 px-4 py-2 text-xl
-        underline decoration-green-300 decoration-1 shadow-sm shadow-white
-        hover:bg-slate-800 hover:decoration-3
+        rounded-md bg-amber-200 px-3 py-2 text-base/7 font-medium
+        text-zinc-950 ring-1 ring-amber-200
+        hover:bg-amber-100
         active:outline-2 active:outline-offset-2 active:outline-white
+        sm:text-sm/6
       `}
       {...props}
     >
-      <div
-        class={`
-          pointer-events-none absolute inset-0 -z-10 rounded-full
-          bg-gradient-to-r from-red-300 to-blue-200 blur-md transition-[filter]
-          group-hover:blur-sm
-        `}
-      ></div>
       {children}
     </button>
   );

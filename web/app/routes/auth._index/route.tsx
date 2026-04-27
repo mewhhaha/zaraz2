@@ -21,6 +21,7 @@ import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types"
 const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
 const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
 const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
+const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
 class ParseError extends Error {
   summary: string;
@@ -74,6 +75,13 @@ const getLocale = (request: Request) => {
 
 const getTimezone = (request: Request) => {
   return request.headers.get("cf-timezone") ?? "Europe/Stockholm";
+};
+
+const isDocumentRequest = (request: Request) => {
+  return (
+    request.headers.get("sec-fetch-dest") === "document" ||
+    request.headers.get("sec-fetch-mode") === "navigate"
+  );
 };
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
@@ -227,6 +235,7 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 
   const locale = getLocale(request);
   const timezone = getTimezone(request);
+  const documentRequest = isDocumentRequest(request);
 
   try {
     // Check if the user is authenticated via cookie
@@ -235,26 +244,41 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
       env.SECRET_KEY,
       env.OBJECT_USER,
     );
-    return { auth, account, locale, timezone };
+    return { auth, account, locale, timezone, documentRequest };
   } catch (error) {
     if (error instanceof AuthExpiredError) {
-      return { auth: error.auth, account: undefined, locale, timezone };
+      return {
+        auth: error.auth,
+        account: undefined,
+        locale,
+        timezone,
+        documentRequest,
+      };
     }
 
     // If authentication fails or cookie is invalid/expired, return undefined user
-    return { auth: undefined, account: undefined, locale, timezone };
+    return {
+      auth: undefined,
+      account: undefined,
+      locale,
+      timezone,
+      documentRequest,
+    };
   }
 };
 
 // Main component for the authentication route
 export default function Route({
-  loaderData: { auth, account, locale, timezone },
+  loaderData: { auth, account, locale, timezone, documentRequest },
 }: t.ComponentProps) {
+  const placement = documentRequest ? "page" : "anchored";
+
   if (!account) {
-    return (
+    const content = (
       <>
         {auth && (
           <input
+            name="credentialId"
             type="hidden"
             value={auth.credentialId}
             on={event.mount<HTMLInputElement>(async function (event, signal) {
@@ -278,19 +302,24 @@ export default function Route({
             })}
           />
         )}
-        <SignedOut />
+        <SignedOut placement={placement} />
       </>
     );
+
+    return documentRequest ? <AuthPage>{content}</AuthPage> : content;
   }
 
-  return (
+  const content = (
     <SignedIn
       auth={auth}
       account={account}
       locale={locale}
       timezone={timezone}
+      placement={placement}
     />
   );
+
+  return documentRequest ? <AuthPage>{content}</AuthPage> : content;
 }
 
 type SignedInProps = {
@@ -298,37 +327,65 @@ type SignedInProps = {
   account: Account;
   locale: string;
   timezone: string;
+  placement?: "anchored" | "page" | undefined;
 };
 
-const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
+const SignedIn = ({
+  auth,
+  account,
+  locale,
+  timezone,
+  placement,
+}: SignedInProps) => {
   const registerAction = {
     username: auth.username,
   };
 
   return (
-    <OpenModal id="passkeys-settings">
-      <h2
-        class={`
-          mb-4 text-lg font-medium text-gray-200
-          sm:text-xl
-        `}
-      >
-        You are <span class={`text-blue-200`}>{auth.username}</span>
-      </h2>
+    <OpenModal id="passkeys-settings" placement={placement}>
+      <div class={`flex items-start justify-between gap-4`}>
+        <div>
+          <p class={`font-mono text-base/7 text-amber-200 sm:text-sm/6`}>
+            Account
+          </p>
+          <h2 class={`max-w-[18ch] text-balance text-2xl font-medium`}>
+            {auth.username}
+          </h2>
+        </div>
+        <button
+          type="button"
+          aria-label="Close passkey settings"
+          commandfor="passkeys-menu"
+          command="close"
+          class={`
+            relative -m-1 cursor-pointer rounded-md p-1 text-zinc-400
+            hover:bg-white/5 hover:text-white
+          `}
+        >
+          <span
+            class={`
+              pointer-fine:hidden absolute top-1/2 left-1/2
+              size-[max(100%,3rem)] -translate-1/2
+            `}
+            aria-hidden="true"
+          />
+          <span aria-hidden="true">x</span>
+        </button>
+      </div>
 
       <div
         class={`
-          mb-10 flex min-h-0 grow flex-col divide-y divide-slate-700
-          overflow-hidden rounded-lg border border-slate-700
+          mt-5 mb-5 flex min-h-0 grow flex-col overflow-hidden rounded-lg
+          border border-white/10 bg-white/5
         `}
       >
         <div
           class={`
-            flex flex-wrap items-center justify-between gap-4 bg-gray-900 px-2
-            py-4
+            flex flex-wrap items-center justify-between gap-3 border-b
+            border-white/10 p-3
           `}
         >
-          <h3 class={`pl-2 text-base font-semibold`}>Your passkeys</h3>
+          <h3 class={`text-base font-medium`}>Passkeys</h3>
           <form
             method="POST"
             action="/auth"
@@ -369,12 +426,13 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
             <button
               type="submit"
               class={`
-                flex cursor-pointer items-center rounded-lg border
-                border-slate-700 bg-gray-900 px-3 py-1.5
-                hover:bg-gray-800
+                cursor-pointer rounded-md border border-white/10 px-2.5
+                py-1.5 text-base/6 text-zinc-200
+                hover:bg-white/10
+                sm:text-sm/6
               `}
             >
-              Add new passkey
+              Add passkey
             </button>
           </form>
         </div>
@@ -386,8 +444,9 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         />
       </div>
 
-      <MenuButton
+      <AuthButton
         type="button"
+        variant="secondary"
         on={event.click<HTMLButtonElement>(async function (ev, signal) {
           "use client";
 
@@ -417,7 +476,7 @@ const SignedIn = ({ auth, account, locale, timezone }: SignedInProps) => {
         })}
       >
         Sign out
-      </MenuButton>
+      </AuthButton>
     </OpenModal>
   );
 };
@@ -438,22 +497,37 @@ const PasskeyList = ({
   return (
     <ul
       id="passkeys-list"
-      class={`min-h-0 shrink divide-y divide-slate-900 overflow-y-auto`}
+      role="list"
+      class={`min-h-0 shrink divide-y divide-white/10 overflow-y-auto`}
     >
       {passkeys.map((passkey) => (
         <li
           style={`view-transition-name: ${btoa(passkey.passkeyId).replaceAll(/[=/+]/g, "")};`}
-          class={`flex flex-col gap-2 py-4 pr-2 pl-4`}
+          class={`flex flex-col gap-3 p-3`}
         >
-          <div class={`flex flex-wrap justify-between gap-4`}>
-            <div class={`flex items-center`}>
-              <KeyIcon class={`inline-block size-6`} />
-              <h4 class={`mx-2 font-semibold`}>{passkey.name}</h4>
+          <div class={`flex flex-wrap justify-between gap-3`}>
+            <div class={`flex min-w-0 items-start gap-2`}>
+              <KeyIcon class={`h-lh size-6 shrink-0 stroke-amber-200`} />
+              <div class={`min-w-0`}>
+                <h4 class={`truncate text-base/7 font-medium sm:text-sm/6`}>
+                  {passkey.name}
+                </h4>
+                <p class={`text-pretty text-base/7 text-zinc-400 sm:text-sm/6`}>
+                  Added{" "}
+                  <time datetime={passkey.createdAt.toISOString()}>
+                    {formatDate(passkey.createdAt, locale, timezone)}
+                  </time>
+                  {" · "}Last used{" "}
+                  <time datetime={passkey.lastUsedAt.toISOString()}>
+                    {formatRelativeDate(passkey.lastUsedAt, locale)}
+                  </time>
+                </p>
+              </div>
               <div
                 hidden={passkey.passkeyId !== auth.passkeyId}
                 class={`
-                  rounded-full border border-blue-500 px-2 py-0.5 text-xs
-                  text-blue-500
+                  rounded-full border border-emerald-400/40 px-2 py-0.5
+                  text-[0.8125rem] text-emerald-200
                 `}
               >
                 Current
@@ -472,16 +546,6 @@ const PasskeyList = ({
               <DeleteButton passkeyId={passkey.passkeyId} auth={auth} />
             </div>
           </div>
-          <p class={`text-balance text-gray-400`}>
-            Added on{" "}
-            <time datetime={passkey.createdAt.toISOString()}>
-              {formatDate(passkey.createdAt, locale, timezone)}
-            </time>
-            &shy; | Last used{" "}
-            <time datetime={passkey.lastUsedAt.toISOString()}>
-              {formatRelativeDate(passkey.lastUsedAt, locale)}
-            </time>
-          </p>
           <div
             class={`
               flex gap-2
@@ -556,7 +620,7 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
           override:hover:bg-red-700 override:hover:text-white
         `}
       >
-        <TrashIconSolid class={`inline-block size-5`} />
+        <TrashIconSolid class={`size-5`} />
       </IconButton>
     </form>
   );
@@ -612,22 +676,23 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
       )}
     >
       <IconButton type="submit" aria-label="Rename passkey">
-        <PencilIcon class={`pointer-events-none inline-block size-5`} />
+        <PencilIcon class={`pointer-events-none size-5`} />
       </IconButton>
     </form>
   );
 };
 
-const SignedOut = () => {
-  return (
-    <OpenModal id="passkeys-settings">
-      <div class={`flex flex-col`}>
-        <h2 class={`mb-4 text-xl font-medium text-gray-200`}>
-          Already have an account?
-        </h2>
+type SignedOutProps = {
+  placement?: "anchored" | "page" | undefined;
+};
 
-        <MenuButton
+const SignedOut = ({ placement }: SignedOutProps) => {
+  return (
+    <OpenModal id="passkeys-settings" placement={placement}>
+      <div class={`flex w-full flex-col gap-5`}>
+        <AuthButton
           type="button"
+          variant="primary"
           on={event.click<HTMLButtonElement>(
             async function (ev, signal) {
               "use client";
@@ -666,21 +731,16 @@ const SignedOut = () => {
             { preventDefault: true },
           )}
           class={`
-            mb-10
-            override:bg-green-800 override:hover:bg-green-700
-            override:active:bg-white
+            w-full
           `}
         >
-          Sign in
-        </MenuButton>
+          Continue with passkey
+        </AuthButton>
 
-        <h2 class={`mb-4 text-xl font-medium text-gray-200`}>
-          Register a new account
-        </h2>
         <form
           method="POST"
           action="/auth"
-          class={`flex flex-col gap-2`}
+          class={`flex w-full flex-col gap-3 border-t border-white/10 pt-5`}
           on={event.submit<HTMLFormElement>(
             async function (event, signal) {
               "use client";
@@ -729,9 +789,12 @@ const SignedOut = () => {
             { preventDefault: true },
           )}
         >
-          <div class={`flex flex-col gap-2`}>
-            <label for="register-username" class={`text-sm text-gray-400`}>
-              Username <span class={`text-red-500`}>*</span>
+          <div class={`flex w-full flex-col gap-1.5`}>
+            <label
+              for="register-username"
+              class={`text-base/7 text-zinc-300 sm:text-sm/6`}
+            >
+              New handle <span class={`text-red-300`}>*</span>
             </label>
             <input
               id="register-username"
@@ -742,17 +805,60 @@ const SignedOut = () => {
               name="username"
               autocomplete="username"
               placeholder="e.g. johndoe"
-              class={`rounded-lg border border-slate-900 px-3 py-2 text-white`}
+              class={`
+                w-full rounded-md border border-white/10 bg-white/5 px-3 py-2
+                text-base/7 text-white placeholder:text-zinc-500
+                focus-visible:outline-2 focus-visible:-outline-offset-1
+                focus-visible:outline-amber-200
+                sm:text-sm/6
+              `}
             />
           </div>
-          <MenuButton>Register</MenuButton>
+          <AuthButton type="submit" variant="secondary" class={`w-full`}>
+            Create account
+          </AuthButton>
         </form>
       </div>
     </OpenModal>
   );
 };
 
+type AuthPageProps = {
+  children: JSX.Element;
+};
+
+const AuthPage = ({ children }: AuthPageProps) => {
+  return (
+    <div
+      class={`
+        relative isolate flex min-h-dvh items-center justify-center overflow-hidden
+        p-4
+      `}
+    >
+      <div class={`absolute inset-0 -z-10 bg-zinc-950`}>
+        <img
+          src={bgSrc}
+          alt=""
+          class={`
+            size-full object-cover object-center opacity-50 blur-xl
+            saturate-125
+          `}
+        />
+        <div
+          aria-hidden="true"
+          class={`
+            absolute inset-0 bg-linear-to-b from-black/65 via-zinc-950/50
+            to-black/80
+          `}
+        />
+      </div>
+      {children}
+    </div>
+  );
+};
+
 const IconButton = ({
+  children,
   class: className,
   ...props
 }: JSX.IntrinsicElements["button"]) => {
@@ -760,14 +866,23 @@ const IconButton = ({
     <button
       class={cx(
         `
-          flex cursor-pointer items-center rounded-lg border border-slate-700
-          bg-gray-900 p-2 text-gray-400
-          hover:bg-gray-800
+          relative flex cursor-pointer items-center rounded-md border
+          border-white/10 bg-white/5 p-2 text-zinc-400
+          hover:bg-white/10 hover:text-white
         `,
         className,
       )}
       {...props}
-    ></button>
+    >
+      <span
+        class={`
+          pointer-fine:hidden absolute top-1/2 left-1/2
+          size-[max(100%,3rem)] -translate-1/2
+        `}
+        aria-hidden="true"
+      />
+      {children}
+    </button>
   );
 };
 
@@ -807,22 +922,36 @@ const PencilIcon = (props: JSX.IntrinsicElements["svg"]) => {
   );
 };
 
-type MenuButtonProps = JSX.IntrinsicElements["button"];
+type AuthButtonProps = JSX.IntrinsicElements["button"] & {
+  variant?: "primary" | "secondary";
+};
 
-const MenuButton = ({
+const AuthButton = ({
   children,
   class: className,
+  variant = "secondary",
   ...props
-}: MenuButtonProps) => {
+}: AuthButtonProps) => {
   return (
     <button
       class={cx(
         `
-          cursor-pointer rounded-lg border border-slate-700 bg-gray-900 py-2
-          text-white
-          hover:bg-gray-800
-          active:bg-white active:text-slate-950 active:text-shadow-sm/100
+          cursor-pointer rounded-md px-3 py-2 text-center text-base/7
+          font-medium transition-colors
+          focus-visible:outline-2 focus-visible:outline-offset-2
+          focus-visible:outline-amber-200 disabled:cursor-not-allowed
+          disabled:opacity-60 sm:text-sm/6
         `,
+        variant === "primary" &&
+          `
+            bg-amber-200 text-zinc-950 ring-1 ring-amber-200
+            hover:bg-amber-100 active:bg-white
+          `,
+        variant === "secondary" &&
+          `
+            border border-white/10 bg-white/5 text-zinc-100
+            hover:bg-white/10 active:bg-white active:text-zinc-950
+          `,
         className,
       )}
       {...props}

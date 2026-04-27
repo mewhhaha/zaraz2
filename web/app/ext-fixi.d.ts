@@ -34,6 +34,7 @@ export interface SwapOptions {
   swap?: SwapMode;
   text?: string;
   init?: RequestInit;
+  viewTransition?: boolean;
 }
 
 export interface SwapResult {

@@ -39,7 +39,10 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
   const url = new URL(request.url);
   const actionType = parsedEvent?.type ?? fallbackEvent?.type ?? undefined;
-  url.searchParams.set("direction", actionType === "task.done" ? "up" : "right");
+  url.searchParams.set(
+    "direction",
+    actionType === "task.done" ? "up" : "right",
+  );
   if (actionType === "task.done") {
     url.searchParams.set("confetti", "true");
   }
@@ -86,18 +89,34 @@ export default function Home({ loaderData }: t.ComponentProps) {
 
   if (!loaderData.authenticated) {
     return (
-      <div class={`relative mx-auto flex size-full max-w-5xl flex-col`}>
+      <div class={`relative isolate mx-auto flex size-full max-w-5xl flex-col`}>
         <div
           class={`
-            absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden
-            rounded-lg border-2 border-gray-400/30 view-name-[background]
+            absolute inset-0 -z-10 m-2 overflow-hidden rounded-lg border
+            border-white/10 bg-zinc-950 view-name-[background]
           `}
-        ></div>
+        >
+          <img
+            src={bgSrc}
+            alt=""
+            class={`
+              size-full object-cover object-center opacity-55 blur-xl
+              saturate-125
+            `}
+          />
+          <div
+            aria-hidden="true"
+            class={`
+              absolute inset-0 bg-linear-to-b from-black/55 via-zinc-950/55
+              to-black/75
+            `}
+          />
+        </div>
         <main class={`relative flex grow items-center justify-center`}>
           <div
             class={`
-              font-serif text-4xl font-extrabold tracking-wider
-              transition-transform text-shadow-lg/100 text-shadow-amber-300
+              text-balance font-serif text-5xl font-semibold tracking-tight
+              text-amber-100 transition-transform
               starting:skew-x-165
             `}
           >
@@ -118,22 +137,29 @@ export default function Home({ loaderData }: t.ComponentProps) {
     <div
       id="home-root"
       data-empty={current === undefined || undefined}
-      class={`relative mx-auto flex size-full max-w-5xl flex-col`}
+      class={`relative isolate mx-auto flex size-full max-w-5xl flex-col`}
     >
       <div
         class={`
-          absolute inset-0 -z-10 m-2 flex justify-center overflow-hidden
-          rounded-lg border-2 border-gray-400/30 view-name-[background]
+          absolute inset-0 -z-10 m-2 overflow-hidden rounded-lg border
+          border-white/10 bg-zinc-950 view-name-[background]
         `}
       >
         <img
           src={bgSrc}
           alt=""
           class={`
-            grow object-cover object-center blur-2xl transition-[filter]
-            duration-500 ease-in-out
-            in-data-empty:blur-md
+            size-full object-cover object-center opacity-70 blur-xl
+            saturate-125 transition-[filter_opacity] duration-500 ease-in-out
+            in-data-empty:opacity-45 in-data-empty:blur-md
             starting:blur-sm
+          `}
+        />
+        <div
+          aria-hidden="true"
+          class={`
+            absolute inset-0 bg-linear-to-b from-black/50 via-zinc-950/40
+            to-black/70
           `}
         />
       </div>
@@ -143,15 +169,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
           view-name-[home]
         `}
       >
-        <div
-          aria-hidden="true"
-          class={`blob-field pointer-events-none`}
-          style="pointer-events: none;"
-        >
-          <div class={`blob blob-1 pointer-events-none`} />
-          <div class={`blob blob-2 pointer-events-none`} />
-          <div class={`blob blob-3 pointer-events-none`} />
-        </div>
         <main class={`relative z-10 flex size-full`}>
           <div class={`absolute top-1 right-1 z-10 view-name-[account]`}>
             <Account />
@@ -159,18 +176,20 @@ export default function Home({ loaderData }: t.ComponentProps) {
           <div class={`absolute inset-x-0 top-2 flex justify-center`}>
             <div
               class={`
-                rounded-b-2xl border-2 border-t-0 border-gray-400/50
-                bg-slate-950 px-4 text-gray-300 shadow-lg
+                rounded-b-lg border border-t-0 border-white/10 bg-zinc-950/90
+                px-3 py-1 text-base/7 text-zinc-300 shadow-lg
+                shadow-black/30 backdrop-blur
+                sm:text-sm/6
               `}
             >
               You've completed{" "}
               <span
                 data-updated={confetti !== null}
                 class={`
-                  text-white transition-[color_transform_font-size] delay-300
-                  duration-1000 view-name-[task-count]
+                  tabular-nums text-white transition-[color_transform_font-size]
+                  delay-300 duration-1000 view-name-[task-count]
                   data-updated:starting:text-xl
-                  data-updated:starting:text-green-300
+                  data-updated:starting:text-emerald-300
                 `}
                 id="task-count"
               >
@@ -187,7 +206,6 @@ export default function Home({ loaderData }: t.ComponentProps) {
                 *:[grid-area:1/1]
               `}
             >
-              <div class={`rounded-full bg-white p-10 blur-2xl`} />
               <Task
                 data-task-id={current?.id}
                 data-task-text={current?.text}
@@ -205,9 +223,12 @@ export default function Home({ loaderData }: t.ComponentProps) {
               <div
                 id="task-empty"
                 hidden={current !== undefined}
-                class={`z-10 flex items-center text-xl font-bold text-black`}
+                class={`
+                  z-10 flex max-w-[24ch] items-center text-center text-2xl
+                  font-medium text-amber-100
+                `}
               >
-                You did it. You're a real human 🫘.
+                You did it. Nothing left for now.
               </div>
             </div>
           </div>
@@ -416,8 +437,8 @@ export default function Home({ loaderData }: t.ComponentProps) {
               ),
             )}
             class={`
-              absolute right-2 bottom-10 flex flex-none grow flex-col items-end
-              gap-2
+              absolute right-2 bottom-8 flex flex-none grow flex-col items-end
+              gap-2 sm:right-3
             `}
           >
             <input ref={inputRef} type="hidden" name="another" />
@@ -444,7 +465,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
                 ),
               )}
             >
-              ➕ Another?
+              Add task
             </MenuButton>
             <MenuButton
               name="intent"
@@ -452,16 +473,16 @@ export default function Home({ loaderData }: t.ComponentProps) {
               id="btn-cycle"
               disabled={current === undefined}
             >
-              ♻️ Cycle?
+              Cycle
             </MenuButton>
             <MenuButton
-              class={`mt-10`}
+              class={`mt-6 override:bg-amber-200 override:text-zinc-950 override:ring-1 override:ring-amber-200 override:not-disabled:hover:bg-amber-100`}
               name="intent"
               value="done"
               id="btn-done"
               disabled={current === undefined}
             >
-              🎉 Done.
+              Done
             </MenuButton>
           </form>
         </header>
@@ -481,11 +502,12 @@ const Account = () => {
           command="show-modal"
           class={`
             peer mb-1 flex size-12 cursor-pointer items-center justify-center
-            rounded-full border-2 border-blue-600 bg-slate-950 p-1 text-white
-            drop-shadow-sm/100 transition-[border-color_background]
+            rounded-full border border-white/10 bg-zinc-950/90 p-1
+            text-amber-100 shadow-lg shadow-black/30
+            backdrop-blur transition-[border-color_background]
             [anchor-name:--passkeys]
-            hover:border-white hover:bg-black
-            active:bg-white active:text-black active:text-shadow-sm/100
+            hover:border-amber-200/60 hover:bg-black
+            active:bg-white active:text-zinc-950
           `}
         >
           <PasskeyIcon class={`size-6`} />
@@ -522,25 +544,11 @@ const Account = () => {
               signal,
             });
 
-            const performSwap = () =>
-              window.swap(response, {
-                target: targetElement,
-                swap: "innerHTML",
-              });
-
-            let swapPromise: Promise<unknown> | undefined;
-            const supportsViewTransition =
-              typeof document.startViewTransition === "function";
-            if (supportsViewTransition) {
-              const viewTransition = document.startViewTransition(() => {
-                swapPromise = performSwap();
-                return swapPromise;
-              });
-              await viewTransition.finished;
-              await swapPromise;
-            } else {
-              await performSwap();
-            }
+            await window.swap(response, {
+              target: targetElement,
+              swap: "innerHTML",
+              viewTransition: false,
+            });
           } catch {
             window.alert?.(
               "We couldn't load your passkey settings. Please try again.",
@@ -580,13 +588,13 @@ const MenuButton = ({ class: className, ...props }: MenuButtonProps) => {
       class={cx(
         `
           w-40 cursor-pointer rounded-l-full border-y-2 border-l-2
-          border-gray-600 bg-slate-950 px-6 py-4 text-left drop-shadow-sm/100
-          hover:bg-black/90 hover:transition-[width]
-          not-disabled:active:border-gray-500 not-disabled:active:bg-white
-          not-disabled:active:text-slate-950
-          not-disabled:active:text-shadow-sm/100
+          border-white/10 bg-zinc-950/90 px-5 py-3 text-left text-base/7
+          font-medium shadow-lg shadow-black/30 backdrop-blur
+          not-disabled:hover:bg-black/90 not-disabled:hover:transition-[width]
+          not-disabled:active:border-white/20 not-disabled:active:bg-white
+          not-disabled:active:text-zinc-950 sm:text-sm/6
           disabled:cursor-not-allowed disabled:opacity-50
-          pointer-fine:not-disabled:hover:w-50
+          pointer-fine:not-disabled:hover:w-44
         `,
         className,
       )}
@@ -603,10 +611,11 @@ const Task = ({ children, class: className, ...props }: TaskProps) => {
       id="task"
       class={cx(
         `
-          z-10 size-full self-center justify-self-center rounded-full
-          bg-blue-800 px-10 py-2 text-center font-serif text-4xl text-gray-100
-          drop-shadow-sm/100 transition-[opacity_transform] duration-300
-          text-shadow-lg/100
+          z-10 size-full self-center justify-self-center rounded-lg
+          border border-white/15 bg-zinc-950/85 px-8 py-5 text-center
+          font-serif text-4xl font-medium tracking-tight text-amber-100
+          shadow-2xl shadow-black/40 backdrop-blur-md
+          transition-[opacity_transform] duration-300
           data-indicator:opacity-70
           starting:scale-150 starting:opacity-0
         `,

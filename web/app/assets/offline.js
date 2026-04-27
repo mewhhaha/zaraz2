@@ -1,4 +1,24 @@
 (() => {
+  const SERVICE_WORKER_URL = "/sw.js";
+  const trustedTypesPolicyName = "zaraz2-service-worker";
+
+  const getTrustedServiceWorkerUrl = () => {
+    if (!window.trustedTypes) {
+      return SERVICE_WORKER_URL;
+    }
+
+    const policy = window.trustedTypes.createPolicy(trustedTypesPolicyName, {
+      createScriptURL(value) {
+        if (value !== SERVICE_WORKER_URL) {
+          throw new TypeError("Unexpected service worker URL");
+        }
+        return value;
+      },
+    });
+
+    return policy.createScriptURL(SERVICE_WORKER_URL);
+  };
+
   const statusEl = document.getElementById("connection-status");
   const stateEl = document.getElementById("connection-state");
   const queueEl = document.getElementById("queue-count");
@@ -50,7 +70,7 @@
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
+      .register(getTrustedServiceWorkerUrl(), { scope: "/" })
       .catch(() => undefined);
 
     navigator.serviceWorker.addEventListener("message", (event) => {
