@@ -45,9 +45,8 @@ export class DurableObjectUser extends DurableObject<Env> {
       "#eventCount": async () =>
         (await state.storage.get<number>("#eventCount")) ?? 0,
       "#lastSeqByClient": async () =>
-        (await state.storage.get<Record<string, number>>(
-          "#lastSeqByClient",
-        )) ?? {},
+        (await state.storage.get<Record<string, number>>("#lastSeqByClient")) ??
+        {},
       "#snapshot": async () =>
         (await state.storage.get<TaskState>("#snapshot")) ?? {
           tasks: [],
@@ -226,11 +225,7 @@ export class DurableObjectUser extends DurableObject<Env> {
   }
 
   async create(account: Account) {
-    const exists = await this.store.get("#account").then(
-      () => true,
-      () => false,
-    );
-    if (exists) {
+    if (await this.exists()) {
       return "user_exists" as const;
     }
 
@@ -377,9 +372,8 @@ const replayEventsSince = async (
 
   const startBucket = Math.floor(start / EVENT_BUCKET_SIZE);
   const endBucket = Math.floor((count - 1) / EVENT_BUCKET_SIZE);
-  const keys = Array.from(
-    { length: endBucket - startBucket + 1 },
-    (_, index) => eventBucketKey(startBucket + index),
+  const keys = Array.from({ length: endBucket - startBucket + 1 }, (_, index) =>
+    eventBucketKey(startBucket + index),
   );
 
   const buckets = await Promise.all(

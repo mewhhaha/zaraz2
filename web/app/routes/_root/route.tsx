@@ -8,23 +8,11 @@ type AuthClientState = {
 };
 
 export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
-  try {
-    const { auth: user } = await requireAuth(
-      request,
-      env.SECRET_KEY,
-      env.OBJECT_USER,
-    );
+  const user = await requireAuth(request, env.SECRET_KEY, env.OBJECT_USER)
+    .then(({ auth }) => auth)
+    .catch(() => null);
 
-    return {
-      nonce: env.nonce,
-      user,
-    };
-  } catch {
-    return {
-      nonce: env.nonce,
-      user: null,
-    };
-  }
+  return { user };
 };
 
 export default function Root({

@@ -5,13 +5,28 @@ import refresh from "./paths/refresh";
 import verify from "./paths/verify";
 import type { EnvAuth } from "./env";
 
+const paths = {
+  "/refresh": refresh,
+  "/challenge": challenge,
+  "/verify": verify,
+  "/register": register,
+};
+
 export const action = async ({
   request,
-
   context: [env, ctx],
 }: t.ActionArgs) => {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  const pathname = new URL(request.url).pathname
+    .slice("/auth".length)
+    .replace(/\/$/, "");
+
+  const handler = paths[pathname as keyof typeof paths];
+  if (!handler) {
+    return new Response("Not found", { status: 404 });
   }
 
   const context = [
@@ -24,26 +39,5 @@ export const action = async ({
     ctx,
   ] as const;
 
-  const args = { request, context };
-
-  const url = new URL(request.url);
-  const pathname = url.pathname.slice("/auth".length);
-
-  if (new URLPattern({ pathname: "/refresh{/}?" }).test({ pathname })) {
-    return await refresh(args);
-  }
-
-  if (new URLPattern({ pathname: "/challenge{/}?" }).test({ pathname })) {
-    return await challenge(args);
-  }
-
-  if (new URLPattern({ pathname: "/verify{/}?" }).test({ pathname })) {
-    return await verify(args);
-  }
-
-  if (new URLPattern({ pathname: "/register{/}?" }).test({ pathname })) {
-    return await register(args);
-  }
-
-  return new Response("Not found", { status: 404 });
+  return handler({ request, context });
 };

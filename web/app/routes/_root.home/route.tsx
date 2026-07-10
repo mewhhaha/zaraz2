@@ -13,10 +13,12 @@ import {
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
 export const action = async ({ request, context: [env] }: t.ActionArgs) => {
-  let auth: Awaited<ReturnType<typeof requireAuth>>["auth"];
-  try {
-    ({ auth } = await requireAuth(request, env.SECRET_KEY, env.OBJECT_USER));
-  } catch {
+  const authorized = await requireAuth(
+    request,
+    env.SECRET_KEY,
+    env.OBJECT_USER,
+  ).catch(() => null);
+  if (!authorized) {
     return new Response("unauthorized", { status: 401 });
   }
 
@@ -24,30 +26,25 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   const intent = formData.get("intent")?.toString() ?? null;
   const another = formData.get("another")?.toString() ?? null;
   const id = formData.get("id")?.toString() ?? null;
-  const open = formData.get("open")?.toString() ?? null;
 
-  const stub = env.OBJECT_USER.get(env.OBJECT_USER.idFromName(auth.username));
-
-  const parsedEvent = parseTaskEvent(formData);
-  const fallbackEvent = parsedEvent
-    ? undefined
-    : createFallbackTaskEvent(intent, another, id);
-  const eventToApply = parsedEvent ?? fallbackEvent;
-  if (eventToApply) {
-    await stub.applyEvents([eventToApply]);
+  const taskEvent =
+    parseTaskEvent(formData) ?? createFallbackTaskEvent(intent, another, id);
+  if (taskEvent) {
+    const stub = env.OBJECT_USER.get(
+      env.OBJECT_USER.idFromName(authorized.auth.username),
+    );
+    await stub.applyEvents([taskEvent]);
   }
 
   const url = new URL(request.url);
-  const actionType = parsedEvent?.type ?? fallbackEvent?.type ?? undefined;
   url.searchParams.set(
     "direction",
-    actionType === "task.done" ? "up" : "right",
+    taskEvent?.type === "task.done" ? "up" : "right",
   );
-  if (actionType === "task.done") {
+  if (taskEvent?.type === "task.done") {
     url.searchParams.set("confetti", "true");
   }
-
-  if (open) {
+  if (formData.get("open")) {
     url.searchParams.set("open", "");
   }
 
@@ -74,7 +71,6 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
     return {
       authenticated: true,
       direction,
-      nonce: env.nonce,
       confetti,
       current,
       completed,
@@ -252,7 +248,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
 
                   const indicatorTarget =
                     document.querySelector("#task") ?? form;
-                  indicatorTarget?.setAttribute("data-indicator", "");
+                  indicatorTarget.setAttribute("data-indicator", "");
 
                   const formData = new FormData(submitEvent.currentTarget);
                   const taskEl = document.querySelector("#task");
@@ -301,29 +297,22 @@ export default function Home({ loaderData }: t.ComponentProps) {
 
                     const clientId = getClientId();
                     const seq = nextSeq();
-                    const id = `${clientId}:${seq}`;
-                    const ts = Date.now();
+                    const base = {
+                      id: `${clientId}:${seq}`,
+                      clientId,
+                      seq,
+                      ts: Date.now(),
+                    };
 
                     if (intent === "another") {
                       const text = formData.get("another")?.toString().trim();
                       if (!text) {
                         return;
                       }
-                      const taskId = crypto.randomUUID();
-                      formData.set("event_task_id", taskId);
-                      formData.set("event_text", text);
-                      formData.set("event_type", "task.add");
-                      formData.set("event_id", id);
-                      formData.set("event_client_id", clientId);
-                      formData.set("event_seq", String(seq));
-                      formData.set("event_ts", String(ts));
                       return {
-                        id,
-                        clientId,
-                        seq,
-                        ts,
+                        ...base,
                         type: "task.add",
-                        taskId,
+                        taskId: crypto.randomUUID(),
                         text,
                       };
                     }
@@ -333,45 +322,31 @@ export default function Home({ loaderData }: t.ComponentProps) {
                         taskEl instanceof HTMLElement
                           ? taskEl.dataset.taskId
                           : undefined;
-                      if (taskId) {
-                        formData.set("event_task_id", taskId);
-                      }
-                      formData.set("event_type", "task.done");
-                      formData.set("event_id", id);
-                      formData.set("event_client_id", clientId);
-                      formData.set("event_seq", String(seq));
-                      formData.set("event_ts", String(ts));
-                      return {
-                        id,
-                        clientId,
-                        seq,
-                        ts,
-                        type: "task.done",
-                        taskId,
-                      };
+                      return { ...base, type: "task.done", taskId };
                     }
 
                     if (intent === "cycle") {
-                      formData.set("event_type", "task.cycle");
-                      formData.set("event_id", id);
-                      formData.set("event_client_id", clientId);
-                      formData.set("event_seq", String(seq));
-                      formData.set("event_ts", String(ts));
-                      return {
-                        id,
-                        clientId,
-                        seq,
-                        ts,
-                        type: "task.cycle",
-                      };
+                      return { ...base, type: "task.cycle" };
                     }
                   };
 
                   const taskEvent = buildEvent();
                   if (!taskEvent) {
                     form.dataset.pending = "false";
-                    indicatorTarget?.removeAttribute("data-indicator");
+                    indicatorTarget.removeAttribute("data-indicator");
                     return;
+                  }
+
+                  formData.set("event_id", taskEvent.id);
+                  formData.set("event_client_id", taskEvent.clientId);
+                  formData.set("event_seq", String(taskEvent.seq));
+                  formData.set("event_ts", String(taskEvent.ts));
+                  formData.set("event_type", taskEvent.type);
+                  if ("taskId" in taskEvent && taskEvent.taskId) {
+                    formData.set("event_task_id", taskEvent.taskId);
+                  }
+                  if ("text" in taskEvent) {
+                    formData.set("event_text", taskEvent.text);
                   }
 
                   try {
@@ -429,7 +404,7 @@ export default function Home({ loaderData }: t.ComponentProps) {
                       "We could not update your tasks right now. Please try again.",
                     );
                   } finally {
-                    indicatorTarget?.removeAttribute("data-indicator");
+                    indicatorTarget.removeAttribute("data-indicator");
                     form.dataset.pending = "false";
                   }
                 },

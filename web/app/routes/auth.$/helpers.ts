@@ -1,5 +1,9 @@
-import { extractVisitedHeaders, type VisitedHeaders } from "../../helpers/visited";
 import type { Account, DurableObjectUser } from "../../objects/user";
+
+export {
+  extractVisitedHeaders as extractVisitorHeaders,
+  type VisitedHeaders,
+} from "../../helpers/visited";
 
 // Cookie implementation
 interface CookieSerializeOptions {
@@ -120,11 +124,6 @@ export const hmac = async (
     .map((b) => String.fromCharCode(b))
     .join("");
 };
-
-export const extractVisitorHeaders = (headers: Headers): VisitedHeaders =>
-  extractVisitedHeaders(headers);
-
-export type { VisitedHeaders };
 
 export type Auth = {
   username: string;
