@@ -23,50 +23,34 @@ const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
 const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
 const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
 
-class ParseError extends Error {
-  summary: string;
-
-  constructor(message: string) {
-    super(message);
-    this.name = "ParseError";
-    this.summary = message;
-  }
-}
+class ParseError extends Error {}
 
 const parseRename = (value: unknown) => {
-  if (typeof value !== "object" || value === null) {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("id" in value) ||
+    !("name" in value) ||
+    typeof value.id !== "string" ||
+    typeof value.name !== "string"
+  ) {
     return new ParseError("Invalid input");
   }
 
-  if (!("id" in value) || !("name" in value)) {
-    return new ParseError("Invalid input");
-  }
-
-  const { id, name } = value;
-
-  if (typeof id !== "string" || typeof name !== "string") {
-    return new ParseError("Invalid input");
-  }
-
-  return { id, name };
+  return { id: value.id, name: value.name };
 };
 
 const parseRegister = (value: unknown) => {
-  if (typeof value !== "object" || value === null) {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("token" in value) ||
+    typeof value.token !== "string"
+  ) {
     return new ParseError("Invalid input");
   }
 
-  if (!("token" in value)) {
-    return new ParseError("Invalid input");
-  }
-
-  const { token } = value;
-
-  if (typeof token !== "string") {
-    return new ParseError("Invalid input");
-  }
-
-  return { token };
+  return { token: value.token };
 };
 
 const getLocale = (request: Request) => {
@@ -75,6 +59,14 @@ const getLocale = (request: Request) => {
 
 const getTimezone = (request: Request) => {
   return request.headers.get("cf-timezone") ?? "Europe/Stockholm";
+};
+
+const passkeyListResponse = (props: PasskeyListProps) => {
+  const list = <PasskeyList {...props} />;
+  return new Response(list.toReadableStream(), {
+    status: 200,
+    headers: { "Content-Type": "text/html" },
+  });
 };
 
 const isDocumentRequest = (request: Request) => {
@@ -117,18 +109,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     }
 
     const { passkeys } = await account.remove(id);
-    const list = (
-      <PasskeyList
-        passkeys={passkeys}
-        auth={auth}
-        locale={locale}
-        timezone={timezone}
-      />
-    );
-    return new Response(list.toReadableStream(), {
-      status: 200,
-      headers: { "Content-Type": "text/html" },
-    });
+    return passkeyListResponse({ passkeys, auth, locale, timezone });
   }
 
   const formData = Object.fromEntries((await request.formData()).entries());
@@ -136,22 +117,11 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   if (request.method === "PATCH") {
     const fd = parseRename(formData);
     if (fd instanceof ParseError) {
-      return new Response(fd.summary, { status: 400 });
+      return new Response(fd.message, { status: 400 });
     }
 
     const { passkeys } = await account.rename(fd.id, fd.name);
-    const list = (
-      <PasskeyList
-        passkeys={passkeys}
-        auth={auth}
-        locale={locale}
-        timezone={timezone}
-      />
-    );
-    return new Response(list.toReadableStream(), {
-      status: 200,
-      headers: { "Content-Type": "text/html" },
-    });
+    return passkeyListResponse({ passkeys, auth, locale, timezone });
   }
 
   if (request.method === "POST" && formData["intent"] === "signout") {
@@ -168,7 +138,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
 
     const fd = parseRegister(formData);
     if (fd instanceof ParseError) {
-      return new Response(fd.summary, { status: 400 });
+      return new Response(fd.message, { status: 400 });
     }
 
     const { json, challengeId } = await parseToken<RegistrationJSON>(
@@ -206,20 +176,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
     });
 
     const { passkeys } = await account.link(passkeyLink);
-
-    const list = (
-      <PasskeyList
-        passkeys={passkeys}
-        auth={auth}
-        locale={locale}
-        timezone={timezone}
-      />
-    );
-
-    return new Response(list.toReadableStream(), {
-      status: 200,
-      headers: { "Content-Type": "text/html" },
-    });
+    return passkeyListResponse({ passkeys, auth, locale, timezone });
   }
 };
 
@@ -990,55 +947,27 @@ const formatDate = (date: Date, locale: string, timezone: string) => {
   return formatter.format(date);
 };
 
+const divisions: { amount: number; unit: Intl.RelativeTimeFormatUnit }[] = [
+  { amount: 60, unit: "second" },
+  { amount: 60, unit: "minute" },
+  { amount: 24, unit: "hour" },
+  { amount: 7, unit: "day" },
+  { amount: 4.34524, unit: "week" },
+  { amount: 12, unit: "month" },
+];
+
 const formatRelativeDate = (date: Date, locale: string) => {
   const formatter = new Intl.RelativeTimeFormat(locale, {
     style: "long",
     numeric: "auto",
   });
-  const now = new Date();
-  const diffInSeconds = Math.round((date.getTime() - now.getTime()) / 1000);
 
-  const secondsInMinute = 60;
-  const secondsInHour = 3600;
-  const secondsInDay = 86400;
-  const secondsInWeek = 604800;
-  const secondsInMonth = 2629800;
-  const secondsInYear = 31557600;
-
-  const absDiff = Math.abs(diffInSeconds);
-
-  if (absDiff < secondsInMinute) {
-    return formatter.format(diffInSeconds, "second");
-  } else if (absDiff < secondsInHour) {
-    const minutes = Math.round(diffInSeconds / secondsInMinute);
-    return formatter.format(minutes, "minute");
-  } else if (absDiff < secondsInDay) {
-    const hours = Math.round(diffInSeconds / secondsInHour);
-    return formatter.format(hours, "hour");
-  } else if (absDiff < secondsInWeek) {
-    const days = Math.round(diffInSeconds / secondsInDay);
-    return formatter.format(days, "day");
-  } else if (absDiff < secondsInMonth) {
-    const weeks = Math.round(diffInSeconds / secondsInWeek);
-    return formatter.format(weeks, "week");
-  } else if (absDiff < secondsInYear) {
-    const months = Math.round(diffInSeconds / secondsInMonth);
-    return formatter.format(months, "month");
-  } else {
-    const years = Math.round(diffInSeconds / secondsInYear);
-    return formatter.format(years, "year");
+  let duration = (date.getTime() - Date.now()) / 1000;
+  for (const { amount, unit } of divisions) {
+    if (Math.abs(duration) < amount) {
+      return formatter.format(Math.round(duration), unit);
+    }
+    duration /= amount;
   }
-};
-
-const isRedirect = (response: Response) => {
-  return (
-    (response.status >= 300 && response.status < 400) ||
-    response.type === "opaqueredirect"
-  );
-};
-
-const findRedirectLocation = (response: Response) => {
-  if (!isRedirect(response)) return;
-  const location = response.headers.get("Location");
-  return location;
+  return formatter.format(Math.round(duration), "year");
 };
