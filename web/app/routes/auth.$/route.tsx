@@ -1,4 +1,4 @@
-import type { Route as t } from "./+types.route";
+import type { RequestContext } from "@mewhhaha/ruwuter";
 import register from "./paths/register";
 import challenge from "./paths/challenge";
 import refresh from "./paths/refresh";
@@ -14,8 +14,9 @@ const paths = {
 
 export const action = async ({
   request,
-  context: [env, ctx],
-}: t.ActionArgs) => {
+  env,
+  executionContext,
+}: RequestContext) => {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -29,15 +30,12 @@ export const action = async ({
     return new Response("Not found", { status: 404 });
   }
 
-  const context = [
-    {
-      PASSKEY: env.OBJECT_PASSKEY,
-      USER: env.OBJECT_USER,
-      SECRET: env.SECRET_KEY,
-      CHALLENGE: env.OBJECT_CHALLENGE,
-    } satisfies EnvAuth,
-    ctx,
-  ] as const;
+  const authEnv = {
+    PASSKEY: env.OBJECT_PASSKEY,
+    USER: env.OBJECT_USER,
+    SECRET: env.SECRET_KEY,
+    CHALLENGE: env.OBJECT_CHALLENGE,
+  } satisfies EnvAuth;
 
-  return handler({ request, context });
+  return handler({ request, env: authEnv, executionContext });
 };

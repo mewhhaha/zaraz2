@@ -1,18 +1,23 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
-import { ref, type Ref } from "@mewhhaha/ruwuter/components";
 import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
-import { events, event } from "@mewhhaha/ruwuter/events";
 import { requireAuth } from "../auth.$/helpers.ts";
 import {
   createFallbackTaskEvent,
   parseTaskEvent,
-  type TaskEvent,
 } from "../../helpers/task-events";
 
-const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
+import bgSrc from "../../assets/happy.jpg?url&no-inline";
+import homeControllerHref from "./home.client.ts?url&no-inline";
+import passkeysDialogControllerHref from "./passkeys-dialog.client.ts?url&no-inline";
+import { controllerAttributes } from "../../helpers/controller";
 
-export const action = async ({ request, context: [env] }: t.ActionArgs) => {
+const homeControllerAttributes = controllerAttributes(homeControllerHref);
+const passkeysDialogControllerAttributes = controllerAttributes(
+  passkeysDialogControllerHref,
+);
+
+export const action = async ({ request, env }: t.ActionArgs) => {
   const authorized = await requireAuth(
     request,
     env.SECRET_KEY,
@@ -51,7 +56,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   return Response.redirect(url.href, 303);
 };
 
-export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+export const loader = async ({ request, env }: t.LoaderArgs) => {
   try {
     const { auth } = await requireAuth(
       request,
@@ -80,9 +85,11 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
   }
 };
 
-export default function Home({ loaderData }: t.ComponentProps) {
-  const inputRef = ref<HTMLInputElement | null>(null);
-
+export default function Home({
+  loaderData,
+}: {
+  loaderData: Awaited<ReturnType<typeof loader>>;
+}) {
   if (!loaderData.authenticated) {
     return (
       <div class={`relative isolate mx-auto flex size-full max-w-5xl flex-col`}>
@@ -231,215 +238,18 @@ export default function Home({ loaderData }: t.ComponentProps) {
         </main>
         <header class={`relative z-10 flex w-full justify-end`}>
           <form
+            {...homeControllerAttributes}
+            data-rw-ref="form"
             method="POST"
             id="menu-form"
             action="/home"
-            on={events(
-              { currentId: current?.id },
-              event.submit<HTMLFormElement, { currentId: string | undefined }>(
-                async function (this, submitEvent, signal) {
-                  "use client";
-
-                  const form = submitEvent.currentTarget;
-                  if (form.dataset.pending === "true") {
-                    return;
-                  }
-                  form.dataset.pending = "true";
-
-                  const indicatorTarget =
-                    document.querySelector("#task") ?? form;
-                  indicatorTarget.setAttribute("data-indicator", "");
-
-                  const formData = new FormData(submitEvent.currentTarget);
-                  const taskEl = document.querySelector("#task");
-                  const liveId =
-                    taskEl instanceof HTMLElement
-                      ? taskEl.dataset.taskId
-                      : undefined;
-                  if (liveId || this.currentId) {
-                    formData.set("id", liveId ?? this.currentId ?? "");
-                  }
-
-                  const submitter = submitEvent.submitter;
-                  if (
-                    submitter instanceof HTMLButtonElement &&
-                    submitter.name
-                  ) {
-                    formData.set(submitter.name, submitter.value);
-                  }
-
-                  const intent = formData.get("intent")?.toString();
-
-                  const getClientId = () => {
-                    const key = "todo:client-id";
-                    const existing = window.localStorage?.getItem(key);
-                    if (existing) {
-                      return existing;
-                    }
-                    const next = crypto.randomUUID();
-                    window.localStorage?.setItem(key, next);
-                    return next;
-                  };
-
-                  const nextSeq = () => {
-                    const key = "todo:client-seq";
-                    const raw = window.localStorage?.getItem(key) ?? "0";
-                    const value = Number.parseInt(raw, 10);
-                    const seq = Number.isFinite(value) ? value + 1 : 1;
-                    window.localStorage?.setItem(key, String(seq));
-                    return seq;
-                  };
-
-                  const buildEvent = (): TaskEvent | undefined => {
-                    if (!intent) {
-                      return;
-                    }
-
-                    const clientId = getClientId();
-                    const seq = nextSeq();
-                    const base = {
-                      id: `${clientId}:${seq}`,
-                      clientId,
-                      seq,
-                      ts: Date.now(),
-                    };
-
-                    if (intent === "another") {
-                      const text = formData.get("another")?.toString().trim();
-                      if (!text) {
-                        return;
-                      }
-                      return {
-                        ...base,
-                        type: "task.add",
-                        taskId: crypto.randomUUID(),
-                        text,
-                      };
-                    }
-
-                    if (intent === "done") {
-                      const taskId =
-                        taskEl instanceof HTMLElement
-                          ? taskEl.dataset.taskId
-                          : undefined;
-                      return { ...base, type: "task.done", taskId };
-                    }
-
-                    if (intent === "cycle") {
-                      return { ...base, type: "task.cycle" };
-                    }
-                  };
-
-                  const taskEvent = buildEvent();
-                  if (!taskEvent) {
-                    form.dataset.pending = "false";
-                    indicatorTarget.removeAttribute("data-indicator");
-                    return;
-                  }
-
-                  formData.set("event_id", taskEvent.id);
-                  formData.set("event_client_id", taskEvent.clientId);
-                  formData.set("event_seq", String(taskEvent.seq));
-                  formData.set("event_ts", String(taskEvent.ts));
-                  formData.set("event_type", taskEvent.type);
-                  if ("taskId" in taskEvent && taskEvent.taskId) {
-                    formData.set("event_task_id", taskEvent.taskId);
-                  }
-                  if ("text" in taskEvent) {
-                    formData.set("event_text", taskEvent.text);
-                  }
-
-                  try {
-                    const response = await fetch("/home", {
-                      method: "POST",
-                      body: formData,
-                      signal,
-                    });
-
-                    const performSwap = () =>
-                      window.swap(response, {
-                        target: "body",
-                        swap: "innerHTML",
-                      });
-
-                    const supportsViewTransition =
-                      typeof document.startViewTransition === "function";
-                    let swapPromise: Promise<unknown> | undefined;
-
-                    if (supportsViewTransition) {
-                      const viewTransition = document.startViewTransition(
-                        () => {
-                          swapPromise = performSwap();
-                          return swapPromise;
-                        },
-                      );
-                      await viewTransition.finished;
-                      await swapPromise;
-                    } else {
-                      await performSwap();
-                    }
-
-                    if (intent === "done") {
-                      const { default: confetti } = await import(
-                        "canvas-confetti"
-                      );
-                      confetti.reset();
-                      confetti({
-                        particleCount: 100,
-                        spread: 180,
-                        origin: { y: -0.1 },
-                        startVelocity: -35,
-                        disableForReducedMotion: true,
-                      });
-                    }
-
-                    const transitions = document.querySelectorAll(
-                      "[data-view-transition]",
-                    );
-                    for (const transition of transitions) {
-                      transition.removeAttribute("data-view-transition");
-                    }
-                  } catch {
-                    window.alert?.(
-                      "We could not update your tasks right now. Please try again.",
-                    );
-                  } finally {
-                    indicatorTarget.removeAttribute("data-indicator");
-                    form.dataset.pending = "false";
-                  }
-                },
-                { preventDefault: true },
-              ),
-            )}
             class={`
               absolute right-2 bottom-8 flex flex-none grow flex-col items-end
               gap-2 sm:right-3
             `}
           >
-            <input ref={inputRef} type="hidden" name="another" />
-            <MenuButton
-              name="intent"
-              value="another"
-              on={events(
-                { ref: inputRef },
-                event.click<
-                  HTMLButtonElement,
-                  { ref: Ref<HTMLInputElement | null> }
-                >(
-                  function (this, ev) {
-                    "use client";
-                    const value = window.prompt("What's next?");
-                    if (!value) {
-                      return;
-                    }
-                    const input = this.ref.get() as HTMLInputElement;
-                    input.value = value;
-                    ev.currentTarget.form?.requestSubmit(ev.currentTarget);
-                  },
-                  { preventDefault: true },
-                ),
-              )}
-            >
+            <input type="hidden" name="another" />
+            <MenuButton data-rw-ref="addTask" name="intent" value="another">
               Add task
             </MenuButton>
             <MenuButton
@@ -492,47 +302,7 @@ const Account = () => {
       <dialog
         id="passkeys-menu"
         popover="auto"
-        on={event.toggle<HTMLDialogElement>(async function (evt, signal) {
-          "use client";
-          const dialog = evt.currentTarget;
-          const toggleEvent = evt as Event & { newState?: string };
-          if (toggleEvent.newState && toggleEvent.newState !== "open") {
-            return;
-          }
-          if (!dialog.open || signal.aborted) {
-            return;
-          }
-          if (dialog.dataset.pending === "true") {
-            return;
-          }
-          dialog.dataset.pending = "true";
-
-          const targetElement = document.querySelector("#passkeys-settings");
-          if (!(targetElement instanceof Element)) {
-            dialog.dataset.pending = "false";
-            return;
-          }
-          targetElement.setAttribute("data-indicator", "");
-
-          try {
-            const response = await fetch("/auth", {
-              signal,
-            });
-
-            await window.swap(response, {
-              target: targetElement,
-              swap: "innerHTML",
-              viewTransition: false,
-            });
-          } catch {
-            window.alert?.(
-              "We couldn't load your passkey settings. Please try again.",
-            );
-          } finally {
-            targetElement.removeAttribute("data-indicator");
-            dialog.dataset.pending = "false";
-          }
-        })}
+        {...passkeysDialogControllerAttributes}
         class={`
           fixed overflow-visible bg-transparent
           [position-anchor:--passkeys]
@@ -549,7 +319,7 @@ const Account = () => {
           commandfor="passkeys-menu"
           command="close"
         />
-        <div class={`absolute`} id="passkeys-settings" />
+        <div data-rw-ref="settings" class={`absolute`} id="passkeys-settings" />
       </dialog>
     </div>
   );

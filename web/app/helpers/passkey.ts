@@ -1,4 +1,5 @@
 import { client } from "@passwordless-id/webauthn";
+import { encodeJsonPayload } from "./json-payload";
 
 type PasskeyRequestOptions = {
   signal?: AbortSignal;
@@ -66,7 +67,7 @@ export const authenticate = async (
 
     signal.throwIfAborted();
 
-    const signinToken = `${token}.${btoa(JSON.stringify(authentication))}`;
+    const signinToken = `${token}.${encodeJsonPayload(authentication)}`;
 
     return signinToken;
   } finally {
@@ -114,7 +115,7 @@ export const register = async (
 
     signal.throwIfAborted();
 
-    const registrationToken = `${token}.${btoa(JSON.stringify(registration))}`;
+    const registrationToken = `${token}.${encodeJsonPayload(registration)}`;
 
     return registrationToken;
   } finally {

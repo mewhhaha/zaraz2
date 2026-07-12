@@ -24,5 +24,5 @@
 
     "skipLibCheck": true
   },
-  "include": ["rolldown.config.ts", "plugins"]
+  "include": ["vite.config.ts", "vitest.config.ts", "plugins"]
 }

@@ -6,16 +6,5 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "esbuild",
-            "sharp",
-            "workerd",
-            "rolldown"
-        ],
-        "overrides": {
-            "vite": "npm:rolldown-vite@latest"
-        }
-    },
-    "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
+    "packageManager": "pnpm@11.12.0+sha512.820a6fbd0d9f04c226638002aead1e45340a9139dd5dc077c1d83ef44aa2481c8eb6637b4c9aa696a3c7e35ba818e49cf27213e5f2b91138d09b7a3e26e898ba"
 }

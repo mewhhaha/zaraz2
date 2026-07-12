@@ -1,3 +1,7 @@
+import {
+  decodeJsonPayload,
+  encodeJsonPayload,
+} from "../../helpers/json-payload";
 import type { Account, DurableObjectUser } from "../../objects/user";
 
 export {
@@ -31,8 +35,8 @@ export const createCookie = <T, N extends string>(
 ) => {
   return {
     serialize: async (value: T) => {
-      const encodedValue = encode(JSON.stringify(value));
-      const signature = encode(await hmac(secret, encodedValue));
+      const encodedValue = encodeJsonPayload(value);
+      const signature = btoa(await hmac(secret, encodedValue));
       const signed = `${encodedValue}.${signature}`;
       const pairs = [
         `${encodeURIComponent(name)}=${encodeURIComponent(signed)}`,
@@ -82,7 +86,7 @@ export const createCookie = <T, N extends string>(
         return null;
       }
 
-      const expectedSignature = encode(await hmac(secret, encodedValue));
+      const expectedSignature = btoa(await hmac(secret, encodedValue));
       if (
         !timingSafeEqual(
           encoder.encode(signature),
@@ -92,13 +96,14 @@ export const createCookie = <T, N extends string>(
         return null;
       }
 
-      return JSON.parse(decode(encodedValue)) as T;
+      try {
+        return decodeJsonPayload<T>(encodedValue);
+      } catch {
+        return null;
+      }
     },
   };
 };
-
-const encode = (value: string) => btoa(value);
-const decode = (value: string) => atob(value);
 
 export const hmac = async (
   secretKey: string,
@@ -215,9 +220,12 @@ export const parseToken = async <T>(
     throw new Response("signature_invalid", { status: 400 });
   }
 
-  const registrationRaw = atob(registrationBase64Json);
-
-  const json = JSON.parse(registrationRaw) as T;
+  let json: T;
+  try {
+    json = decodeJsonPayload<T>(registrationBase64Json);
+  } catch {
+    throw new Response("token_invalid", { status: 400 });
+  }
 
   return { json, challengeId };
 };

@@ -29,7 +29,7 @@
   "exclude": ["test", "dist", "app/assets/**/*"],
   "include": [
     "app",
-    "worker/main.ts",
+    "worker",
     ".router/types",
     "worker-configuration.d.ts",
     "types"

@@ -3,10 +3,10 @@ import type { EnvAuth } from "../env";
 
 export default async function ({
   request,
-  context: [env],
+  env,
 }: {
   request: Request;
-  context: readonly [env: EnvAuth, ctx: ExecutionContext];
+  env: EnvAuth;
 }) {
   const cookieHeader = request.headers.get("Cookie");
   if (!cookieHeader) {

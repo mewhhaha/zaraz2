@@ -1,13 +1,16 @@
-import { event, events } from "@mewhhaha/ruwuter/events";
 import type { Route as t } from "./+types.route";
+import type { JSX } from "@mewhhaha/ruwuter";
 import { requireAuth } from "../auth.$/helpers.ts";
+import authRefreshController from "./auth-refresh.client.ts?url&no-inline";
+import { controllerAttributes } from "../../helpers/controller";
 
-type AuthClientState = {
-  credentialId: string;
-  expires: string;
-};
+const authRefreshControllerAttributes = controllerAttributes(
+  authRefreshController,
+);
 
-export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+type AuthClientState = { expires: string };
+
+export const loader = async ({ request, env }: t.LoaderArgs) => {
   const user = await requireAuth(request, env.SECRET_KEY, env.OBJECT_USER)
     .then(({ auth }) => auth)
     .catch(() => null);
@@ -18,7 +21,10 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 export default function Root({
   children,
   loaderData: { user },
-}: t.ComponentProps) {
+}: {
+  children?: JSX.Element;
+  loaderData: Awaited<ReturnType<typeof loader>>;
+}) {
   return (
     <>
       <div
@@ -42,69 +48,10 @@ export default function Root({
       {user && (
         <div
           hidden
-          on={events(
-            {
-              credentialId: user.credentialId,
-              expires: user.expires,
-            } satisfies AuthClientState,
-            event.mount<HTMLDivElement, AuthClientState>(
-              async function (this, _event, signal) {
-                "use client";
-
-                let busy = false;
-                let releaseBusy = () => {};
-
-                const refresh = async () => {
-                  if (new Date(this.expires) > new Date()) {
-                    const response = await fetch("/auth/refresh", {
-                      method: "POST",
-                      signal,
-                    });
-                    if (response.ok) {
-                      const { expires }: { expires: string } =
-                        await response.json();
-                      this.expires = expires;
-                    }
-                  } else {
-                    window.location.reload();
-                  }
-                };
-
-                const triggerRefresh = () => {
-                  if (busy) {
-                    return;
-                  }
-
-                  busy = true;
-                  releaseBusy = () => {
-                    setTimeout(() => {
-                      busy = false;
-                      releaseBusy = () => {};
-                    }, 1000);
-                  };
-                  void refresh().finally(releaseBusy);
-                };
-
-                document.addEventListener(
-                  "visibilitychange",
-                  () => {
-                    if (document.visibilityState !== "visible" || busy) {
-                      return;
-                    }
-                    triggerRefresh();
-                  },
-                  { signal },
-                );
-                window.addEventListener(
-                  "focus",
-                  () => {
-                    triggerRefresh();
-                  },
-                  { signal },
-                );
-              },
-            ),
-          )}
+          {...authRefreshControllerAttributes}
+          data-rw-props={JSON.stringify({
+            expires: user.expires,
+          } satisfies AuthClientState)}
         />
       )}
       {children}

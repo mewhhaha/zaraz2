@@ -1,4 +1,7 @@
 node_modules
+.claude
+.codex
+.agents
 .vscode
 .wrangler
 dist

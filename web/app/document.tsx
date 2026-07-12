@@ -1,21 +1,22 @@
 import type { Route as t } from "./+types.document";
+import type { headers as RuwuterHeaders, JSX } from "@mewhhaha/ruwuter";
+import clientUrl from "@mewhhaha/ruwuter/client.js?url&no-inline";
+import iconUrl from "./assets/favicon.ico?url&no-inline";
+import cmdUrl from "./assets/cmd.js?url&no-inline";
+import offlineUrl from "./assets/offline.js?url&no-inline";
 
-const clientUrl = new URL("@mewhhaha/ruwuter/client.js", import.meta.url)
-  .pathname;
-const resolveUrl = new URL("@mewhhaha/ruwuter/resolve.js", import.meta.url)
-  .pathname;
-const swapUrl = new URL("@mewhhaha/ruwuter/swap.js", import.meta.url).pathname;
-const stylesUrl = new URL("./assets/tailwind.css", import.meta.url).pathname;
-const iconUrl = new URL("./assets/favicon.ico", import.meta.url).pathname;
-const cmdUrl = new URL("./assets/cmd.js", import.meta.url).pathname;
-const offlineUrl = new URL("./assets/offline.js", import.meta.url).pathname;
+const stylesUrl = import.meta.env.DEV
+  ? "/app/assets/tailwind.css?direct"
+  : "/assets/styles.css";
 
-export const loader = ({ context: [env] }: t.LoaderArgs) => {
+export const loader = ({ env }: t.LoaderArgs) => {
   return { nonce: env.nonce };
 };
 
-export const headers: t.HeadersFunction = ({ loaderData, context: [env] }) => {
-  const { nonce } = loaderData;
+type DocumentLoaderData = Awaited<ReturnType<typeof loader>>;
+
+export const headers: RuwuterHeaders = ({ loaderData, env }) => {
+  const { nonce } = loaderData as DocumentLoaderData;
   const headers = new Headers();
   headers.set("Strict-Transport-Security", "max-age=31536000");
 
@@ -38,7 +39,10 @@ require-trusted-types-for 'script';
 export default function Document({
   children,
   loaderData: { nonce },
-}: t.ComponentProps) {
+}: {
+  children?: JSX.Element;
+  loaderData: DocumentLoaderData;
+}) {
   return (
     <html lang="en">
       <head>
@@ -58,8 +62,6 @@ export default function Document({
         <link rel="stylesheet" href={stylesUrl} />
         <script nonce={nonce} src={cmdUrl} async></script>
         <script type="module" nonce={nonce} src={clientUrl} async></script>
-        <script type="module" nonce={nonce} src={resolveUrl} async></script>
-        <script type="module" nonce={nonce} src={swapUrl} async></script>
         <script type="module" nonce={nonce} src={offlineUrl} async></script>
       </head>
       <body

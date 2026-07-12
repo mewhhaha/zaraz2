@@ -6,13 +6,16 @@ import {
   parseToken,
 } from "../helpers.js";
 import type { EnvAuth } from "../env";
+import type { ExecutionContext } from "@mewhhaha/ruwuter";
 
 export default async function ({
   request,
-  context: [env, ctx],
+  env,
+  executionContext,
 }: {
   request: Request;
-  context: readonly [env: EnvAuth, ctx: ExecutionContext];
+  env: EnvAuth;
+  executionContext: ExecutionContext;
 }) {
   const visited = extractVisitorHeaders(request.headers);
 
@@ -45,7 +48,7 @@ export default async function ({
 
   const user = env.USER.get(env.USER.idFromName(data.metadata.username));
   const account = user.account();
-  ctx.waitUntil(account.used(data.metadata.passkeyId));
+  executionContext.waitUntil(account.used(data.metadata.passkeyId));
 
   const cookie = createAuthCookie("auth", env.SECRET);
 

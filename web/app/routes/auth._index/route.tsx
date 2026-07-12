@@ -1,5 +1,4 @@
 import type { JSX } from "@mewhhaha/ruwuter/jsx-runtime";
-import { event, events } from "@mewhhaha/ruwuter/events";
 import {
   AuthExpiredError,
   createAuthCookie,
@@ -12,16 +11,13 @@ import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
 import { makePasskeyLink, type Account } from "../../objects/user";
-import {
-  authenticate as authenticateClient,
-  register as registerClient,
-} from "../../helpers/passkey";
 import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+import authController from "./auth.client.ts?url&no-inline";
+import { controllerAttributes } from "../../helpers/controller";
 
-const PASSKEYS_LIST_SELECTOR = "#passkeys-list";
-const DELETE_PASSKEY_CONFIRM = "Are you sure you want to delete this passkey?";
-const RENAME_PASSKEY_PROMPT = "What should we call this passkey?";
-const bgSrc = new URL("../../assets/happy.jpg", import.meta.url).pathname;
+import bgSrc from "../../assets/happy.jpg?url&no-inline";
+
+const authControllerAttributes = controllerAttributes(authController);
 
 class ParseError extends Error {}
 
@@ -76,7 +72,7 @@ const isDocumentRequest = (request: Request) => {
   );
 };
 
-export const action = async ({ request, context: [env] }: t.ActionArgs) => {
+export const action = async ({ request, env }: t.ActionArgs) => {
   const locale = getLocale(request);
   const timezone = getTimezone(request);
 
@@ -180,7 +176,7 @@ export const action = async ({ request, context: [env] }: t.ActionArgs) => {
   }
 };
 
-export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
+export const loader = async ({ request, env }: t.LoaderArgs) => {
   const url = new URL(request.url);
   const newState = url.searchParams.get("newState");
   if (newState === "closed") {
@@ -227,40 +223,24 @@ export const loader = async ({ request, context: [env] }: t.LoaderArgs) => {
 // Main component for the authentication route
 export default function Route({
   loaderData: { auth, account, locale, timezone, documentRequest },
-}: t.ComponentProps) {
+}: {
+  loaderData: Awaited<ReturnType<typeof loader>>;
+}) {
   const placement = documentRequest ? "page" : "anchored";
 
   if (!account) {
     const content = (
-      <>
+      <div {...authControllerAttributes}>
         {auth && (
           <input
             name="credentialId"
             type="hidden"
             value={auth.credentialId}
-            on={event.mount<HTMLInputElement>(async function (event, signal) {
-              "use client";
-              const input = event.currentTarget;
-              const token = await authenticateClient(
-                "/auth/challenge",
-                [input.value],
-                { signal },
-              );
-              const formData = new FormData();
-              formData.set("token", token);
-              const response = await fetch("/auth/verify", {
-                method: "POST",
-                body: formData,
-                signal,
-              });
-              if (response.ok) {
-                window.location.href = "/home";
-              }
-            })}
+            data-auth-credential
           />
         )}
         <SignedOut placement={placement} />
-      </>
+      </div>
     );
 
     return documentRequest ? <AuthPage>{content}</AuthPage> : content;
@@ -294,12 +274,12 @@ const SignedIn = ({
   timezone,
   placement,
 }: SignedInProps) => {
-  const registerAction = {
-    username: auth.username,
-  };
-
   return (
-    <OpenModal id="passkeys-settings" placement={placement}>
+    <OpenModal
+      id="passkeys-settings"
+      placement={placement}
+      {...authControllerAttributes}
+    >
       <div class={`flex items-start justify-between gap-4`}>
         <div>
           <p class={`font-mono text-base/7 text-amber-200 sm:text-sm/6`}>
@@ -346,38 +326,8 @@ const SignedIn = ({
           <form
             method="POST"
             action="/auth"
-            on={events(
-              registerAction,
-              event.submit<HTMLFormElement, typeof registerAction>(
-                async function (this, event, signal) {
-                  "use client";
-
-                  try {
-                    const token = await registerClient(
-                      "/auth/challenge",
-                      this.username,
-                      { signal },
-                    );
-                    const formData = new FormData(event.currentTarget);
-                    formData.set("token", token);
-
-                    const response = await fetch(event.currentTarget.action, {
-                      method: event.currentTarget.method,
-                      body: formData,
-                      signal,
-                    });
-                    await window.swap(response, {
-                      target: PASSKEYS_LIST_SELECTOR,
-                    });
-                  } catch {
-                    window.alert?.(
-                      "Something went wrong adding your passkey. Please try again.",
-                    );
-                  }
-                },
-                { preventDefault: true },
-              ),
-            )}
+            data-auth-action="register-passkey"
+            data-username={auth.username}
           >
             <input type="hidden" name="intent" value="register" />
             <button
@@ -401,37 +351,7 @@ const SignedIn = ({
         />
       </div>
 
-      <AuthButton
-        type="button"
-        variant="secondary"
-        on={event.click<HTMLButtonElement>(async function (ev, signal) {
-          "use client";
-
-          const button = ev.currentTarget;
-          if (button.disabled) {
-            return;
-          }
-          button.disabled = true;
-          const formData = new FormData();
-          formData.set("intent", "signout");
-          try {
-            const response = await fetch("/auth", {
-              method: "POST",
-              body: formData,
-              signal,
-            });
-            if (response.ok) {
-              window.location.href = "/";
-              return;
-            }
-            await window.swap(response, { target: "body", swap: "innerHTML" });
-          } catch {
-            window.alert?.("Could not sign you out. Please try again.");
-          } finally {
-            button.disabled = false;
-          }
-        })}
-      >
+      <AuthButton type="button" variant="secondary" data-auth-action="signout">
         Sign out
       </AuthButton>
     </OpenModal>
@@ -531,43 +451,8 @@ const DeleteButton = ({ passkeyId, auth }: DeleteButtonProps) => {
     <form
       method="POST"
       hidden={passkeyId === auth.passkeyId}
-      on={events(
-        { passkeyId },
-        event.submit<HTMLFormElement, { passkeyId: string }>(
-          async function (this, submitEvent, signal) {
-            "use client";
-            if (
-              !(submitEvent.currentTarget instanceof HTMLFormElement) ||
-              signal.aborted
-            ) {
-              return;
-            }
-
-            if (!window.confirm(DELETE_PASSKEY_CONFIRM)) {
-              return;
-            }
-
-            const formData = new FormData();
-            formData.set("id", this.passkeyId);
-
-            try {
-              const response = await fetch("/auth", {
-                method: "DELETE",
-                body: formData,
-                signal,
-              });
-              await window.swap(response, {
-                target: PASSKEYS_LIST_SELECTOR,
-              });
-            } catch {
-              window.alert?.(
-                "Failed to delete the passkey. Please try again in a moment.",
-              );
-            }
-          },
-          { preventDefault: true },
-        ),
-      )}
+      data-auth-action="delete"
+      data-passkey-id={passkeyId}
     >
       <IconButton
         type="submit"
@@ -592,45 +477,9 @@ const RenameButton = ({ passkeyId, currentName }: RenameButtonProps) => {
   return (
     <form
       method="POST"
-      on={events(
-        { passkeyId, currentName },
-        event.submit<
-          HTMLFormElement,
-          { passkeyId: string; currentName: string }
-        >(
-          async function (this, _submitEvent, signal) {
-            "use client";
-
-            const nextName = window.prompt(
-              RENAME_PASSKEY_PROMPT,
-              this.currentName,
-            );
-            if (!nextName) {
-              return;
-            }
-
-            const formData = new FormData();
-            formData.set("id", this.passkeyId);
-            formData.set("name", nextName);
-
-            try {
-              const response = await fetch("/auth", {
-                method: "PATCH",
-                body: formData,
-                signal,
-              });
-              await window.swap(response, {
-                target: PASSKEYS_LIST_SELECTOR,
-              });
-            } catch {
-              window.alert?.(
-                "Could not rename this passkey. Please try again.",
-              );
-            }
-          },
-          { preventDefault: true },
-        ),
-      )}
+      data-auth-action="rename"
+      data-passkey-id={passkeyId}
+      data-current-name={currentName}
     >
       <IconButton type="submit" aria-label="Rename passkey">
         <PencilIcon class={`pointer-events-none size-5`} />
@@ -650,43 +499,7 @@ const SignedOut = ({ placement }: SignedOutProps) => {
         <AuthButton
           type="button"
           variant="primary"
-          on={event.click<HTMLButtonElement>(
-            async function (ev, signal) {
-              "use client";
-              const button = ev.currentTarget;
-              if (button.disabled || signal.aborted) {
-                return;
-              }
-              button.disabled = true;
-              try {
-                const token = await authenticateClient(
-                  "/auth/challenge",
-                  undefined,
-                  { signal },
-                );
-                const formData = new FormData();
-                formData.set("token", token);
-                const response = await fetch("/auth/verify", {
-                  method: "POST",
-                  body: formData,
-                  signal,
-                });
-                if (response.ok) {
-                  window.location.href = "/";
-                  return;
-                } else {
-                  throw new Error(await response.text());
-                }
-              } catch {
-                window.alert?.(
-                  "Something went wrong signing you in. Please try again.",
-                );
-              } finally {
-                button.disabled = false;
-              }
-            },
-            { preventDefault: true },
-          )}
+          data-auth-action="authenticate"
           class={`
             w-full
           `}
@@ -698,53 +511,7 @@ const SignedOut = ({ placement }: SignedOutProps) => {
           method="POST"
           action="/auth"
           class={`flex w-full flex-col gap-3 border-t border-white/10 pt-5`}
-          on={event.submit<HTMLFormElement>(
-            async function (event, signal) {
-              "use client";
-
-              const formData = new FormData(event.currentTarget);
-              const submitter = event.submitter;
-              if (
-                submitter instanceof HTMLButtonElement &&
-                submitter.name &&
-                !formData.has(submitter.name)
-              ) {
-                formData.append(submitter.name, submitter.value);
-              }
-              const username = formData.get("username");
-              if (!username) {
-                window.alert?.("Please choose a username to continue.");
-                return;
-              }
-              try {
-                const token = await registerClient(
-                  "/auth/challenge",
-                  username.toString(),
-                  { signal },
-                );
-                formData.set("token", token);
-                const response = await fetch("/auth/register", {
-                  method: "POST",
-                  body: formData,
-                  signal,
-                });
-
-                if (response.ok) {
-                  window.location.href = "/";
-                } else {
-                  await window.swap(response, {
-                    target: "body",
-                    swap: "innerHTML",
-                  });
-                }
-              } catch {
-                window.alert?.(
-                  "We could not register you right now. Please try again.",
-                );
-              }
-            },
-            { preventDefault: true },
-          )}
+          data-auth-action="register-account"
         >
           <div class={`flex w-full flex-col gap-1.5`}>
             <label

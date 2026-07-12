@@ -8,7 +8,7 @@ type TaskEventBase = {
 export type TaskEvent = TaskEventBase &
   (
     | { type: "task.add"; taskId: string; text: string }
-    | { type: "task.done"; taskId?: string | undefined }
+    | { type: "task.done"; taskId?: string }
     | { type: "task.cycle" }
     | { type: "task.completed.set"; count: number }
   );
@@ -48,7 +48,8 @@ export const parseTaskEvent = (formData: FormData): TaskEvent | undefined => {
       return { ...base, type, taskId, text };
     }
     case "task.done": {
-      return { ...base, type, taskId: field("event_task_id") || undefined };
+      const taskId = field("event_task_id");
+      return { ...base, type, ...(taskId ? { taskId } : {}) };
     }
     case "task.cycle": {
       return { ...base, type };
@@ -82,7 +83,7 @@ export const createFallbackTaskEvent = (
   }
 
   if (intent === "done") {
-    return { ...base, type: "task.done", taskId: id || undefined };
+    return { ...base, type: "task.done", ...(id ? { taskId: id } : {}) };
   }
 
   if (intent === "cycle") {

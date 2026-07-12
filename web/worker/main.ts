@@ -1,4 +1,4 @@
-import { routes } from "../app/routes.mjs";
+import { routes } from "../app/routes.ts";
 import { Router, type Env } from "@mewhhaha/ruwuter";
 import { SERVICE_WORKER_SOURCE } from "./sw";
 
