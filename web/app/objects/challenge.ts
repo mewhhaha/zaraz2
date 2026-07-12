@@ -26,11 +26,7 @@ export class DurableObjectChallenge extends DurableObject<Env> {
   }
 
   async save(state: unknown) {
-    const exists = await this.store.get("#data").then(
-      () => true,
-      () => false,
-    );
-    if (exists) {
+    if (await this.store.has("#data")) {
       return "challenge_exists" as const;
     }
 
@@ -46,20 +42,17 @@ export class DurableObjectChallenge extends DurableObject<Env> {
     await Promise.all([
       this.ctx.storage.deleteAlarm(),
       this.ctx.storage.deleteAll(),
-      this.store.delete("#data"),
-      this.store.delete("#createdAt"),
     ]);
+    this.store.clear();
   }
 
   async finish() {
-    let state: unknown;
-    try {
-      state = await this.store.get("#data");
-    } catch {
+    const state = await this.store.tryGet("#data");
+    if (state === undefined) {
       return "challenge_not_found" as const;
     }
 
-    const createdAt = await this.store.get("#createdAt").catch(() => undefined);
+    const createdAt = await this.store.tryGet("#createdAt");
     const expired =
       createdAt === undefined ||
       Date.now() - new Date(createdAt).getTime() > CHALLENGE_TTL_MS;
@@ -67,9 +60,8 @@ export class DurableObjectChallenge extends DurableObject<Env> {
     await Promise.all([
       this.ctx.storage.deleteAll(),
       this.ctx.storage.deleteAlarm(),
-      this.store.delete("#data"),
-      this.store.delete("#createdAt"),
     ]);
+    this.store.clear();
 
     if (expired) {
       return "challenge_expired" as const;

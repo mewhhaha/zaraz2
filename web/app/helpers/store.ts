@@ -12,23 +12,33 @@ export class DurableStore<Schema extends Record<string, unknown>> {
     private readonly loaders: Loaders<Schema>,
   ) {}
 
-  async get<Key extends keyof Schema>(key: Key) {
+  async tryGet<Key extends keyof Schema>(
+    key: Key,
+  ): Promise<Schema[Key] | undefined> {
     if (!this.cache.has(key)) {
       const loader = this.loaders[key];
       if (!loader) throw new Error(`No loader for ${String(key)}`);
       const value = await loader();
-      if (value === undefined) {
-        this.cache.set(key, MISS);
-        throw new Error(`Durable store key ${String(key)} not loaded`);
-      }
-      this.cache.set(key, value as Schema[keyof Schema]);
+      this.cache.set(key, value === undefined ? MISS : value);
     }
 
     const cached = this.cache.get(key);
     if (cached === MISS || cached === undefined) {
-      throw new Error(`Durable store key ${String(key)} not loaded`);
+      return undefined;
     }
     return cached as Schema[Key];
+  }
+
+  async get<Key extends keyof Schema>(key: Key): Promise<Schema[Key]> {
+    const value = await this.tryGet(key);
+    if (value === undefined) {
+      throw new Error(`Durable store key ${String(key)} not loaded`);
+    }
+    return value;
+  }
+
+  async has<Key extends keyof Schema>(key: Key): Promise<boolean> {
+    return (await this.tryGet(key)) !== undefined;
   }
 
   async set<Key extends keyof Schema>(key: Key, value: Schema[Key]) {
@@ -39,6 +49,11 @@ export class DurableStore<Schema extends Record<string, unknown>> {
   async delete<Key extends keyof Schema>(key: Key) {
     this.cache.set(key, MISS);
     await this.storage.delete(String(key));
+  }
+
+  /** Drop every cached value, e.g. after `storage.deleteAll()`. */
+  clear() {
+    this.cache.clear();
   }
 }
 

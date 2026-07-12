@@ -5,7 +5,7 @@ import {
   on,
   type Controller,
 } from "@mewhhaha/ruwuter/browser";
-import { swapHtml } from "../../helpers/client-swap";
+import { parseHtml, swapHtml } from "../../helpers/client-swap";
 import type { TaskEvent } from "../../helpers/task-events";
 
 export type HomeController = {
@@ -94,13 +94,39 @@ const homeController: Controller<undefined, HomeController["refs"]> =
             body: formData,
             signal,
           });
+          if (!response.ok) {
+            throw new Error(`Task update failed with status ${response.status}.`);
+          }
+
+          const queuedOffline = response.headers.get("X-Offline-Queued") === "1";
+          const contentType = response.headers.get("Content-Type") ?? "";
+          if (queuedOffline && !contentType.includes("text/html")) {
+            // The service worker accepted the action into its outbox but has
+            // no cached page to patch; keep the current view.
+            return;
+          }
+
+          const html = await response.text();
+          // Swap only the home fragment so controllers, focus, and scroll
+          // outside of it survive; fall back to the body for other pages.
+          const nextRoot = parseHtml(html).querySelector("#home-root");
+          const currentRoot = document.querySelector("#home-root");
           const performSwap = () =>
-            swapHtml(response, {
-              target: "body",
-              write: "innerHTML",
-              init: { signal },
-              viewTransition: false,
-            });
+            nextRoot && currentRoot
+              ? swapHtml(undefined, {
+                  target: currentRoot,
+                  write: "outerHTML",
+                  unsafeHTML: nextRoot.outerHTML,
+                })
+              : swapHtml(
+                  { text: () => Promise.resolve(html) },
+                  {
+                    target: "body",
+                    write: "innerHTML",
+                    init: { signal },
+                    viewTransition: false,
+                  },
+                );
           if (typeof document.startViewTransition === "function") {
             let swapPromise: Promise<unknown> | undefined;
             const viewTransition = document.startViewTransition(() => {
@@ -128,7 +154,9 @@ const homeController: Controller<undefined, HomeController["refs"]> =
           )) {
             transition.removeAttribute("data-view-transition");
           }
-        } catch {
+        } catch (error) {
+          if (signal.aborted) return;
+          console.error(error);
           window.alert?.(
             "We could not update your tasks right now. Please try again.",
           );

@@ -61,11 +61,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
   }
 
   async register({ json, visited, username, challengeId }: Registration) {
-    const exists = await this.store.get("#metadata").then(
-      () => true,
-      () => false,
-    );
-    if (exists) {
+    if (await this.store.has("#metadata")) {
       return "passkey_exists" as const;
     }
 
@@ -132,7 +128,7 @@ export class DurableObjectPasskey extends DurableObject<Env> {
 
   /** self destruct the passkey, deleting all the data */
   async destruct(username: string) {
-    const metadata = await this.store.get("#metadata").catch(() => undefined);
+    const metadata = await this.store.tryGet("#metadata");
     if (!metadata || username !== metadata.username) {
       return "unauthorized" as const;
     }
@@ -140,11 +136,8 @@ export class DurableObjectPasskey extends DurableObject<Env> {
     await Promise.all([
       this.ctx.storage.deleteAll(),
       this.ctx.storage.deleteAlarm(),
-      this.store.delete("#metadata"),
-      this.store.delete("#credential"),
-      this.store.delete("#visitors"),
-      this.store.delete("#authenticator"),
     ]);
+    this.store.clear();
 
     return { metadata };
   }

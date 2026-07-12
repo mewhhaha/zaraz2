@@ -1,4 +1,10 @@
-import { createAuthCookie, ensurePasskeyLinked, expires } from "../helpers.js";
+import {
+  createAuthCookie,
+  ensurePasskeyLinked,
+  expires,
+  issuedAt,
+  MAX_SESSION_AGE_MS,
+} from "../helpers.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -19,6 +25,20 @@ export default async function ({
     throw new Response("invalid_cookie", { status: 401 });
   }
 
+  // Sliding refresh must not extend a session forever: past the absolute
+  // ceiling the user has to sign in with their passkey again.
+  if (
+    user.issuedAt &&
+    Date.now() - new Date(user.issuedAt).getTime() > MAX_SESSION_AGE_MS
+  ) {
+    return new Response("session_expired", {
+      status: 401,
+      headers: {
+        "Set-Cookie": cookie.destroy(),
+      },
+    });
+  }
+
   try {
     await ensurePasskeyLinked(env.USER, user);
   } catch {
@@ -31,6 +51,8 @@ export default async function ({
   }
 
   user.expires = expires();
+  // Older cookies predate issuedAt; start their ceiling from this refresh.
+  user.issuedAt ??= issuedAt();
 
   return new Response(JSON.stringify({ expires: user.expires }), {
     status: 200,

@@ -2,12 +2,15 @@ import {
   decodeJsonPayload,
   encodeJsonPayload,
 } from "../../helpers/json-payload";
+import type { VisitedHeaders } from "../../helpers/visited";
 import type { Account, DurableObjectUser } from "../../objects/user";
+import { makePasskeyLink } from "../../objects/passkey-link";
+import type { DurableObjectChallenge } from "../../objects/challenge";
+import type { DurableObjectPasskey } from "../../objects/passkey";
+import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 
-export {
-  extractVisitedHeaders as extractVisitorHeaders,
-  type VisitedHeaders,
-} from "../../helpers/visited";
+export { extractVisitedHeaders as extractVisitorHeaders } from "../../helpers/visited";
+export type { VisitedHeaders };
 
 // Cookie implementation
 interface CookieSerializeOptions {
@@ -135,6 +138,8 @@ export type Auth = {
   passkeyId: string;
   credentialId: string;
   expires: string;
+  /** When the session was first established; refreshes keep this fixed. */
+  issuedAt?: string;
 };
 
 export class AuthExpiredError extends Error {
@@ -186,18 +191,103 @@ export const ensurePasskeyLinked = async (
   return account;
 };
 
-export const requireAuth = async (
+const requireAuthCache = new WeakMap<
+  Request,
+  Promise<{ auth: Auth; account: Account }>
+>();
+
+export const requireAuth = (
   request: Request,
   secret: string,
   users: DurableObjectNamespace<DurableObjectUser>,
-) => {
-  const auth = await authenticate(request, secret);
-  const account = await ensurePasskeyLinked(users, auth);
-  return { auth, account };
+): Promise<{ auth: Auth; account: Account }> => {
+  let pending = requireAuthCache.get(request);
+  if (!pending) {
+    pending = (async () => {
+      const auth = await authenticate(request, secret);
+      const account = await ensurePasskeyLinked(users, auth);
+      return { auth, account };
+    })();
+    requireAuthCache.set(request, pending);
+  }
+  return pending;
 };
 
+/** Sliding window: each refresh pushes expiry this far out. */
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+/** Absolute ceiling: refreshes stop working this long after sign-in. */
+export const MAX_SESSION_AGE_MS = 1000 * 60 * 60 * 24 * 90;
+
 export const expires = () => {
-  return new Date(Date.now() + 1000 * 60 * 60 * 60 * 10).toISOString();
+  return new Date(Date.now() + SESSION_TTL_MS).toISOString();
+};
+
+export const issuedAt = () => new Date().toISOString();
+
+/**
+ * Credential IDs arrive unauthenticated and are used with `idFromName`, so
+ * bound them to plausible base64url before instantiating a Durable Object.
+ */
+export const isCredentialId = (value: string): boolean =>
+  /^[a-zA-Z0-9_-]{16,1024}$/.test(value);
+
+type RegisterPasskeyArgs = {
+  token: string;
+  username: string;
+  secret: string;
+  visited: VisitedHeaders;
+  challenges: DurableObjectNamespace<DurableObjectChallenge>;
+  passkeys: DurableObjectNamespace<DurableObjectPasskey>;
+};
+
+/**
+ * Shared verification path for both account registration and adding a
+ * passkey: parse the signed token, consume the challenge, verify the
+ * credential, and persist it. Throws a `Response` on any failure.
+ */
+export const registerPasskeyWithToken = async ({
+  token,
+  username,
+  secret,
+  visited,
+  challenges,
+  passkeys,
+}: RegisterPasskeyArgs) => {
+  const { json, challengeId } = await parseToken<RegistrationJSON>(
+    token,
+    secret,
+  );
+
+  const challenge = await challenges
+    .get(challenges.idFromString(challengeId))
+    .finish();
+  if (typeof challenge === "string") {
+    throw new Response(challenge, { status: 400 });
+  }
+
+  const credentialId = json.id;
+  if (!isCredentialId(credentialId)) {
+    throw new Response("credential_invalid", { status: 400 });
+  }
+
+  const passkey = passkeys.get(passkeys.idFromName(credentialId));
+  const data = await passkey.register({
+    username,
+    json,
+    challengeId,
+    visited,
+  });
+  if (typeof data === "string") {
+    throw new Response(data, { status: 400 });
+  }
+
+  const passkeyLink = makePasskeyLink({
+    passkeyId: passkey.id,
+    credentialId,
+    username,
+  });
+
+  return { passkey, passkeyLink, credentialId };
 };
 
 export const parseToken = async <T>(

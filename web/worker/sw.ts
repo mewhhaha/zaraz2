@@ -189,11 +189,23 @@ const applyHomeEvent = (html, event) => {
 };
 
 const parseEventFromBody = async (request, bodyRequest) => {
+  // Controller submissions post multipart FormData; no-JS form posts are
+  // urlencoded. Both must patch the cached page the same way.
   const contentType = request.headers.get("Content-Type") || "";
-  if (!contentType.includes("application/x-www-form-urlencoded")) {
+  let params;
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await bodyRequest.formData();
+    params = {
+      get(key) {
+        const value = formData.get(key);
+        return typeof value === "string" ? value : null;
+      },
+    };
+  } else if (contentType.includes("application/x-www-form-urlencoded")) {
+    params = new URLSearchParams(await bodyRequest.text());
+  } else {
     return null;
   }
-  const params = new URLSearchParams(await bodyRequest.text());
   let type = params.get("event_type");
   let taskId = params.get("event_task_id");
   let text = params.get("event_text");

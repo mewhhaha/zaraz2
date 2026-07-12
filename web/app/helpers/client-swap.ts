@@ -34,3 +34,14 @@ export const swapHtml = (
     policy === undefined ? options : { ...options, trustedTypesPolicy: policy },
   );
 };
+
+/**
+ * Parse an HTML string into an inert `Document`, going through the shared
+ * Trusted Types policy since `DOMParser.parseFromString` is an enforced sink
+ * under `require-trusted-types-for 'script'`.
+ */
+export const parseHtml = (html: string): Document => {
+  const policy = trustedTypesPolicy();
+  const value = policy ? policy.createHTML(html) : html;
+  return new DOMParser().parseFromString(value as string, "text/html");
+};
