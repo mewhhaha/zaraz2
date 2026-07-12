@@ -16,9 +16,11 @@ declare module "@mewhhaha/ruwuter" {
 
 const handler: ExportedHandler<Env> = {
   fetch: (request, env, ctx) => {
-    if (!env.DEMO) {
-      env.nonce = generateNonce();
-    }
+    // `env` is shared across concurrent requests; never mutate it. Each
+    // request gets its own copy so the CSP nonce can't leak between them.
+    const requestEnv: Env = env.DEMO
+      ? env
+      : { ...env, nonce: generateNonce() };
 
     const url = new URL(request.url);
     if (url.pathname === "/sw.js") {
@@ -32,7 +34,7 @@ const handler: ExportedHandler<Env> = {
       });
     }
 
-    return router.handle(request, env, ctx);
+    return router.handle(request, requestEnv, ctx);
   },
 };
 

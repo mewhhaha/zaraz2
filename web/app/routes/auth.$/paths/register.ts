@@ -1,11 +1,10 @@
-import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types.js";
 import {
   createAuthCookie,
   expires,
   extractVisitorHeaders,
-  parseToken,
+  issuedAt,
+  registerPasskeyWithToken,
 } from "../helpers.js";
-import { makePasskeyLink } from "../../../objects/user.js";
 import type { EnvAuth } from "../env";
 
 export default async function ({
@@ -19,50 +18,32 @@ export default async function ({
 
   const { token, username } = await parseFormData(request);
 
-  const { json, challengeId } = await parseToken<RegistrationJSON>(
-    token,
-    env.SECRET,
-  );
-
-  const challenge = await env.CHALLENGE.get(
-    env.CHALLENGE.idFromString(challengeId),
-  ).finish();
-  if (typeof challenge === "string") {
-    throw new Response(challenge, { status: 400 });
-  }
-
-  const credentialName = json.id;
-  const passkey = env.PASSKEY.get(env.PASSKEY.idFromName(credentialName));
   const user = env.USER.get(env.USER.idFromName(username));
-
   if (await user.exists()) {
     throw new Response("user_exists", { status: 409 });
   }
 
-  const data = await passkey.register({
-    username,
-    json,
-    challengeId,
-    visited,
-  });
-
-  if (typeof data === "string") {
-    throw new Response(data, { status: 400 });
-  }
-
-  const passkeyLink = makePasskeyLink({
-    passkeyId: passkey.id,
-    credentialId: credentialName,
-    username,
-  });
+  const { passkey, passkeyLink, credentialId } = await registerPasskeyWithToken(
+    {
+      token,
+      username,
+      secret: env.SECRET,
+      visited,
+      challenges: env.CHALLENGE,
+      passkeys: env.PASSKEY,
+    },
+  );
 
   const created = await user.create({
     username,
     passkeys: [passkeyLink],
   });
-  if (!created) {
+  if (typeof created === "string") {
+    // Lost a race for the username; don't leave the verified passkey behind.
+    await passkey.destruct(username);
     throw new Response("user_exists", { status: 409 });
   }
+
   const cookie = createAuthCookie("auth", env.SECRET);
 
   return new Response(null, {
@@ -71,8 +52,9 @@ export default async function ({
       "Set-Cookie": await cookie.serialize({
         username,
         passkeyId: passkey.id.toString(),
-        credentialId: credentialName,
+        credentialId,
         expires: expires(),
+        issuedAt: issuedAt(),
       }),
     },
   });

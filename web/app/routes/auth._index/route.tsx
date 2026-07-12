@@ -3,15 +3,14 @@ import {
   AuthExpiredError,
   createAuthCookie,
   extractVisitorHeaders,
-  parseToken,
+  registerPasskeyWithToken,
   requireAuth,
   type Auth,
 } from "../auth.$/helpers.ts";
 import type { Route as t } from "./+types.route";
 import { cx } from "../../helpers/style";
 import { ClosedModal, OpenModal } from "./components/Modal";
-import { makePasskeyLink, type Account } from "../../objects/user";
-import type { RegistrationJSON } from "@passwordless-id/webauthn/dist/esm/types";
+import type { Account } from "../../objects/user";
 import authController from "./auth.client.ts?url&no-inline";
 import { controllerAttributes } from "../../helpers/controller";
 
@@ -137,38 +136,13 @@ export const action = async ({ request, env }: t.ActionArgs) => {
       return new Response(fd.message, { status: 400 });
     }
 
-    const { json, challengeId } = await parseToken<RegistrationJSON>(
-      fd.token,
-      env.SECRET_KEY,
-    );
-
-    const challenge = await env.OBJECT_CHALLENGE.get(
-      env.OBJECT_CHALLENGE.idFromString(challengeId),
-    ).finish();
-    if (typeof challenge === "string") {
-      throw new Response(challenge, { status: 400 });
-    }
-
-    const credentialName = json.id;
-    const passkey = env.OBJECT_PASSKEY.get(
-      env.OBJECT_PASSKEY.idFromName(credentialName),
-    );
-
-    const data = await passkey.register({
+    const { passkeyLink } = await registerPasskeyWithToken({
+      token: fd.token,
       username,
-      json,
-      challengeId,
+      secret: env.SECRET_KEY,
       visited,
-    });
-
-    if (typeof data === "string") {
-      throw new Response(data, { status: 400 });
-    }
-
-    const passkeyLink = makePasskeyLink({
-      passkeyId: passkey.id,
-      credentialId: credentialName,
-      username,
+      challenges: env.OBJECT_CHALLENGE,
+      passkeys: env.OBJECT_PASSKEY,
     });
 
     const { passkeys } = await account.link(passkeyLink);

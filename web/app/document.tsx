@@ -15,7 +15,7 @@ export const loader = ({ env }: t.LoaderArgs) => {
 
 type DocumentLoaderData = Awaited<ReturnType<typeof loader>>;
 
-export const headers: RuwuterHeaders = ({ loaderData, env }) => {
+export const headers: RuwuterHeaders = ({ loaderData }) => {
   const { nonce } = loaderData as DocumentLoaderData;
   const headers = new Headers();
   headers.set("Strict-Transport-Security", "max-age=31536000");
@@ -24,7 +24,10 @@ export const headers: RuwuterHeaders = ({ loaderData, env }) => {
     headers.set(
       "Content-Security-Policy",
       `
-script-src 'strict-dynamic' 'nonce-${env.nonce}' 'unsafe-inline' http: https:;
+script-src 'strict-dynamic' 'nonce-${nonce}' 'unsafe-inline' http: https:;
+style-src 'self' 'unsafe-inline';
+connect-src 'self';
+frame-ancestors 'none';
 object-src 'none';
 base-uri 'none';
 worker-src 'self';
@@ -48,17 +51,11 @@ export default function Document({
       <head>
         <title>zaraz-2</title>
         <meta charset="UTF-8"></meta>
-        <link rel="icon" type="image/svg" href={iconUrl}></link>
+        <link rel="icon" type="image/x-icon" href={iconUrl}></link>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover"
         ></meta>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin=""
-        />
         <link rel="stylesheet" href={stylesUrl} />
         <script nonce={nonce} src={cmdUrl} async></script>
         <script type="module" nonce={nonce} src={clientUrl} async></script>

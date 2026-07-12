@@ -3,14 +3,9 @@ import { DurableObject, RpcTarget } from "cloudflare:workers";
 import { createStore, DurableStore } from "../helpers/store";
 import type { TaskEvent } from "../helpers/task-events";
 
-type PasskeyLink = {
-  name: string;
-  credentialId: string;
-  username: string;
-  passkeyId: string;
-  createdAt: Date;
-  lastUsedAt: Date;
-};
+import { type PasskeyLink } from "./passkey-link";
+
+export { makePasskeyLink, type PasskeyLink } from "./passkey-link";
 
 export type Account = {
   username: string;
@@ -164,12 +159,17 @@ export class DurableObjectUser extends DurableObject<Env> {
       return;
     }
 
+    if (await this.ctx.storage.get<boolean>("#migrated")) {
+      return;
+    }
+
     const [legacyTasks, legacyCompleted] = await Promise.all([
       this.ctx.storage.get<Map<string, Task>>("#tasks"),
       this.ctx.storage.get<number>("#completed"),
     ]);
 
     if (!legacyTasks && !legacyCompleted) {
+      await this.ctx.storage.put("#migrated", true);
       return;
     }
 
@@ -214,14 +214,12 @@ export class DurableObjectUser extends DurableObject<Env> {
     await Promise.all([
       this.ctx.storage.delete("#tasks"),
       this.ctx.storage.delete("#completed"),
+      this.ctx.storage.put("#migrated", true),
     ]);
   }
 
   async exists() {
-    return this.store.get("#account").then(
-      () => true,
-      () => false,
-    );
+    return this.store.has("#account");
   }
 
   async create(account: Account) {
@@ -284,27 +282,6 @@ export class DurableObjectUser extends DurableObject<Env> {
 }
 
 const eventBucketKey = (bucket: number) => `events#${bucket}`;
-
-export const makePasskeyLink = ({
-  passkeyId,
-  credentialId,
-  username,
-}: {
-  passkeyId: DurableObjectId | string;
-  credentialId: string;
-  username: string;
-}): PasskeyLink => {
-  const passkeyIdString = passkeyId.toString();
-  const date = new Date();
-  return {
-    passkeyId: passkeyIdString,
-    credentialId,
-    username,
-    createdAt: date,
-    lastUsedAt: date,
-    name: `passkey-${passkeyIdString.slice(0, 3) + passkeyIdString.slice(-3)}`,
-  };
-};
 
 type TaskState = {
   tasks: Task[];

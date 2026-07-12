@@ -10,6 +10,33 @@ import { swapHtml } from "../../helpers/client-swap";
 
 const passkeys = "#passkeys-list";
 
+const describeAuthError = (code: string): string => {
+  switch (code.trim()) {
+    case "user_exists":
+      return "That username is already taken. Please pick another one.";
+    case "challenge_expired":
+    case "challenge_not_found":
+      return "That took a little too long and the request expired. Please try again.";
+    case "registration_failed":
+    case "credential_invalid":
+      return "We could not verify that passkey. Please try again.";
+    case "authentication_failed":
+      return "We could not sign you in with that passkey. Please try again.";
+    case "passkey_exists":
+      return "That passkey is already registered.";
+    default:
+      return "We could not complete that passkey action. Please try again.";
+  }
+};
+
+const alertResponseError = async (response: Response) => {
+  const text = await response.text().catch(() => "");
+  console.error(
+    `Auth request failed with status ${response.status}: ${text || "<empty body>"}`,
+  );
+  window.alert?.(describeAuthError(text));
+};
+
 const authController: Controller<undefined> = defineController(
   ({ root, signal }) => {
     const submit = async (
@@ -18,30 +45,12 @@ const authController: Controller<undefined> = defineController(
       body: FormData,
     ) => {
       const response = await fetch("/auth", { method, body, signal });
+      if (!response.ok) {
+        await alertResponseError(response);
+        return;
+      }
       await swapHtml(response, { target: passkeys, write: "innerHTML" });
     };
-
-    const credential = root.querySelector<HTMLInputElement>(
-      "[data-auth-credential]",
-    );
-    if (credential) {
-      void (async () => {
-        try {
-          const token = await authenticate(
-            "/auth/challenge",
-            [credential.value],
-            { signal },
-          );
-          const body = new FormData();
-          body.set("token", token);
-          if (
-            (await fetch("/auth/verify", { method: "POST", body, signal })).ok
-          ) {
-            window.location.href = "/home";
-          }
-        } catch {}
-      })();
-    }
 
     on(root).click(
       async (event) => {
@@ -70,7 +79,9 @@ const authController: Controller<undefined> = defineController(
               return;
             }
             throw new Error(`Sign-out failed with status ${response.status}.`);
-          } catch {
+          } catch (error) {
+            if (signal.aborted) return;
+            console.error(error);
             window.alert?.("Could not sign you out. Please try again.");
           } finally {
             target.removeAttribute("disabled");
@@ -80,16 +91,31 @@ const authController: Controller<undefined> = defineController(
         if (action === "authenticate") {
           target.setAttribute("disabled", "");
           try {
-            const token = await authenticate("/auth/challenge", undefined, {
-              signal,
-            });
+            // A hidden credential input marks an expired session; hint the
+            // authenticator at the matching passkey instead of a picker.
+            const credential = root.querySelector<HTMLInputElement>(
+              "[data-auth-credential]",
+            );
+            const token = await authenticate(
+              "/auth/challenge",
+              credential?.value ? [credential.value] : undefined,
+              { signal },
+            );
             const body = new FormData();
             body.set("token", token);
-            if (
-              (await fetch("/auth/verify", { method: "POST", body, signal })).ok
-            )
+            const response = await fetch("/auth/verify", {
+              method: "POST",
+              body,
+              signal,
+            });
+            if (response.ok) {
               window.location.href = "/";
-          } catch {
+            } else {
+              await alertResponseError(response);
+            }
+          } catch (error) {
+            if (signal.aborted) return;
+            console.error(error);
             window.alert?.(
               "Something went wrong signing you in. Please try again.",
             );
@@ -143,6 +169,17 @@ const authController: Controller<undefined> = defineController(
               window.alert?.("Please choose a username to continue.");
               return;
             }
+            // Reject a taken handle BEFORE the WebAuthn ceremony, so the
+            // password manager never stores a passkey the server refuses.
+            const availability = await fetch("/auth/exists", {
+              method: "POST",
+              body,
+              signal,
+            });
+            if (!availability.ok) {
+              await alertResponseError(availability);
+              return;
+            }
             body.set(
               "token",
               await register("/auth/challenge", username, { signal }),
@@ -152,11 +189,15 @@ const authController: Controller<undefined> = defineController(
               body,
               signal,
             });
-            if (response.ok) window.location.href = "/";
-            else
-              await swapHtml(response, { target: "body", write: "innerHTML" });
+            if (response.ok) {
+              window.location.href = "/";
+            } else {
+              await alertResponseError(response);
+            }
           }
-        } catch {
+        } catch (error) {
+          if (signal.aborted) return;
+          console.error(error);
           window.alert?.(
             "We could not complete that passkey action. Please try again.",
           );

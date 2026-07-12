@@ -1,6 +1,7 @@
 import type { RequestContext } from "@mewhhaha/ruwuter";
 import register from "./paths/register";
 import challenge from "./paths/challenge";
+import exists from "./paths/exists";
 import refresh from "./paths/refresh";
 import verify from "./paths/verify";
 import type { EnvAuth } from "./env";
@@ -10,6 +11,7 @@ const paths = {
   "/challenge": challenge,
   "/verify": verify,
   "/register": register,
+  "/exists": exists,
 };
 
 export const action = async ({

@@ -3,6 +3,8 @@ import {
   createAuthCookie,
   expires,
   extractVisitorHeaders,
+  isCredentialId,
+  issuedAt,
   parseToken,
 } from "../helpers.js";
 import type { EnvAuth } from "../env";
@@ -38,6 +40,9 @@ export default async function ({
   }
 
   const credentialName = json.id;
+  if (!isCredentialId(credentialName)) {
+    throw new Response("credential_invalid", { status: 400 });
+  }
   const passkey = env.PASSKEY.get(env.PASSKEY.idFromName(credentialName));
 
   const payload = { challengeId, visited, json };
@@ -60,6 +65,7 @@ export default async function ({
         passkeyId: data.metadata.passkeyId,
         credentialId: data.metadata.credentialId,
         expires: expires(),
+        issuedAt: issuedAt(),
       }),
     },
   });
